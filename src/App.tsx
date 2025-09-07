@@ -11,7 +11,6 @@ function App() {
 
   const [chessPosition, setChessPosition] = useState(chessGame.fen());
 
-  const [fen, setFen] = useState(chessRef.current.fen());
   const [gameId, setGameId] = useState<string | null>(null);
   const [playerColor, setPlayerColor] = useState<"white" | "black">("white");
   const [currentTurn, setCurrentTurn] = useState<"white" | "black">("white");
@@ -41,7 +40,7 @@ function App() {
 
         if (message.action === "chat") {
           console.log("chat", message);
-          const chatText = `${message.sender || 'Player'}: ${message.message}`;
+          const chatText = `Rat: ${message.message}`;
           setChatLog((prevLog) => [...prevLog, chatText]);
 
         }
@@ -97,6 +96,8 @@ function App() {
     console.log("Preparing to Send Chat")
     if (gameId && socketRef.current?.readyState === WebSocket.OPEN) {
       console.log("Sending Chat")
+      const chatText = `Player: ${message}`;
+      setChatLog((prevLog) => [...prevLog, chatText]);
       socketRef.current.send(
         JSON.stringify({
           action: "chat",
