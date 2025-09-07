@@ -14,6 +14,7 @@ function App() {
   const [fen, setFen] = useState(chessRef.current.fen());
   const [gameId, setGameId] = useState<string | null>(null);
   const [playerColor, setPlayerColor] = useState<"white" | "black">("white");
+  const [currentTurn, setCurrentTurn] = useState<"white" | "black">("white");
 
   useEffect(() => {
     const socket = new WebSocket(WEBSOCKET_URL);
@@ -33,6 +34,7 @@ function App() {
           console.log("startGame", message);
           setGameId(message.gameId);
           setPlayerColor(message.color);
+          setCurrentTurn(message.turn);
         }
 
         if (message.action === "oppMove") {
@@ -45,6 +47,7 @@ function App() {
           console.log("Made Opponent Move");
           setChessPosition(chessGame.fen());
           console.log("Updated Fen");
+          setCurrentTurn(message.turn);
         }
       } catch (e) {
         console.error("Failed to parse WebSocket message:", event.data);
@@ -82,6 +85,10 @@ function App() {
 
   const onPieceDrop = (source: object, target: object) => {
     console.log("Dropped Piece")
+    if (playerColor != currentTurn) {
+      console.log("Not your turn!");
+      return;
+    }
     try {
       console.log(source)
       const sourceSquare = source.sourceSquare;
@@ -95,6 +102,7 @@ function App() {
       // update the game state
       setChessPosition(chessGame.fen());
       sendMove(`${sourceSquare}${targetSquare}`)
+      setCurrentTurn((prevColor) => (prevColor === "white" ? "black" : "white"));
     } catch (e) {
       console.error("Illegal move", e);
     }
@@ -104,6 +112,7 @@ function App() {
   // chessboard options
   const chessboardOptions = {
     position: chessPosition,
+    boardOrientation: playerColor,
     onPieceDrop,
     id: 'on-piece-drop'
   };
