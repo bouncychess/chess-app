@@ -126,7 +126,7 @@ function App() {
       });
       // update the game state
       setChessPosition(chessGame.fen());
-      sendMove(`${sourceSquare}${targetSquare}`)
+      sendMove(`${sourceSquare}${targetSquare}q`)
       setCurrentTurn((prevColor) => (prevColor === "white" ? "black" : "white"));
     } catch (e) {
       console.error("Illegal move", e);
