@@ -15,6 +15,7 @@ function App() {
   const [gameId, setGameId] = useState<string | null>(null);
   const [playerColor, setPlayerColor] = useState<"white" | "black">("white");
   const [currentTurn, setCurrentTurn] = useState<"white" | "black">("white");
+  const [text, setText] = useState<string>('');
 
   useEffect(() => {
     const socket = new WebSocket(WEBSOCKET_URL);
@@ -35,6 +36,10 @@ function App() {
           setGameId(message.gameId);
           setPlayerColor(message.color);
           setCurrentTurn(message.turn);
+        }
+
+        if (message.action === "chat") {
+          console.log("chat", message);
         }
 
         if (message.action === "oppMove") {
@@ -78,6 +83,21 @@ function App() {
           action: "move",
           gameId: gameId,
           move: moveStr,
+          time: new Date().toISOString()
+        })
+      );
+    }
+  };
+
+  const sendChat = (message: string) => {
+    console.log("Preparing to Send Chat")
+    if (gameId && socketRef.current?.readyState === WebSocket.OPEN) {
+      console.log("Sending Chat")
+      socketRef.current.send(
+        JSON.stringify({
+          action: "chat",
+          gameId: gameId,
+          message: message
         })
       );
     }
@@ -109,6 +129,16 @@ function App() {
     return false;
   };
 
+  const onChat = (message: string) => {
+    try {
+      console.log("Chatted", message)
+      sendChat(message=message);
+    } catch (e) {
+      console.error("Failed to send chat", e);
+    }
+    return false;
+  };
+
   // chessboard options
   const chessboardOptions = {
     position: chessPosition,
@@ -124,6 +154,20 @@ function App() {
       <div style={{ maxWidth: 480 }}>
           <Chessboard options={chessboardOptions} />
       </div>
+      <div>
+        <input
+          type="text"
+          placeholder="Type message..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              onChat(text);
+              setText('');
+            }
+          }}
+        />
+    </div>
     </div>
   );
 }
