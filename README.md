@@ -1,3 +1,13 @@
+# Setup
+1) navigate to your chesstard directory (For me it's `cd ~/dev/chesstard`)
+2) clone chesstard-app `git@github.com:chesstard/chesstard-app.git`
+3) go into chesstard-app `cd chesstard-app`
+4) install dependencies `npm install`
+5) start app `npm run dev`
+
+
+
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
