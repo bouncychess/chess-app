@@ -16,6 +16,7 @@ function App() {
   const [currentTurn, setCurrentTurn] = useState<"white" | "black">("white");
   const [text, setText] = useState<string>('');
   const [chatLog, setChatLog] = useState<string[]>([]);
+  const moveSound = new Audio('/sounds/move.mp3');
 
   useEffect(() => {
     const socket = new WebSocket(WEBSOCKET_URL);
@@ -54,6 +55,7 @@ function App() {
           });
           console.log("Made Opponent Move");
           setChessPosition(chessGame.fen());
+          moveSound.play();
           console.log("Updated Fen");
           setCurrentTurn(message.turn);
         }
@@ -118,6 +120,8 @@ function App() {
 
   const onPieceDrop = (source: object, target: object) => {
     console.log("Dropped Piece")
+    console.log("Source", source)
+    console.log("Target", target)
     if (playerColor != currentTurn) {
       console.log("Not your turn!");
       return;
@@ -134,6 +138,8 @@ function App() {
       });
       // update the game state
       setChessPosition(chessGame.fen());
+      moveSound.play();
+      // if isPromotion(source=sourceSquare, target=targetSquare, piece=)
       sendMove(`${sourceSquare}${targetSquare}`)
       setCurrentTurn((prevColor) => (prevColor === "white" ? "black" : "white"));
     } catch (e) {
@@ -162,7 +168,7 @@ function App() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>Chesstard Live</h2>
+      <h2>Chess Live</h2>
       {gameId ? <p>Game ID: {gameId}</p> : <p>Waiting for game...</p>}
       <div style={{ maxWidth: 480 }}>
           <Chessboard options={chessboardOptions} />
