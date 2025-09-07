@@ -16,6 +16,7 @@ function App() {
   const [playerColor, setPlayerColor] = useState<"white" | "black">("white");
   const [currentTurn, setCurrentTurn] = useState<"white" | "black">("white");
   const [text, setText] = useState<string>('');
+  const [chatLog, setChatLog] = useState<string[]>([]);
 
   useEffect(() => {
     const socket = new WebSocket(WEBSOCKET_URL);
@@ -40,6 +41,9 @@ function App() {
 
         if (message.action === "chat") {
           console.log("chat", message);
+          const chatText = `${message.sender || 'Player'}: ${message.message}`;
+          setChatLog((prevLog) => [...prevLog, chatText]);
+
         }
 
         if (message.action === "oppMove") {
@@ -167,6 +171,11 @@ function App() {
             }
           }}
         />
+        <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #ccc', padding: 8 }}>
+          {chatLog.map((line, idx) => (
+            <div key={idx}>{line}</div>
+          ))}
+        </div>
     </div>
     </div>
   );
