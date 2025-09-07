@@ -108,6 +108,14 @@ function App() {
     }
   };
 
+  const isPromotion = (source: string, target: string, piece: string): boolean => {
+    // For white pawn reaching rank 8
+    if (piece === 'wP' && target[1] === '8') return true;
+    // For black pawn reaching rank 1
+    if (piece === 'bP' && target[1] === '1') return true;
+    return false;
+  };
+
   const onPieceDrop = (source: object, target: object) => {
     console.log("Dropped Piece")
     if (playerColor != currentTurn) {
@@ -126,7 +134,7 @@ function App() {
       });
       // update the game state
       setChessPosition(chessGame.fen());
-      sendMove(`${sourceSquare}${targetSquare}q`)
+      sendMove(`${sourceSquare}${targetSquare}`)
       setCurrentTurn((prevColor) => (prevColor === "white" ? "black" : "white"));
     } catch (e) {
       console.error("Illegal move", e);
