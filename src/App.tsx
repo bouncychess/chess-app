@@ -3,7 +3,7 @@ import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
 
 // const WEBSOCKET_URL = "wss://fawbaixsvh.execute-api.us-east-1.amazonaws.com/dev/";
-const WEBSOCKET_URL = "ws://localhost:8000/ws";
+const WEBSOCKET_URL = "ws://localhost:8001/ws";
 
 function App() {
   const socketRef = useRef<WebSocket | null>(null);
@@ -47,7 +47,7 @@ function App() {
 
         }
 
-        if (message.action === "oppMove") {
+        if (message.action === "move") {
           console.log("opponentMove", message);
           chessGame.move({
             from: message.move.slice(0, 2),
