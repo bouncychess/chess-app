@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
 
-// const WEBSOCKET_URL = "wss://fawbaixsvh.execute-api.us-east-1.amazonaws.com/dev/";
-const WEBSOCKET_URL = "ws://localhost:8001/ws";
+const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL;
 
 function App() {
   const socketRef = useRef<WebSocket | null>(null);
