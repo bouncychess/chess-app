@@ -50,7 +50,7 @@ function App() {
           console.log("opponentMove", message);
           chessGame.move({
             from: message.move.slice(0, 2),
-            to: message.move.slice(2),
+            to: message.move.slice(2, 4),
             promotion: 'q' // always promote to a queen for example simplicity
           });
           console.log("Made Opponent Move");
@@ -126,11 +126,15 @@ function App() {
       console.log("Not your turn!");
       return;
     }
+    if (gameId === null) {
+        console.log("Game not started yet!");
+        return;
+    }
     try {
-      console.log(source)
       const sourceSquare = source.sourceSquare;
       const targetSquare = source.targetSquare;
-      console.log(`${sourceSquare}${targetSquare}`)
+      const piece = source.piece.pieceType;
+      let move = `${sourceSquare}${targetSquare}`
       chessGame.move({
         from: sourceSquare,
         to: targetSquare,
@@ -139,8 +143,11 @@ function App() {
       // update the game state
       setChessPosition(chessGame.fen());
       moveSound.play();
-      // if isPromotion(source=sourceSquare, target=targetSquare, piece=)
-      sendMove(`${sourceSquare}${targetSquare}`)
+      if (isPromotion(sourceSquare, targetSquare, piece)) {
+        console.log("Promotion move detected");
+        move = `${sourceSquare}${targetSquare}q`; // append 'q' for queen promotion
+      }
+      sendMove(move)
       setCurrentTurn((prevColor) => (prevColor === "white" ? "black" : "white"));
     } catch (e) {
       console.error("Illegal move", e);
@@ -151,7 +158,7 @@ function App() {
   const onChat = (message: string) => {
     try {
       console.log("Chatted", message)
-      sendChat(message=message);
+      sendChat(message);
     } catch (e) {
       console.error("Failed to send chat", e);
     }
