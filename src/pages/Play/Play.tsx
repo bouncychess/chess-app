@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
+import type {PieceDropHandlerArgs, DraggingPieceDataType} from "react-chessboard";
 import { useWebSocket } from "../../context/WebSocketContext";
 
 function Play() {
@@ -69,8 +70,8 @@ function Play() {
     }
   };
 
-  const isPromotion = (source: string, target: string, piece: string): boolean => {
-    return (piece === 'wP' && target[1] === '8') || (piece === 'bP' && target[1] === '1');
+  const isPromotion = (target: string, piece: DraggingPieceDataType): boolean => {
+    return (piece.pieceType === 'wP' && target[1] === '8') || (piece.pieceType === 'bP' && target[1] === '1');
   };
 
   const onPlay = () => {
@@ -80,22 +81,26 @@ function Play() {
       }
   }
 
-  const onPieceDrop = (source: any, target: any) => {
+  function onPieceDrop({ sourceSquare, targetSquare, piece }: PieceDropHandlerArgs): boolean {
     console.log("piece dropped");
+    console.log("sourceSquare", sourceSquare);
+    console.log("targetSquare", targetSquare);
+    console.log("piece", piece);
     if (!gameId) {
         console.log("Not playing game")
-        return;
+        return false;
+    }
+    if (!targetSquare) {
+        console.log("No target square")
+        return false;
     }
     if (playerColor !== currentTurn) {
         console.log("Not your turn")
-        return;
+        return false;
     }
 
-    const sourceSquare = source.sourceSquare;
-    const targetSquare = source.targetSquare;
-    const piece = source.piece.pieceType;
-
     let move = `${sourceSquare}${targetSquare}`;
+    console.log("move", move)
     chessGame.move({
       from: sourceSquare,
       to: targetSquare,
@@ -105,7 +110,7 @@ function Play() {
     setChessPosition(chessGame.fen());
     moveSound.play();
 
-    if (isPromotion(sourceSquare, targetSquare, piece)) {
+    if (isPromotion(targetSquare, piece)) {
       move += 'q';
     }
 
