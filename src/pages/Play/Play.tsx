@@ -125,7 +125,7 @@ function Play() {
       <div style={{ maxWidth: 480 }}>
         <Chessboard options={chessboardOptions} />
       </div>
-      <Chat gameId={gameId}/>
+      {gameId && <Chat gameId={gameId} />}
     </div>
   );
 }
