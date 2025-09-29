@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
+import Chat from "../Play/components/Chat"
 import type {PieceDropHandlerArgs, DraggingPieceDataType} from "react-chessboard";
 import { useWebSocket } from "../../context/WebSocketContext";
 
@@ -14,8 +15,6 @@ function Play() {
   const [status, setStatus] = useState<string>("Online");
   const [playerColor, setPlayerColor] = useState<"white" | "black">("white");
   const [currentTurn, setCurrentTurn] = useState<"white" | "black">("white");
-  const [text, setText] = useState<string>('');
-  const [chatLog, setChatLog] = useState<string[]>([]);
   const moveSound = new Audio('/sounds/move.mp3');
 
   // 🔁 Handle incoming messages
@@ -29,21 +28,19 @@ function Play() {
       setCurrentTurn(lastMessage.turn);
       setStatus("Playing");
     }
-
-    if (lastMessage.action === "chat") {
-      const chatText = `Rat: ${lastMessage.message}`;
-      setChatLog((prevLog) => [...prevLog, chatText]);
-    }
-
     if (lastMessage.action === "move") {
-      chessGame.move({
-        from: lastMessage.move.slice(0, 2),
-        to: lastMessage.move.slice(2, 4),
-        promotion: 'q'
-      });
-      setChessPosition(chessGame.fen());
-      moveSound.play();
-      setCurrentTurn(lastMessage.turn);
+      try {
+        chessGame.move({
+            from: lastMessage.move.slice(0, 2),
+            to: lastMessage.move.slice(2, 4),
+            promotion: 'q'
+          });
+          setChessPosition(chessGame.fen());
+          moveSound.play();
+          setCurrentTurn(lastMessage.turn);
+      } catch (error) {
+        console.log("Failed to make move")
+      }
     }
   }, [lastMessage]);
 
@@ -58,23 +55,15 @@ function Play() {
     }
   };
 
-  const sendChat = (message: string) => {
-    if (gameId) {
-      const chatText = `Player: ${message}`;
-      setChatLog((prevLog) => [...prevLog, chatText]);
-      sendMessage({
-        action: "chat",
-        gameId,
-        message
-      });
-    }
-  };
-
   const isPromotion = (target: string, piece: DraggingPieceDataType): boolean => {
     return (piece.pieceType === 'wP' && target[1] === '8') || (piece.pieceType === 'bP' && target[1] === '1');
   };
 
   const onPlay = () => {
+    if (gameId) {
+        console.log("Already Playing")
+        return;
+    }
     if (isConnected) {
         sendMessage({ action: "play" });
         setStatus("Waiting for game...");
@@ -119,15 +108,6 @@ function Play() {
     return false;
   };
 
-  const onChat = (message: string) => {
-    try {
-      sendChat(message);
-    } catch (e) {
-      console.error("Failed to send chat", e);
-    }
-    return false;
-  };
-
   // chessboard options
   const chessboardOptions = {
       position: chessPosition,
@@ -145,25 +125,7 @@ function Play() {
       <div style={{ maxWidth: 480 }}>
         <Chessboard options={chessboardOptions} />
       </div>
-      <div>
-        <input
-          type="text"
-          placeholder="Type message..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              onChat(text);
-              setText('');
-            }
-          }}
-        />
-        <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #ccc', padding: 8 }}>
-          {chatLog.map((line, idx) => (
-            <div key={idx}>{line}</div>
-          ))}
-        </div>
-      </div>
+      {gameId && <Chat gameId={gameId} />}
     </div>
   );
 }
