@@ -12,9 +12,9 @@ export default function Sidebar() {
         }}>
             <h2>Chesstard</h2>
             <nav>
-                <ul style={{ listStyle: 'none', padding: 0 }}>
-                    <li><Link to="/" style={{ color: 'white' }}>Home</Link></li>
-                    <li><Link to="/play" style={{ color: 'white' }}>Play</Link></li>
+                <ul style={{listStyle: 'none', padding: 0}}>
+                    <li><Link to="/" style={{color: 'white'}}>Home</Link></li>
+                    <li><Link to="/play" style={{color: 'white'}}>Play</Link></li>
                 </ul>
             </nav>
         </aside>

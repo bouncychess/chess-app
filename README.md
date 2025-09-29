@@ -5,6 +5,9 @@
 4) install dependencies `npm install`
 5) start app `npm run dev`
 
+# Resources
+1) https://github.com/jackstenglein/chess-dojo-scheduler/blob/main/frontend/src/board/Board.tsx (for board setup)
+
 
 # React + TypeScript + Vite
 
