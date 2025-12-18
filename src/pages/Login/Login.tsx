@@ -1,15 +1,19 @@
 // src/LoginPage.jsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {Button} from "../../components/buttons/Button.tsx";
 import {TextInput} from "../../components/input/TextInput.tsx";
 
-export default function LoginPage({ onLoginSuccess }) {
+type LoginPageProps = {
+    onLoginSuccess?: (user: { email: string }) => void;
+};
+
+export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
-    const handleLogin = async (e) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
         setLoading(true);
@@ -18,7 +22,7 @@ export default function LoginPage({ onLoginSuccess }) {
             onLoginSuccess?.({ email });
         } catch (err) {
             console.error('Login failed', err);
-            setError(err.message || 'Login failed');
+            setError(err instanceof Error ? err.message : 'Login failed');
         } finally {
             setLoading(false);
         }
