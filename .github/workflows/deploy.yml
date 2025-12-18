@@ -41,11 +41,11 @@ jobs:
         id: cfn-deploy
         run: |
           # Check if certificate exists and get ARN
-          CERT_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='chesstard.biz'].CertificateArn" --output text)
+          CERT_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='dev.chesstard.biz'].CertificateArn" --output text)
 
           if [ -z "$CERT_ARN" ]; then
-            echo "Error: No ACM certificate found for chesstard.biz in us-east-1"
-            echo "Please create a certificate in ACM for chesstard.biz before deploying"
+            echo "Error: No ACM certificate found for dev.chesstard.biz in us-east-1"
+            echo "Please create a certificate in ACM for dev.chesstard.biz before deploying"
             exit 1
           fi
 
@@ -56,7 +56,7 @@ jobs:
             --stack-name chesstard-app-stack \
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
-              DomainName=chesstard.biz \
+              DomainName=dev.chesstard.biz \
               CertificateArn=$CERT_ARN \
               Environment=prod
 
@@ -96,4 +96,4 @@ jobs:
       - name: Output Website URL
         run: |
           echo "🚀 Deployment complete!"
-          echo "Website URL: https://chesstard.biz"
+          echo "Website URL: https://dev.chesstard.biz"

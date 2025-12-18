@@ -4,7 +4,7 @@ Description: Static website hosting with S3 and CloudFront for chesstard-app
 Parameters:
   DomainName:
     Type: String
-    Default: chesstard.biz
+    Default: dev.chesstard.biz
     Description: The domain name for the website
 
   CertificateArn:
