@@ -71,6 +71,46 @@ jobs:
               aws s3 rm s3://$BUCKET_NAME --recursive 2>/dev/null || echo "Bucket already empty or doesn't exist"
             fi
 
+            # Try to find and disable/delete orphaned CloudFront distribution
+            echo "Checking for orphaned CloudFront distributions..."
+            DISTRIBUTION_ID=$(aws cloudfront list-distributions \
+              --query "DistributionList.Items[?Aliases.Items && contains(Aliases.Items, 'dev.chesstard.biz')].Id" \
+              --output text 2>/dev/null || echo "")
+
+            if [ ! -z "$DISTRIBUTION_ID" ]; then
+              echo "Found orphaned CloudFront distribution: $DISTRIBUTION_ID"
+
+              # Get current distribution config
+              DIST_CONFIG=$(aws cloudfront get-distribution-config --id $DISTRIBUTION_ID 2>/dev/null)
+              ETAG=$(echo "$DIST_CONFIG" | jq -r '.ETag')
+
+              # Check if distribution is already disabled
+              IS_ENABLED=$(echo "$DIST_CONFIG" | jq -r '.DistributionConfig.Enabled')
+
+              if [ "$IS_ENABLED" == "true" ]; then
+                echo "Disabling CloudFront distribution..."
+                # Disable the distribution first
+                echo "$DIST_CONFIG" | jq '.DistributionConfig.Enabled = false | .DistributionConfig' > /tmp/dist-config.json
+
+                aws cloudfront update-distribution \
+                  --id $DISTRIBUTION_ID \
+                  --distribution-config file:///tmp/dist-config.json \
+                  --if-match $ETAG 2>/dev/null || echo "Could not disable distribution"
+
+                echo "Waiting for distribution to be disabled (this may take several minutes)..."
+                aws cloudfront wait distribution-deployed --id $DISTRIBUTION_ID 2>/dev/null || echo "Wait timed out, continuing..."
+              fi
+
+              # Try to delete the distribution
+              echo "Attempting to delete CloudFront distribution..."
+              ETAG=$(aws cloudfront get-distribution-config --id $DISTRIBUTION_ID --query 'ETag' --output text 2>/dev/null)
+              if [ ! -z "$ETAG" ]; then
+                aws cloudfront delete-distribution \
+                  --id $DISTRIBUTION_ID \
+                  --if-match $ETAG 2>/dev/null || echo "Could not delete distribution (may need more time to disable)"
+              fi
+            fi
+
             # Try to clean up orphaned CloudFront OAC
             echo "Cleaning up orphaned Origin Access Controls..."
             OAC_ID=$(aws cloudfront list-origin-access-controls \
