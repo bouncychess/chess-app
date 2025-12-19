@@ -20,6 +20,10 @@ Parameters:
       - prod
     Description: Environment name
 
+  HostedZoneId:
+    Type: String
+    Description: Route53 Hosted Zone ID for chesstard.biz
+
 Resources:
   # S3 Bucket for static website hosting (private, accessed via CloudFront only)
   WebsiteBucket:
@@ -104,6 +108,18 @@ Resources:
             Condition:
               StringEquals:
                 AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${WebsiteCloudFront}
+
+  # Route53 DNS Record - Points dev.chesstard.biz to CloudFront
+  DNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        HostedZoneId: Z2FDTNDATAQYW2  # CloudFront hosted zone ID (constant for all CloudFront distributions)
+        DNSName: !GetAtt WebsiteCloudFront.DomainName
+        EvaluateTargetHealth: false
 
 Outputs:
   WebsiteBucketName:
