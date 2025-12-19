@@ -49,18 +49,52 @@ jobs:
 
           echo "Current stack status: $STACK_STATUS"
 
-          # Delete stack if in rollback state
+          # Delete stack if in rollback or delete failed state
           if [[ "$STACK_STATUS" == "ROLLBACK_COMPLETE" ]] || \
              [[ "$STACK_STATUS" == "ROLLBACK_FAILED" ]] || \
              [[ "$STACK_STATUS" == "UPDATE_ROLLBACK_COMPLETE" ]] || \
-             [[ "$STACK_STATUS" == "UPDATE_ROLLBACK_FAILED" ]]; then
-            echo "Stack is in rollback state. Deleting stack..."
+             [[ "$STACK_STATUS" == "UPDATE_ROLLBACK_FAILED" ]] || \
+             [[ "$STACK_STATUS" == "DELETE_FAILED" ]]; then
+
+            echo "Stack is in failed state. Attempting to clean up resources..."
+
+            # Try to get bucket name from stack outputs or resources
+            BUCKET_NAME=$(aws cloudformation describe-stack-resources \
+              --stack-name $STACK_NAME \
+              --query "StackResources[?ResourceType=='AWS::S3::Bucket'].PhysicalResourceId" \
+              --output text 2>/dev/null || echo "")
+
+            # If bucket exists, empty it
+            if [ ! -z "$BUCKET_NAME" ]; then
+              echo "Found S3 bucket: $BUCKET_NAME"
+              echo "Emptying S3 bucket..."
+              aws s3 rm s3://$BUCKET_NAME --recursive 2>/dev/null || echo "Bucket already empty or doesn't exist"
+            fi
+
+            echo "Deleting stack..."
             aws cloudformation delete-stack --stack-name $STACK_NAME
 
             echo "Waiting for stack deletion to complete..."
-            aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
+            # Wait with timeout
+            for i in {1..30}; do
+              STACK_STATUS=$(aws cloudformation describe-stacks \
+                --stack-name $STACK_NAME \
+                --query "Stacks[0].StackStatus" \
+                --output text 2>/dev/null || echo "DELETED")
 
-            echo "Stack deleted successfully"
+              echo "Current status: $STACK_STATUS (attempt $i/30)"
+
+              if [[ "$STACK_STATUS" == "DELETED" ]]; then
+                echo "Stack deleted successfully"
+                break
+              elif [[ "$STACK_STATUS" == "DELETE_FAILED" ]]; then
+                echo "Stack deletion failed again. Continuing anyway - CloudFormation deploy will handle updates."
+                break
+              fi
+
+              sleep 10
+            done
+
           elif [[ "$STACK_STATUS" == "DOES_NOT_EXIST" ]]; then
             echo "Stack does not exist. Will create new stack."
           else
