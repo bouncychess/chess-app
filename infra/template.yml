@@ -58,13 +58,6 @@ Resources:
             Action: s3:GetObject
             Resource: !Sub ${WebsiteBucket.Arn}/*
 
-  # CloudFront Origin Access Identity (legacy, but keeping for compatibility)
-  CloudFrontOriginAccessIdentity:
-    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
-    Properties:
-      CloudFrontOriginAccessIdentityConfig:
-        Comment: !Sub Access identity for ${DomainName}
-
   # CloudFront Distribution
   WebsiteCloudFront:
     Type: AWS::CloudFront::Distribution
@@ -77,9 +70,7 @@ Resources:
           - !Ref DomainName
         Origins:
           - Id: S3Origin
-            DomainName: !GetAtt WebsiteBucket.RegionalDomainName
-            S3OriginConfig:
-              OriginAccessIdentity: ''
+            DomainName: !Sub ${WebsiteBucket}.s3-website-${AWS::Region}.amazonaws.com
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443

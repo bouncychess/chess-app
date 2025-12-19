@@ -13,13 +13,13 @@ The frontend is deployed using:
 
 ### 1. SSL Certificate (ACM)
 
-You need an SSL certificate for `chesstard.biz` in the **us-east-1** region (required for CloudFront).
+You need an SSL certificate for `dev.chesstard.biz` (or `*.chesstard.biz` wildcard) in the **us-east-1** region (required for CloudFront).
 
 To create one:
 ```bash
 aws acm request-certificate \
-  --domain-name chesstard.biz \
-  --subject-alternative-names '*.chesstard.biz' \
+  --domain-name '*.chesstard.biz' \
+  --subject-alternative-names 'chesstard.biz' \
   --validation-method DNS \
   --region us-east-1
 ```
@@ -72,7 +72,7 @@ aws cloudformation deploy \
   --stack-name chesstard-app-stack \
   --capabilities CAPABILITY_IAM \
   --parameter-overrides \
-    DomainName=chesstard.biz \
+    DomainName=dev.chesstard.biz \
     CertificateArn=<your-certificate-arn> \
     Environment=prod
 
@@ -108,12 +108,12 @@ aws cloudformation describe-stacks \
   --output text
 ```
 
-2. Create an A record (Alias) in Route53 pointing `chesstard.biz` to the CloudFront distribution.
+2. Create an A record (Alias) in Route53 pointing `dev.chesstard.biz` to the CloudFront distribution.
 
 Alternatively, use the AWS Console:
 - Go to Route53 > Hosted Zones > chesstard.biz
 - Create a new A record
-- Name: (leave blank for root domain)
+- Name: dev
 - Type: A
 - Alias: Yes
 - Alias Target: Select your CloudFront distribution
@@ -135,16 +135,16 @@ After deployment, the CloudFormation stack provides:
 - **WebsiteBucketName**: S3 bucket name
 - **CloudFrontDistributionId**: Distribution ID
 - **CloudFrontDomainName**: CloudFront domain
-- **WebsiteURL**: Final website URL (https://chesstard.biz)
+- **WebsiteURL**: Final website URL (https://dev.chesstard.biz)
 
 ## Troubleshooting
 
 ### Certificate not found
-If the deployment fails with "No ACM certificate found", create one in us-east-1:
+If the deployment fails with "No ACM certificate found", create a wildcard certificate in us-east-1:
 ```bash
 aws acm request-certificate \
-  --domain-name chesstard.biz \
-  --subject-alternative-names '*.chesstard.biz' \
+  --domain-name '*.chesstard.biz' \
+  --subject-alternative-names 'chesstard.biz' \
   --validation-method DNS \
   --region us-east-1
 ```
