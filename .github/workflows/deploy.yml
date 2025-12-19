@@ -71,6 +71,26 @@ jobs:
               aws s3 rm s3://$BUCKET_NAME --recursive 2>/dev/null || echo "Bucket already empty or doesn't exist"
             fi
 
+            # Try to clean up orphaned CloudFront OAC
+            echo "Cleaning up orphaned Origin Access Controls..."
+            OAC_ID=$(aws cloudfront list-origin-access-controls \
+              --query "OriginAccessControlList.Items[?Name=='dev.chesstard.biz-OAC'].Id" \
+              --output text 2>/dev/null || echo "")
+
+            if [ ! -z "$OAC_ID" ]; then
+              echo "Found orphaned OAC: $OAC_ID. Attempting to delete..."
+              OAC_ETAG=$(aws cloudfront get-origin-access-control \
+                --id $OAC_ID \
+                --query "ETag" \
+                --output text 2>/dev/null || echo "")
+
+              if [ ! -z "$OAC_ETAG" ]; then
+                aws cloudfront delete-origin-access-control \
+                  --id $OAC_ID \
+                  --if-match $OAC_ETAG 2>/dev/null || echo "Could not delete OAC (may be in use)"
+              fi
+            fi
+
             echo "Deleting stack..."
             aws cloudformation delete-stack --stack-name $STACK_NAME
 
