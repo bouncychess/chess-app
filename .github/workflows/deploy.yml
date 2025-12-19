@@ -37,6 +37,36 @@ jobs:
         env:
           NODE_ENV: production
 
+      - name: Check and delete stack if in rollback state
+        run: |
+          STACK_NAME=chesstard-app-stack
+
+          # Check if stack exists
+          STACK_STATUS=$(aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --query "Stacks[0].StackStatus" \
+            --output text 2>/dev/null || echo "DOES_NOT_EXIST")
+
+          echo "Current stack status: $STACK_STATUS"
+
+          # Delete stack if in rollback state
+          if [[ "$STACK_STATUS" == "ROLLBACK_COMPLETE" ]] || \
+             [[ "$STACK_STATUS" == "ROLLBACK_FAILED" ]] || \
+             [[ "$STACK_STATUS" == "UPDATE_ROLLBACK_COMPLETE" ]] || \
+             [[ "$STACK_STATUS" == "UPDATE_ROLLBACK_FAILED" ]]; then
+            echo "Stack is in rollback state. Deleting stack..."
+            aws cloudformation delete-stack --stack-name $STACK_NAME
+
+            echo "Waiting for stack deletion to complete..."
+            aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
+
+            echo "Stack deleted successfully"
+          elif [[ "$STACK_STATUS" == "DOES_NOT_EXIST" ]]; then
+            echo "Stack does not exist. Will create new stack."
+          else
+            echo "Stack exists with status: $STACK_STATUS. Will attempt to update."
+          fi
+
       - name: Deploy CloudFormation Stack
         id: cfn-deploy
         run: |
