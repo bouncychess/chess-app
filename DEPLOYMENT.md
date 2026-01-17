@@ -13,13 +13,13 @@ The frontend is deployed using:
 
 ### 1. SSL Certificate (ACM)
 
-You need an SSL certificate for `dev.chesstard.biz` (or `*.chesstard.biz` wildcard) in the **us-east-1** region (required for CloudFront).
+You need an SSL certificate for `dev.chess.biz` (or `*.chess.biz` wildcard) in the **us-east-1** region (required for CloudFront).
 
 To create one:
 ```bash
 aws acm request-certificate \
-  --domain-name '*.chesstard.biz' \
-  --subject-alternative-names 'chesstard.biz' \
+  --domain-name '*.chess.biz' \
+  --subject-alternative-names 'chess.biz' \
   --validation-method DNS \
   --region us-east-1
 ```
@@ -28,7 +28,7 @@ Then validate the certificate using DNS validation in Route53.
 
 ### 2. GitHub OIDC Role
 
-The workflow uses the existing IAM role: `arn:aws:iam::578613961467:role/chesstard-github-actions-deploy`
+The workflow uses the existing IAM role: `arn:aws:iam::578613961467:role/chess-github-actions-deploy`
 
 Ensure this role has the following permissions:
 - `cloudformation:*` (for stack management)
@@ -38,7 +38,7 @@ Ensure this role has the following permissions:
 
 ### 3. Route53 Hosted Zone
 
-You need a hosted zone for `chesstard.biz` in Route53.
+You need a hosted zone for `chess.biz` in Route53.
 
 ## Deployment
 
@@ -69,21 +69,21 @@ npm run build
 # Deploy CloudFormation stack
 aws cloudformation deploy \
   --template-file infra/template.yml \
-  --stack-name chesstard-app-stack \
+  --stack-name chess-app-stack \
   --capabilities CAPABILITY_IAM \
   --parameter-overrides \
-    DomainName=dev.chesstard.biz \
+    DomainName=dev.chess.biz \
     CertificateArn=<your-certificate-arn> \
     Environment=prod
 
 # Get bucket name and distribution ID
 BUCKET_NAME=$(aws cloudformation describe-stacks \
-  --stack-name chesstard-app-stack \
+  --stack-name chess-app-stack \
   --query "Stacks[0].Outputs[?OutputKey=='WebsiteBucketName'].OutputValue" \
   --output text)
 
 DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
-  --stack-name chesstard-app-stack \
+  --stack-name chess-app-stack \
   --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
   --output text)
 
@@ -103,15 +103,15 @@ After the first deployment, you need to configure DNS:
 1. Get the CloudFront distribution domain name:
 ```bash
 aws cloudformation describe-stacks \
-  --stack-name chesstard-app-stack \
+  --stack-name chess-app-stack \
   --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDomainName'].OutputValue" \
   --output text
 ```
 
-2. Create an A record (Alias) in Route53 pointing `dev.chesstard.biz` to the CloudFront distribution.
+2. Create an A record (Alias) in Route53 pointing `dev.chess.biz` to the CloudFront distribution.
 
 Alternatively, use the AWS Console:
-- Go to Route53 > Hosted Zones > chesstard.biz
+- Go to Route53 > Hosted Zones > chess.biz
 - Create a new A record
 - Name: dev
 - Type: A
@@ -126,7 +126,7 @@ The app uses environment-specific `.env` files:
 
 Make sure to update the WebSocket endpoint in `.env.production` to match your backend:
 ```
-VITE_WS_URL=wss://ws.dev.chesstard.biz
+VITE_WS_URL=wss://ws.dev.chess.biz
 ```
 
 ## Stack Outputs
@@ -135,7 +135,7 @@ After deployment, the CloudFormation stack provides:
 - **WebsiteBucketName**: S3 bucket name
 - **CloudFrontDistributionId**: Distribution ID
 - **CloudFrontDomainName**: CloudFront domain
-- **WebsiteURL**: Final website URL (https://dev.chesstard.biz)
+- **WebsiteURL**: Final website URL (https://dev.chess.biz)
 
 ## Troubleshooting
 
@@ -143,8 +143,8 @@ After deployment, the CloudFormation stack provides:
 If the deployment fails with "No ACM certificate found", create a wildcard certificate in us-east-1:
 ```bash
 aws acm request-certificate \
-  --domain-name '*.chesstard.biz' \
-  --subject-alternative-names 'chesstard.biz' \
+  --domain-name '*.chess.biz' \
+  --subject-alternative-names 'chess.biz' \
   --validation-method DNS \
   --region us-east-1
 ```
