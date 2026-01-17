@@ -4,7 +4,7 @@ Description: Static website hosting with S3 and CloudFront for chess-app
 Parameters:
   DomainName:
     Type: String
-    Default: dev.chesstard.biz
+    Default: chesstard.biz
     Description: The domain name for the website
 
   CertificateArn:
@@ -13,7 +13,7 @@ Parameters:
 
   Environment:
     Type: String
-    Default: prod
+    Default: dev
     AllowedValues:
       - dev
       - staging
@@ -29,7 +29,7 @@ Resources:
   WebsiteBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${DomainName}-${Environment}
+      BucketName: !Sub ${Environment}-${DomainName}
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -41,7 +41,7 @@ Resources:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
       OriginAccessControlConfig:
-        Name: !Sub ${DomainName}-${Environment}-OAC
+        Name: !Sub ${Environment}-${DomainName}-OAC
         OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4

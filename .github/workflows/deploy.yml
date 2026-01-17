@@ -196,7 +196,7 @@ jobs:
             --stack-name chess-app-stack \
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
-              DomainName=${{ env.ENVIRONMENT }}.${{ env.DOMAIN }} \
+              DomainName=${{ env.DOMAIN }} \
               CertificateArn=$CERT_ARN \
               Environment=${{ env.ENVIRONMENT }} \
               HostedZoneId=$HOSTED_ZONE_ID
