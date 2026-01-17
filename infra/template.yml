@@ -9,7 +9,6 @@ Parameters:
 
   DomainName:
     Type: String
-    Default: chesstard.biz
     Description: The domain name for the website
 
   CertificateArn:

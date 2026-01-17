@@ -7,6 +7,7 @@ on:
 
 env:
   ENVIRONMENT: dev
+  NAME: chess
   DOMAIN: chesstard.biz
 
 jobs:
@@ -118,7 +119,7 @@ jobs:
             # Try to clean up orphaned CloudFront OAC
             echo "Cleaning up orphaned Origin Access Controls..."
             OAC_ID=$(aws cloudfront list-origin-access-controls \
-              --query "OriginAccessControlList.Items[?Name=='${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}-OAC'].Id" \
+              --query "OriginAccessControlList.Items[?Name=='${{ env.ENVIRONMENT }}-${{ env.NAME }}-OAC'].Id" \
               --output text 2>/dev/null || echo "")
 
             if [ ! -z "$OAC_ID" ]; then
@@ -196,6 +197,7 @@ jobs:
             --stack-name chess-app-stack \
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
+              Name=${{ env.NAME }} \
               DomainName=${{ env.DOMAIN }} \
               CertificateArn=$CERT_ARN \
               Environment=${{ env.ENVIRONMENT }} \
