@@ -10,7 +10,7 @@ export default function Sidebar() {
             padding: '1rem',
             height: '100vh',
         }}>
-            <h2>Chesstard</h2>
+            <h2>Chess</h2>
             <nav>
                 <ul style={{listStyle: 'none', padding: 0}}>
                     <li><Link to="/" style={{color: 'white'}}>Home</Link></li>

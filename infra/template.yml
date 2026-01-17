@@ -1,10 +1,14 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Static website hosting with S3 and CloudFront for chesstard-app
+Description: Static website hosting with S3 and CloudFront for chess-app
 
 Parameters:
+  Name:
+    Type: String
+    Default: chess
+    Description: The root name of the AWS resources 
+
   DomainName:
     Type: String
-    Default: dev.chesstard.biz
     Description: The domain name for the website
 
   CertificateArn:
@@ -13,7 +17,7 @@ Parameters:
 
   Environment:
     Type: String
-    Default: prod
+    Default: dev
     AllowedValues:
       - dev
       - staging
@@ -22,14 +26,14 @@ Parameters:
 
   HostedZoneId:
     Type: String
-    Description: Route53 Hosted Zone ID for chesstard.biz
+    Description: Route53 Hosted Zone ID 
 
 Resources:
   # S3 Bucket for static website hosting (private, accessed via CloudFront only)
   WebsiteBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${DomainName}-${Environment}
+      BucketName: !Sub cta-${Environment}-${Name}
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -41,7 +45,7 @@ Resources:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
       OriginAccessControlConfig:
-        Name: !Sub ${DomainName}-${Environment}-OAC
+        Name: !Sub ${Environment}-${Name}-OAC
         OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4
@@ -55,7 +59,7 @@ Resources:
         HttpVersion: http2
         DefaultRootObject: index.html
         Aliases:
-          - !Ref DomainName
+          - !Sub ${Environment}.${DomainName}
         Origins:
           - Id: S3Origin
             DomainName: !GetAtt WebsiteBucket.RegionalDomainName
@@ -109,12 +113,12 @@ Resources:
               StringEquals:
                 AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${WebsiteCloudFront}
 
-  # Route53 DNS Record - Points dev.chesstard.biz to CloudFront
+  # Route53 DNS Record - Points site to CloudFront
   DNSRecord:
     Type: AWS::Route53::RecordSet
     Properties:
       HostedZoneId: !Ref HostedZoneId
-      Name: !Ref DomainName
+      Name: !Sub ${Environment}.${DomainName}
       Type: A
       AliasTarget:
         HostedZoneId: Z2FDTNDATAQYW2  # CloudFront hosted zone ID (constant for all CloudFront distributions)
@@ -142,6 +146,6 @@ Outputs:
 
   WebsiteURL:
     Description: Website URL
-    Value: !Sub https://${DomainName}
+    Value: !Sub https://${Environment}.${DomainName}
     Export:
       Name: !Sub ${AWS::StackName}-WebsiteURL

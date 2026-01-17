@@ -5,6 +5,12 @@ on:
     branches:
       - develop
 
+env:
+  ENVIRONMENT: dev
+  NAME: chess
+  DOMAIN: chesstard.biz
+  NODE_ENV: staging
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -20,7 +26,7 @@ jobs:
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: arn:aws:iam::578613961467:role/chesstard-github-actions-deploy
+          role-to-assume: arn:aws:iam::578613961467:role/chess-github-actions-deploy
           aws-region: us-east-1
 
       - name: Set up Node.js
@@ -35,11 +41,11 @@ jobs:
       - name: Build application
         run: npm run build
         env:
-          NODE_ENV: production
+          NODE_ENV: ${{ env.NODE_ENV }}
 
       - name: Check and delete stack if in rollback state
         run: |
-          STACK_NAME=chesstard-app-stack
+          STACK_NAME=chess-app-stack
 
           # Check if stack exists
           STACK_STATUS=$(aws cloudformation describe-stacks \
@@ -74,7 +80,7 @@ jobs:
             # Try to find and disable/delete orphaned CloudFront distribution
             echo "Checking for orphaned CloudFront distributions..."
             DISTRIBUTION_ID=$(aws cloudfront list-distributions \
-              --query "DistributionList.Items[?Aliases.Items && contains(Aliases.Items, 'dev.chesstard.biz')].Id" \
+              --query "DistributionList.Items[?Aliases.Items && contains(Aliases.Items, '${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}')].Id" \
               --output text 2>/dev/null || echo "")
 
             if [ ! -z "$DISTRIBUTION_ID" ]; then
@@ -114,7 +120,7 @@ jobs:
             # Try to clean up orphaned CloudFront OAC
             echo "Cleaning up orphaned Origin Access Controls..."
             OAC_ID=$(aws cloudfront list-origin-access-controls \
-              --query "OriginAccessControlList.Items[?Name=='dev.chesstard.biz-OAC'].Id" \
+              --query "OriginAccessControlList.Items[?Name=='${{ env.ENVIRONMENT }}-${{ env.NAME }}-OAC'].Id" \
               --output text 2>/dev/null || echo "")
 
             if [ ! -z "$OAC_ID" ]; then
@@ -165,23 +171,23 @@ jobs:
         id: cfn-deploy
         run: |
           # Check if certificate exists and get ARN
-          CERT_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='dev.chesstard.biz'].CertificateArn" --output text)
+          CERT_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}'].CertificateArn" --output text)
 
           if [ -z "$CERT_ARN" ]; then
-            echo "Error: No ACM certificate found for dev.chesstard.biz in us-east-1"
-            echo "Please create a certificate in ACM for dev.chesstard.biz before deploying"
+            echo "Error: No ACM certificate found for ${{ env.ENVIRONMENT }}.${{ env.DOMAIN }} in us-east-1"
+            echo "Please create a certificate in ACM for ${{ env.ENVIRONMENT }}.${{ env.DOMAIN }} before deploying"
             exit 1
           fi
 
           echo "Using certificate: $CERT_ARN"
 
-          # Get the hosted zone ID for chesstard.biz
+          # Get the hosted zone ID for DOMAIN
           HOSTED_ZONE_ID=$(aws route53 list-hosted-zones \
-            --query "HostedZones[?Name=='chesstard.biz.'].Id" \
+            --query "HostedZones[?Name=='${{ env.DOMAIN }}.'].Id" \
             --output text | cut -d'/' -f3)
 
           if [ -z "$HOSTED_ZONE_ID" ]; then
-            echo "Error: No Route53 hosted zone found for chesstard.biz"
+            echo "Error: No Route53 hosted zone found for ${{ env.DOMAIN }}"
             exit 1
           fi
 
@@ -189,24 +195,25 @@ jobs:
 
           aws cloudformation deploy \
             --template-file infra/template.yml \
-            --stack-name chesstard-app-stack \
+            --stack-name chess-app-stack \
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
-              DomainName=dev.chesstard.biz \
+              Name=${{ env.NAME }} \
+              DomainName=${{ env.DOMAIN }} \
               CertificateArn=$CERT_ARN \
-              Environment=prod \
+              Environment=${{ env.ENVIRONMENT }} \
               HostedZoneId=$HOSTED_ZONE_ID
 
       - name: Get Stack Outputs
         id: stack-outputs
         run: |
           BUCKET_NAME=$(aws cloudformation describe-stacks \
-            --stack-name chesstard-app-stack \
+            --stack-name chess-app-stack \
             --query "Stacks[0].Outputs[?OutputKey=='WebsiteBucketName'].OutputValue" \
             --output text)
 
           DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
-            --stack-name chesstard-app-stack \
+            --stack-name chess-app-stack \
             --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
             --output text)
 
@@ -233,4 +240,4 @@ jobs:
       - name: Output Website URL
         run: |
           echo "🚀 Deployment complete!"
-          echo "Website URL: https://dev.chesstard.biz"
+          echo "Website URL: https://${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}"
