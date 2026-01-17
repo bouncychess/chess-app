@@ -9,6 +9,7 @@ env:
   ENVIRONMENT: dev
   NAME: chess
   DOMAIN: chesstard.biz
+  NODE_ENV: staging
 
 jobs:
   deploy:
@@ -40,7 +41,7 @@ jobs:
       - name: Build application
         run: npm run build
         env:
-          NODE_ENV: production
+          NODE_ENV: ${{ env.NODE_ENV }}
 
       - name: Check and delete stack if in rollback state
         run: |
