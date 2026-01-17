@@ -6,7 +6,7 @@ on:
       - develop
 
 env:
-  SUBDOMAIN: dev
+  ENVIRONMENT: dev
   DOMAIN: chesstard.biz
 
 jobs:
@@ -78,7 +78,7 @@ jobs:
             # Try to find and disable/delete orphaned CloudFront distribution
             echo "Checking for orphaned CloudFront distributions..."
             DISTRIBUTION_ID=$(aws cloudfront list-distributions \
-              --query "DistributionList.Items[?Aliases.Items && contains(Aliases.Items, '${{ env.SUBDOMAIN }}.${{ env.DOMAIN }}')].Id" \
+              --query "DistributionList.Items[?Aliases.Items && contains(Aliases.Items, '${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}')].Id" \
               --output text 2>/dev/null || echo "")
 
             if [ ! -z "$DISTRIBUTION_ID" ]; then
@@ -118,7 +118,7 @@ jobs:
             # Try to clean up orphaned CloudFront OAC
             echo "Cleaning up orphaned Origin Access Controls..."
             OAC_ID=$(aws cloudfront list-origin-access-controls \
-              --query "OriginAccessControlList.Items[?Name=='${{ env.SUBDOMAIN }}.${{ env.DOMAIN }}-OAC'].Id" \
+              --query "OriginAccessControlList.Items[?Name=='${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}-OAC'].Id" \
               --output text 2>/dev/null || echo "")
 
             if [ ! -z "$OAC_ID" ]; then
@@ -169,11 +169,11 @@ jobs:
         id: cfn-deploy
         run: |
           # Check if certificate exists and get ARN
-          CERT_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='${{ env.SUBDOMAIN }}.${{ env.DOMAIN }}'].CertificateArn" --output text)
+          CERT_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}'].CertificateArn" --output text)
 
           if [ -z "$CERT_ARN" ]; then
-            echo "Error: No ACM certificate found for ${{ env.SUBDOMAIN }}.${{ env.DOMAIN }} in us-east-1"
-            echo "Please create a certificate in ACM for ${{ env.SUBDOMAIN }}.${{ env.DOMAIN }} before deploying"
+            echo "Error: No ACM certificate found for ${{ env.ENVIRONMENT }}.${{ env.DOMAIN }} in us-east-1"
+            echo "Please create a certificate in ACM for ${{ env.ENVIRONMENT }}.${{ env.DOMAIN }} before deploying"
             exit 1
           fi
 
@@ -196,9 +196,9 @@ jobs:
             --stack-name chess-app-stack \
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
-              DomainName=${{ env.SUBDOMAIN }}.${{ env.DOMAIN }} \
+              DomainName=${{ env.ENVIRONMENT }}.${{ env.DOMAIN }} \
               CertificateArn=$CERT_ARN \
-              Environment=prod \
+              Environment=${{ env.ENVIRONMENT }} \
               HostedZoneId=$HOSTED_ZONE_ID
 
       - name: Get Stack Outputs
@@ -237,4 +237,4 @@ jobs:
       - name: Output Website URL
         run: |
           echo "🚀 Deployment complete!"
-          echo "Website URL: https://${{ env.SUBDOMAIN }}.${{ env.DOMAIN }}"
+          echo "Website URL: https://${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}"
