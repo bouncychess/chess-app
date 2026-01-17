@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Static website hosting with S3 and CloudFront for chesstard-app
+Description: Static website hosting with S3 and CloudFront for chess-app
 
 Parameters:
   DomainName:
@@ -22,7 +22,7 @@ Parameters:
 
   HostedZoneId:
     Type: String
-    Description: Route53 Hosted Zone ID for chesstard.biz
+    Description: Route53 Hosted Zone ID 
 
 Resources:
   # S3 Bucket for static website hosting (private, accessed via CloudFront only)
@@ -109,7 +109,7 @@ Resources:
               StringEquals:
                 AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${WebsiteCloudFront}
 
-  # Route53 DNS Record - Points dev.chesstard.biz to CloudFront
+  # Route53 DNS Record - Points site to CloudFront
   DNSRecord:
     Type: AWS::Route53::RecordSet
     Properties:
