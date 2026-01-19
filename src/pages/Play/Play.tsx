@@ -3,12 +3,7 @@ import { useWebSocket } from "../../context/WebSocketContext";
 import Board from "./components/Board";
 import Chat from "./components/Chat";
 import Players from "./components/Players";
-import type { PlayerColor } from "../../types/chess";
-
-interface Player {
-  id: string;
-  name: string;
-}
+import type { PlayerColor, Player } from "../../types/chess";
 
 function Play() {
   const { sendMessage, lastMessage, isConnected } = useWebSocket();
