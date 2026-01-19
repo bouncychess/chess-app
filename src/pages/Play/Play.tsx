@@ -24,6 +24,7 @@ function Play() {
       setStatus("Playing");
     }
     if (lastMessage.action === "players") {
+      console.log("received players" + lastMessage);
       setPlayers(lastMessage.players);
     }
   }, [lastMessage]);

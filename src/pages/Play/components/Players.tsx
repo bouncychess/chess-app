@@ -14,7 +14,7 @@ function Players({ players }: PlayersProps) {
         <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
           {players.map((player) => (
             <li key={player.id} style={{ padding: "4px 0", display: "flex", justifyContent: "space-between" }}>
-              <span>{player.name}</span>
+              <span>{player.id.slice(0, 8)}</span>
               <span style={{ color: "#888", fontSize: "0.9em" }}>{player.status}</span>
             </li>
           ))}
