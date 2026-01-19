@@ -2,14 +2,15 @@ import { useEffect, useState } from "react";
 import { useWebSocket } from "../../context/WebSocketContext";
 import Board from "./components/Board";
 import Chat from "./components/Chat";
+import type { PlayerColor } from "../../types/chess";
 
 function Play() {
   const { sendMessage, lastMessage, isConnected } = useWebSocket();
 
   const [gameId, setGameId] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Online");
-  const [playerColor, setPlayerColor] = useState<"white" | "black">("white");
-  const [currentTurn, setCurrentTurn] = useState<"white" | "black">("white");
+  const [playerColor, setPlayerColor] = useState<PlayerColor>("white");
+  const [currentTurn, setCurrentTurn] = useState<PlayerColor>("white");
 
   useEffect(() => {
     if (!lastMessage) return;

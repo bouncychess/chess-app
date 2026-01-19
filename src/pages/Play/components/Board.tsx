@@ -3,11 +3,12 @@ import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import type { PieceDropHandlerArgs, DraggingPieceDataType } from "react-chessboard";
 import { useWebSocket } from "../../../context/WebSocketContext";
+import type { PlayerColor } from "../../../types/chess";
 
 interface BoardProps {
   gameId: string | null;
-  playerColor: "white" | "black";
-  initialTurn: "white" | "black";
+  playerColor: PlayerColor;
+  initialTurn: PlayerColor;
 }
 
 function Board({ gameId, playerColor, initialTurn }: BoardProps) {
@@ -16,7 +17,7 @@ function Board({ gameId, playerColor, initialTurn }: BoardProps) {
   const chessGame = chessRef.current;
 
   const [chessPosition, setChessPosition] = useState(chessGame.fen());
-  const [currentTurn, setCurrentTurn] = useState<"white" | "black">(initialTurn);
+  const [currentTurn, setCurrentTurn] = useState<PlayerColor>(initialTurn);
   const moveSound = new Audio("/sounds/move.mp3");
 
   useEffect(() => {
