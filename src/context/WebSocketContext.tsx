@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import type { GameAction } from "../types/chess";
 
 type WebSocketMessage = {
-  action: string;
+  action: GameAction;
   [key: string]: any;
 };
 
