@@ -53,7 +53,7 @@ function Play() {
           playerColor={playerColor}
           initialTurn={currentTurn}
         />
-        <Players players={players} currentPlayerId={playerId ?? undefined} />
+        {!gameId && <Players players={players} currentPlayerId={playerId ?? undefined} />}
       </div>
       {gameId && <Chat gameId={gameId} />}
     </div>
