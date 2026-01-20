@@ -35,51 +35,68 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     };
 
     return (
-        <div className="login-form">
-            <h2>{isRegister ? 'Register' : 'Login'}</h2>
-            <form onSubmit={handleSubmit}>
-                <TextInput
-                    label="Username"
-                    type="text"
-                    value={username}
-                    onChange={setUsername}
-                    placeholder="Enter your username"
-                />
+        <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '100vh',
+            padding: 20
+        }}>
+            <div style={{
+                width: '100%',
+                maxWidth: 400,
+                padding: 32,
+                border: '1px solid #ccc',
+                borderRadius: 8,
+                backgroundColor: 'grey'
+            }}>
+                <h2 style={{ textAlign: 'center', marginBottom: 24 }}>
+                    {isRegister ? 'Register' : 'Login'}
+                </h2>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                {isRegister && (
+                    {isRegister && (
+                        <TextInput
+                            label="Email"
+                            type="email"
+                            value={email}
+                            onChange={setEmail}
+                            placeholder="Enter your email"
+                        />
+                    )}
+                    
                     <TextInput
-                        label="Email"
-                        type="email"
-                        value={email}
-                        onChange={setEmail}
-                        placeholder="Enter your email"
+                        label="Username"
+                        type="text"
+                        value={username}
+                        onChange={setUsername}
+                        placeholder="Enter your username"
                     />
-                )}
 
-                <TextInput
-                    label="Password"
-                    type="password"
-                    value={password}
-                    onChange={setPassword}
-                    placeholder="Enter your password"
-                />
+                    <TextInput
+                        label="Password"
+                        type="password"
+                        value={password}
+                        onChange={setPassword}
+                        placeholder="Enter your password"
+                    />
 
-                <br />
-                <Button type="submit" disabled={loading}>
-                    {loading ? (isRegister ? 'Registering...' : 'Logging in...') : (isRegister ? 'Register' : 'Log In')}
-                </Button>
-                {error && <p style={{ color: 'red' }}>{error}</p>}
-            </form>
-            <p style={{ marginTop: 16 }}>
-                {isRegister ? 'Already have an account? ' : "Don't have an account? "}
-                <button
-                    type="button"
-                    onClick={() => setIsRegister(!isRegister)}
-                    style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                    {isRegister ? 'Log In' : 'Register'}
-                </button>
-            </p>
+                    <Button type="submit" disabled={loading}>
+                        {loading ? (isRegister ? 'Registering...' : 'Logging in...') : (isRegister ? 'Register' : 'Log In')}
+                    </Button>
+                    {error && <p style={{ color: 'red', margin: 0, textAlign: 'center' }}>{error}</p>}
+                </form>
+                <p style={{ marginTop: 20, textAlign: 'center' }}>
+                    {isRegister ? 'Already have an account? ' : "Don't have an account? "}
+                    <button
+                        type="button"
+                        onClick={() => setIsRegister(!isRegister)}
+                        style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                        {isRegister ? 'Log In' : 'Register'}
+                    </button>
+                </p>
+            </div>
         </div>
     );
 }
