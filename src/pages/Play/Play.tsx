@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useWebSocket } from "../../context/WebSocketContext";
 import Board from "./components/Board";
 import Chat from "./components/Chat";
-import type { PlayerColor } from "../../types/chess";
+import Players from "./components/Players";
+import type { PlayerColor, Player } from "../../types/chess";
 
 function Play() {
   const { sendMessage, lastMessage, isConnected } = useWebSocket();
@@ -11,6 +12,8 @@ function Play() {
   const [status, setStatus] = useState<string>("Online");
   const [playerColor, setPlayerColor] = useState<PlayerColor>("white");
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>("white");
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [playerId, setPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!lastMessage) return;
@@ -20,6 +23,11 @@ function Play() {
       setPlayerColor(lastMessage.color);
       setCurrentTurn(lastMessage.turn);
       setStatus("Playing");
+    }
+    if (lastMessage.action === "players") {
+      console.log("received players" + lastMessage);
+      setPlayers(lastMessage.players);
+      setPlayerId(lastMessage.playerId);
     }
   }, [lastMessage]);
 
@@ -39,11 +47,14 @@ function Play() {
       <h2>Chess Live</h2>
       <p>Status: {status} {gameId}</p>
       <button type="button" onClick={onPlay}>Play</button>
-      <Board
-        gameId={gameId}
-        playerColor={playerColor}
-        initialTurn={currentTurn}
-      />
+      <div style={{ display: "flex", gap: 20 }}>
+        <Board
+          gameId={gameId}
+          playerColor={playerColor}
+          initialTurn={currentTurn}
+        />
+        {!gameId && <Players players={players} currentPlayerId={playerId ?? undefined} />}
+      </div>
       {gameId && <Chat gameId={gameId} />}
     </div>
   );
