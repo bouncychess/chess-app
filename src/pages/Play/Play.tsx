@@ -13,6 +13,7 @@ function Play() {
   const [playerColor, setPlayerColor] = useState<PlayerColor>("white");
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>("white");
   const [players, setPlayers] = useState<Player[]>([]);
+  const [playerId, setPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!lastMessage) return;
@@ -26,6 +27,7 @@ function Play() {
     if (lastMessage.action === "players") {
       console.log("received players" + lastMessage);
       setPlayers(lastMessage.players);
+      setPlayerId(lastMessage.playerId);
     }
   }, [lastMessage]);
 
@@ -51,7 +53,7 @@ function Play() {
           playerColor={playerColor}
           initialTurn={currentTurn}
         />
-        <Players players={players} />
+        <Players players={players} currentPlayerId={playerId ?? undefined} />
       </div>
       {gameId && <Chat gameId={gameId} />}
     </div>
