@@ -15,6 +15,7 @@ export default function Sidebar() {
                 <ul style={{listStyle: 'none', padding: 0}}>
                     <li><Link to="/" style={{color: 'white'}}>Home</Link></li>
                     <li><Link to="/play" style={{color: 'white'}}>Play</Link></li>
+                    <li><Link to="/logout" style={{color: 'white'}}>Logout</Link></li>
                 </ul>
             </nav>
         </aside>
