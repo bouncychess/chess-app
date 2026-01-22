@@ -44,7 +44,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
         }}>
             <div style={{
                 width: '100%',
-                maxWidth: 400,
+                maxWidth: 350,
                 padding: 32,
                 border: '1px solid #ccc',
                 borderRadius: 8,
