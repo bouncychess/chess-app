@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { Button } from './buttons/Button';
 import { TextInput } from './input/TextInput';
-import { login, register, confirmRegistration } from '../services/auth';
+import { login, register, confirmRegistration, forgotPassword, forgotPasswordSubmit } from '../services/auth';
 
 type LoginModalProps = {
     onLoginSuccess: () => void;
 };
 
-type Mode = 'login' | 'register' | 'confirm';
+type Mode = 'login' | 'register' | 'confirm' | 'forgotPassword' | 'resetPassword';
 
 export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmationCode, setConfirmationCode] = useState('');
+    const [newPassword, setNewPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [mode, setMode] = useState<Mode>('login');
@@ -41,6 +42,22 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
         onLoginSuccess();
     };
 
+    const handleForgotPassword = async () => {
+        await forgotPassword(username);
+        setMode('resetPassword');
+        setError(null);
+    };
+
+    const handleResetPassword = async () => {
+        await forgotPasswordSubmit(username, confirmationCode, newPassword);
+        // After reset, go back to login
+        setMode('login');
+        setPassword('');
+        setNewPassword('');
+        setConfirmationCode('');
+        setError(null);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
@@ -50,8 +67,12 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
                 await handleLogin();
             } else if (mode === 'register') {
                 await handleRegister();
-            } else {
+            } else if (mode === 'confirm') {
                 await handleConfirm();
+            } else if (mode === 'forgotPassword') {
+                await handleForgotPassword();
+            } else if (mode === 'resetPassword') {
+                await handleResetPassword();
             }
         } catch (err) {
             console.error('Auth error:', err);
@@ -66,6 +87,8 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
             case 'login': return 'Login';
             case 'register': return 'Register';
             case 'confirm': return 'Confirm Email';
+            case 'forgotPassword': return 'Forgot Password';
+            case 'resetPassword': return 'Reset Password';
         }
     };
 
@@ -75,12 +98,16 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
                 case 'login': return 'Logging in...';
                 case 'register': return 'Registering...';
                 case 'confirm': return 'Confirming...';
+                case 'forgotPassword': return 'Sending code...';
+                case 'resetPassword': return 'Resetting...';
             }
         }
         switch (mode) {
             case 'login': return 'Log In';
             case 'register': return 'Register';
             case 'confirm': return 'Confirm';
+            case 'forgotPassword': return 'Send Reset Code';
+            case 'resetPassword': return 'Reset Password';
         }
     };
 
@@ -124,6 +151,42 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
                                 required
                             />
                         </>
+                    ) : mode === 'forgotPassword' ? (
+                        <>
+                            <p style={{ margin: 0, textAlign: 'center', color: '#aaa' }}>
+                                Enter your username and we'll send you a code to reset your password.
+                            </p>
+                            <TextInput
+                                label="Username"
+                                type="text"
+                                value={username}
+                                onChange={setUsername}
+                                placeholder="Enter your username"
+                                required
+                            />
+                        </>
+                    ) : mode === 'resetPassword' ? (
+                        <>
+                            <p style={{ margin: 0, textAlign: 'center', color: '#aaa' }}>
+                                Enter the code we sent to your email and your new password.
+                            </p>
+                            <TextInput
+                                label="Confirmation Code"
+                                type="text"
+                                value={confirmationCode}
+                                onChange={setConfirmationCode}
+                                placeholder="Enter the code"
+                                required
+                            />
+                            <TextInput
+                                label="New Password"
+                                type="password"
+                                value={newPassword}
+                                onChange={setNewPassword}
+                                placeholder="Enter your new password"
+                                required
+                            />
+                        </>
                     ) : (
                         <>
                             {mode === 'register' && (
@@ -163,7 +226,7 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
                     {error && <p style={{ color: '#ff6b6b', margin: 0, textAlign: 'center' }}>{error}</p>}
                 </form>
 
-                {mode !== 'confirm' && (
+                {(mode === 'login' || mode === 'register') && (
                     <p style={{ marginTop: 20, textAlign: 'center' }}>
                         {mode === 'register' ? 'Already have an account? ' : "Don't have an account? "}
                         <button
@@ -179,6 +242,21 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
                     </p>
                 )}
 
+                {mode === 'login' && (
+                    <p style={{ marginTop: 8, textAlign: 'center' }}>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMode('forgotPassword');
+                                setError(null);
+                            }}
+                            style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
+                        >
+                            Forgot Password?
+                        </button>
+                    </p>
+                )}
+
                 {mode === 'confirm' && (
                     <p style={{ marginTop: 20, textAlign: 'center' }}>
                         <button
@@ -190,6 +268,23 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
                             style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
                         >
                             Back to Register
+                        </button>
+                    </p>
+                )}
+
+                {(mode === 'forgotPassword' || mode === 'resetPassword') && (
+                    <p style={{ marginTop: 20, textAlign: 'center' }}>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMode('login');
+                                setConfirmationCode('');
+                                setNewPassword('');
+                                setError(null);
+                            }}
+                            style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
+                        >
+                            Back to Login
                         </button>
                     </p>
                 )}
