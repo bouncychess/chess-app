@@ -21,7 +21,7 @@ function Players({ players, currentPlayerId }: PlayersProps) {
               backgroundColor: player.id === currentPlayerId ? "rgba(0, 100, 0, 0.5)" : "transparent",
               borderRadius: 4
             }}>
-              <span>{player.id.slice(0, 12)}</span>
+              <span>{player.username}</span>
               <span style={{ color: "#888", fontSize: "0.9em" }}>{player.status}</span>
             </li>
           ))}

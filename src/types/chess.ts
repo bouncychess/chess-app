@@ -4,6 +4,6 @@ export type GameAction = "play" | "move" | "chat" | "startGame" | "players" | "c
 
 export interface Player {
   id: string;
-  name: string;
+  username: string;
   status: string;
 }
