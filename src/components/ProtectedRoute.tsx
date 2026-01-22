@@ -1,15 +1,21 @@
-import { Navigate } from 'react-router-dom';
+import { useState } from 'react';
+import LoginModal from './LoginModal';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const currentUser = localStorage.getItem('currentUser');
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('currentUser'));
 
-  if (!currentUser) {
-    return <Navigate to="/login" replace />;
-  }
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+  };
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {!isAuthenticated && <LoginModal onLoginSuccess={handleLoginSuccess} />}
+    </>
+  );
 }
