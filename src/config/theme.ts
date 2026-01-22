@@ -12,7 +12,7 @@ export const theme = {
         link: '#007bff',
 
         // Cards
-        cardBackground: '#2a2a2a',
-        cardText: 'white',
+        cardBackground: '#ffffff',
+        cardText: '#1a1a1a',
     },
 };
