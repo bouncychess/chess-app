@@ -46,7 +46,7 @@ function Play() {
     <div style={{ padding: 20 }}>
       <h2>Chess Live</h2>
       <p>Status: {status} {gameId}</p>
-      <button type="button" onClick={onPlay}>Play</button>
+      {!gameId && <button type="button" onClick={onPlay}>Play</button>}
       <div style={{ display: "flex", gap: 20 }}>
         <Board
           gameId={gameId}
