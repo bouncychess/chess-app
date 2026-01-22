@@ -5,18 +5,21 @@ import Logout from './pages/Logout/Logout';
 import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { WebSocketProvider } from './context/WebSocketContext';
+import { AuthProvider } from './context/AuthContext';
 
 export default function App() {
     return (
-        <WebSocketProvider>
-            <Router>
-                <Routes>
-                    <Route path="/" element={<Navigate to="/play" replace />} />
-                    <Route path="/play" element={<ProtectedRoute><Layout><Play /></Layout></ProtectedRoute>} />
-                    <Route path="/home" element={<ProtectedRoute><Layout><Home /></Layout></ProtectedRoute>} />
-                    <Route path="/logout" element={<Logout />} />
-                </Routes>
-            </Router>
-        </WebSocketProvider>
+        <AuthProvider>
+            <WebSocketProvider>
+                <Router>
+                    <Routes>
+                        <Route path="/" element={<Navigate to="/play" replace />} />
+                        <Route path="/play" element={<ProtectedRoute><Layout><Play /></Layout></ProtectedRoute>} />
+                        <Route path="/home" element={<ProtectedRoute><Layout><Home /></Layout></ProtectedRoute>} />
+                        <Route path="/logout" element={<Logout />} />
+                    </Routes>
+                </Router>
+            </WebSocketProvider>
+        </AuthProvider>
     );
 }
