@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home/Home';
 import Play from './pages/Play/Play';
 import Login from './pages/Login/Login';
+import Article from './pages/Article/Article';
 import Layout from './components/layout/Layout';
 import { WebSocketProvider } from './context/WebSocketContext';
 
@@ -12,6 +13,7 @@ export default function App() {
                 <Routes>
                     <Route path="/" element={<Layout><Home /></Layout>} />
                     <Route path="/play" element={<Layout><Play /></Layout>} />
+                    <Route path="/articles/:id" element={<Layout><Article /></Layout>} />
                     <Route path="/login" element={<Login />} />
                 </Routes>
             </Router>
