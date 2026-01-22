@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home/Home';
 import Play from './pages/Play/Play';
 import Logout from './pages/Logout/Logout';
@@ -11,7 +11,8 @@ export default function App() {
         <WebSocketProvider>
             <Router>
                 <Routes>
-                    <Route path="/" element={<ProtectedRoute><Layout><Play /></Layout></ProtectedRoute>} />
+                    <Route path="/" element={<Navigate to="/play" replace />} />
+                    <Route path="/play" element={<ProtectedRoute><Layout><Play /></Layout></ProtectedRoute>} />
                     <Route path="/home" element={<ProtectedRoute><Layout><Home /></Layout></ProtectedRoute>} />
                     <Route path="/logout" element={<Logout />} />
                 </Routes>
