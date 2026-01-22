@@ -16,7 +16,7 @@ const articleContent: Record<string, { title: string; content: string }> = {
     },
     '4': {
         title: 'Head size closely linked to Intelligence',
-        content: 'A recent study in rats has confirmed the long held notion that head size is a direct causal indicator of intelligence.',
+        content: 'A recent study in rats has confirmed the long held notion that head size has a direct causal relationship with intelligence.',
     },
     '5': {
         title: 'Tactical Patterns Every Player Should Know',
@@ -36,7 +36,7 @@ export default function Article() {
         return (
             <div>
                 <h1>Article not found</h1>
-                <Link to="/" style={{ color: '#007bff' }}>Back to Home</Link>
+                <Link to="/home" style={{ color: '#007bff' }}>Back to Home</Link>
             </div>
         );
     }
