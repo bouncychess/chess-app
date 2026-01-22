@@ -1,4 +1,4 @@
-import { signIn, signUp, signOut, getCurrentUser, confirmSignUp } from 'aws-amplify/auth';
+import { signIn, signUp, signOut, getCurrentUser, confirmSignUp, resetPassword, confirmResetPassword } from 'aws-amplify/auth';
 
 export type AuthUser = {
     username: string;
@@ -53,4 +53,12 @@ export async function getAuthenticatedUser(): Promise<AuthUser | null> {
     } catch {
         return null;
     }
+}
+
+export async function forgotPassword(username: string): Promise<void> {
+    await resetPassword({ username });
+}
+
+export async function forgotPasswordSubmit(username: string, code: string, newPassword: string): Promise<void> {
+    await confirmResetPassword({ username, confirmationCode: code, newPassword });
 }
