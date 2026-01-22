@@ -1,8 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home/Home';
 import Play from './pages/Play/Play';
-import Article from './pages/Article/Article';
 import Logout from './pages/Logout/Logout';
+import Article from './pages/Article/Article';
 import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { WebSocketProvider } from './context/WebSocketContext';
