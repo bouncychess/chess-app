@@ -1,24 +1,15 @@
-import { useState, useEffect } from 'react';
 import LoginModal from './LoginModal';
-import { getAuthenticatedUser } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { isAuthenticated, refreshUser } = useAuth();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const user = await getAuthenticatedUser();
-      setIsAuthenticated(!!user);
-    };
-    checkAuth();
-  }, []);
-
-  const handleLoginSuccess = () => {
-    setIsAuthenticated(true);
+  const handleLoginSuccess = async () => {
+    await refreshUser();
   };
 
   // Show nothing while checking auth status
