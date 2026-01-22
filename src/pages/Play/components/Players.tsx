@@ -18,7 +18,7 @@ function Players({ players, currentPlayerId }: PlayersProps) {
               padding: "4px 8px",
               display: "flex",
               justifyContent: "space-between",
-              backgroundColor: player.id === currentPlayerId ? "rgba(0, 100, 0, 0.5)" : "transparent",
+              backgroundColor: player.id === currentPlayerId ? "rgba(34, 197, 94, 0.3)" : "transparent",
               borderRadius: 4
             }}>
               <span>{player.username}</span>
