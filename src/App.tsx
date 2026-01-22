@@ -18,7 +18,7 @@ export default function App() {
                         <Route path="/play" element={<ProtectedRoute><Layout><Play /></Layout></ProtectedRoute>} />
                         <Route path="/home" element={<ProtectedRoute><Layout><Home /></Layout></ProtectedRoute>} />
                         <Route path="/articles/:id" element={<Layout><Article /></Layout>} />
-                    <Route path="/logout" element={<Logout />} />
+                        <Route path="/logout" element={<Logout />} />
                     </Routes>
                 </Router>
             </WebSocketProvider>
