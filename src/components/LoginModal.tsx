@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from './buttons/Button';
 import { TextInput } from './input/TextInput';
 import { login, register, confirmRegistration, forgotPassword, forgotPasswordSubmit } from '../services/auth';
+import { theme } from '../config/theme';
 
 type LoginModalProps = {
     onLoginSuccess: () => void;
@@ -128,9 +129,10 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
                 width: '100%',
                 maxWidth: 400,
                 padding: 32,
-                border: '1px solid #ccc',
+                border: `1px solid ${theme.colors.border}`,
                 borderRadius: 8,
-                backgroundColor: '#2a2a2a',
+                backgroundColor: theme.colors.cardBackground,
+                color: theme.colors.cardText,
             }}>
                 <h2 style={{ textAlign: 'center', marginBottom: 24 }}>
                     {getTitle()}
@@ -139,7 +141,7 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
 
                     {mode === 'confirm' ? (
                         <>
-                            <p style={{ margin: 0, textAlign: 'center', color: '#aaa' }}>
+                            <p style={{ margin: 0, textAlign: 'center', color: theme.colors.placeholder }}>
                                 We sent a confirmation code to your email.
                             </p>
                             <TextInput
@@ -153,7 +155,7 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
                         </>
                     ) : mode === 'forgotPassword' ? (
                         <>
-                            <p style={{ margin: 0, textAlign: 'center', color: '#aaa' }}>
+                            <p style={{ margin: 0, textAlign: 'center', color: theme.colors.placeholder }}>
                                 Enter your username and we'll send you a code to reset your password.
                             </p>
                             <TextInput
@@ -167,7 +169,7 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
                         </>
                     ) : mode === 'resetPassword' ? (
                         <>
-                            <p style={{ margin: 0, textAlign: 'center', color: '#aaa' }}>
+                            <p style={{ margin: 0, textAlign: 'center', color: theme.colors.placeholder }}>
                                 Enter the code we sent to your email and your new password.
                             </p>
                             <TextInput
@@ -235,7 +237,7 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
                                 setMode(mode === 'login' ? 'register' : 'login');
                                 setError(null);
                             }}
-                            style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
+                            style={{ background: 'none', border: 'none', color: theme.colors.link, cursor: 'pointer', textDecoration: 'underline' }}
                         >
                             {mode === 'register' ? 'Log In' : 'Register'}
                         </button>
@@ -250,7 +252,7 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
                                 setMode('forgotPassword');
                                 setError(null);
                             }}
-                            style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
+                            style={{ background: 'none', border: 'none', color: theme.colors.link, cursor: 'pointer', textDecoration: 'underline' }}
                         >
                             Forgot Password?
                         </button>
@@ -265,7 +267,7 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
                                 setMode('register');
                                 setError(null);
                             }}
-                            style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
+                            style={{ background: 'none', border: 'none', color: theme.colors.link, cursor: 'pointer', textDecoration: 'underline' }}
                         >
                             Back to Register
                         </button>
@@ -282,7 +284,7 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
                                 setNewPassword('');
                                 setError(null);
                             }}
-                            style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
+                            style={{ background: 'none', border: 'none', color: theme.colors.link, cursor: 'pointer', textDecoration: 'underline' }}
                         >
                             Back to Login
                         </button>
