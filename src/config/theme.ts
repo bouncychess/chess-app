@@ -12,7 +12,19 @@ export const theme = {
         link: '#007bff',
 
         // Cards
-        cardBackground: '#2a2a2a',
-        cardText: 'white',
+        cardBackground: '#ffffff',
+        cardText: '#1a1a1a',
+
+        // Buttons
+        primary: 'grey',
+        primaryText: '#ffffff',
+        secondary: 'grey',
+        secondaryText: '#ffffff',
+        buttonHoverBorder: '#ffffff',
+
+        // Form elements
+        border: '#d1d5db',
+        borderFocus: '#2563eb',
+        placeholder: '#9ca3af',
     },
 };

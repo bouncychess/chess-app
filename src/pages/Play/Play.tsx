@@ -3,6 +3,7 @@ import { useWebSocket } from "../../context/WebSocketContext";
 import Board from "./components/Board";
 import Chat from "./components/Chat";
 import Players from "./components/Players";
+import { Button } from "../../components/buttons/Button";
 import type { PlayerColor, Player } from "../../types/chess";
 
 function Play() {
@@ -46,7 +47,7 @@ function Play() {
     <div style={{ padding: 20 }}>
       <h2>Chess Live</h2>
       <p>Status: {status} {gameId}</p>
-      <button type="button" onClick={onPlay}>Play</button>
+      {!gameId && <Button onClick={onPlay}>Play</Button>}
       <div style={{ display: "flex", gap: 20 }}>
         <Board
           gameId={gameId}
