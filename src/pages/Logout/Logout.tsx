@@ -6,7 +6,7 @@ export default function Logout() {
 
     useEffect(() => {
         localStorage.removeItem('currentUser');
-        navigate('/login');
+        navigate('/');
     }, [navigate]);
 
     return null;
