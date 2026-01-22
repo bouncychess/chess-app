@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import { fetchAuthSession } from "aws-amplify/auth";
+import { useAuth } from "./AuthContext";
 import type { GameAction } from "../types/chess";
 
 type WebSocketMessage = {
@@ -20,39 +22,64 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const socketRef = useRef<WebSocket | null>(null);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    const socket = new WebSocket(WEBSOCKET_URL);
-    socketRef.current = socket;
+    // Only connect when authenticated
+    if (!isAuthenticated) {
+      return;
+    }
 
-    socket.onopen = () => {
-      setIsConnected(true);
-      console.log("WebSocket connected");
-      sendMessage({ action: "connected" });
-    };
-
-    socket.onmessage = (event) => {
+    const connectWebSocket = async () => {
       try {
-        const parsed = JSON.parse(event.data);
-        setLastMessage(parsed);
-      } catch (e) {
-        console.error("Invalid WS message:", event.data);
+        // Get the Cognito ID token
+        const session = await fetchAuthSession();
+        const token = session.tokens?.idToken?.toString();
+
+        if (!token) {
+          console.error("No auth token available");
+          return;
+        }
+
+        // Pass token as query parameter
+        console.log(`Webscoket Token: ${token}`)
+        const socket = new WebSocket(`${WEBSOCKET_URL}?token=${token}`);
+        socketRef.current = socket;
+
+        socket.onopen = () => {
+          setIsConnected(true);
+          console.log("WebSocket connected");
+          sendMessage({ action: "connected" });
+        };
+
+        socket.onmessage = (event) => {
+          try {
+            const parsed = JSON.parse(event.data);
+            setLastMessage(parsed);
+          } catch (e) {
+            console.error("Invalid WS message:", event.data);
+          }
+        };
+
+        socket.onclose = () => {
+          setIsConnected(false);
+          console.warn("WebSocket closed");
+        };
+
+        socket.onerror = (e) => {
+          console.error("WebSocket error", e);
+        };
+      } catch (error) {
+        console.error("Failed to connect WebSocket:", error);
       }
     };
 
-    socket.onclose = () => {
-      setIsConnected(false);
-      console.warn("WebSocket closed");
-    };
-
-    socket.onerror = (e) => {
-      console.error("WebSocket error", e);
-    };
+    connectWebSocket();
 
     return () => {
-      socket.close();
+      socketRef.current?.close();
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const sendMessage = (message: WebSocketMessage) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
