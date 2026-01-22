@@ -5,9 +5,10 @@ type TextInputProps = {
     onChange: (val: string) => void;
     placeholder?: string;
     type?: 'text' | 'password' | 'email';
+    required?: boolean;
 };
 
-export const TextInput = ({ label, value, onChange, placeholder, type = 'text' }: TextInputProps) => (
+export const TextInput = ({ label, value, onChange, placeholder, type = 'text', required }: TextInputProps) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {label && <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>{label}</label>}
         <input
@@ -21,6 +22,13 @@ export const TextInput = ({ label, value, onChange, placeholder, type = 'text' }
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
+            required={required}
+            onInvalid={(e) => {
+                if (required && label) {
+                    (e.target as HTMLInputElement).setCustomValidity(`${label} is required`);
+                }
+            }}
+            onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
         />
     </div>
 );

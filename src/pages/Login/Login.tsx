@@ -62,15 +62,17 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                             value={email}
                             onChange={setEmail}
                             placeholder="Enter your email"
+                            required
                         />
                     )}
-                    
+
                     <TextInput
                         label="Username"
                         type="text"
                         value={username}
                         onChange={setUsername}
                         placeholder="Enter your username"
+                        required
                     />
 
                     <TextInput
@@ -79,6 +81,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                         value={password}
                         onChange={setPassword}
                         placeholder="Enter your password"
+                        required
                     />
 
                     <Button type="submit" disabled={loading}>
