@@ -1,6 +1,6 @@
 // components/buttons/Button.tsx
 import React from 'react';
-import { theme } from '../../theme';
+import { theme } from '../../config/theme';
 
 type ButtonProps = {
     children: React.ReactNode;
@@ -20,11 +20,11 @@ export const Button = ({
     const variantStyles = {
         primary: {
             backgroundColor: theme.colors.primary,
-            color: theme.colors.text,
+            color: theme.colors.primaryText,
         },
         secondary: {
             backgroundColor: theme.colors.secondary,
-            color: theme.colors.text,
+            color: theme.colors.secondaryText,
         },
     };
 
