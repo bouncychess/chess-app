@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home/Home';
 import Play from './pages/Play/Play';
+import Article from './pages/Article/Article';
 import Logout from './pages/Logout/Logout';
 import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -16,6 +17,7 @@ export default function App() {
                         <Route path="/" element={<Navigate to="/play" replace />} />
                         <Route path="/play" element={<ProtectedRoute><Layout><Play /></Layout></ProtectedRoute>} />
                         <Route path="/home" element={<ProtectedRoute><Layout><Home /></Layout></ProtectedRoute>} />
+                        <Route path="/articles/:id" element={<Layout><Article /></Layout>} />
                         <Route path="/logout" element={<Logout />} />
                     </Routes>
                 </Router>
