@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { theme } from '../../config/theme';
 
 export default function Sidebar() {
     const { user } = useAuth();
@@ -7,8 +8,8 @@ export default function Sidebar() {
     return (
         <aside style={{
             width: '200px',
-            background: '#1f2937',
-            color: 'white',
+            background: theme.colors.sidebarBackground,
+            color: theme.colors.sidebarText,
             padding: '1rem',
             minHeight: '100%',
             display: 'flex',
@@ -18,8 +19,8 @@ export default function Sidebar() {
             <h2 style={{ margin: '0 0 1rem 0' }}>Chess</h2>
             <nav style={{ flex: 1 }}>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                    <li><Link to="/home" style={{ color: 'white' }}>Home</Link></li>
-                    <li><Link to="/play" style={{ color: 'white' }}>Play</Link></li>
+                    <li><Link to="/home" style={{ color: theme.colors.sidebarText }}>Home</Link></li>
+                    <li><Link to="/play" style={{ color: theme.colors.sidebarText }}>Play</Link></li>
                 </ul>
             </nav>
             <div style={{ borderTop: '1px solid #374151', paddingTop: '1rem' }}>
