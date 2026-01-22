@@ -29,20 +29,6 @@ jobs:
           role-to-assume: arn:aws:iam::578613961467:role/chess-github-actions-deploy
           aws-region: us-east-1
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build application
-        run: npm run build
-        env:
-          NODE_ENV: ${{ env.NODE_ENV }}
-
       - name: Deploy CloudFormation Stack
         id: cfn-deploy
         run: |
@@ -94,8 +80,36 @@ jobs:
             --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
             --output text)
 
+          COGNITO_USER_POOL_ID=$(aws cloudformation describe-stacks \
+            --stack-name chess-app-stack \
+            --query "Stacks[0].Outputs[?OutputKey=='CognitoUserPoolId'].OutputValue" \
+            --output text)
+
+          COGNITO_CLIENT_ID=$(aws cloudformation describe-stacks \
+            --stack-name chess-app-stack \
+            --query "Stacks[0].Outputs[?OutputKey=='CognitoUserPoolClientId'].OutputValue" \
+            --output text)
+
           echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_OUTPUT
           echo "DISTRIBUTION_ID=$DISTRIBUTION_ID" >> $GITHUB_OUTPUT
+          echo "COGNITO_USER_POOL_ID=$COGNITO_USER_POOL_ID" >> $GITHUB_OUTPUT
+          echo "COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID" >> $GITHUB_OUTPUT
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: ${{ env.NODE_ENV }}
+          VITE_COGNITO_USER_POOL_ID: ${{ steps.stack-outputs.outputs.COGNITO_USER_POOL_ID }}
+          VITE_COGNITO_CLIENT_ID: ${{ steps.stack-outputs.outputs.COGNITO_CLIENT_ID }}
 
       - name: Sync build to S3
         run: |

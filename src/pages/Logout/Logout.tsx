@@ -1,13 +1,15 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { logout } from '../../services/auth';
 
 export default function Logout() {
-    const navigate = useNavigate();
-
     useEffect(() => {
-        localStorage.removeItem('currentUser');
-        navigate('/');
-    }, [navigate]);
+        const performLogout = async () => {
+            await logout();
+            // Force a full page reload to clear all state and re-check auth
+            window.location.href = '/';
+        };
+        performLogout();
+    }, []);
 
     return null;
 }

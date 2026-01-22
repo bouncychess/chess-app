@@ -1,32 +1,86 @@
 import { useState } from 'react';
 import { Button } from './buttons/Button';
 import { TextInput } from './input/TextInput';
+import { login, register, confirmRegistration } from '../services/auth';
 
 type LoginModalProps = {
     onLoginSuccess: () => void;
 };
 
+type Mode = 'login' | 'register' | 'confirm';
+
 export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmationCode, setConfirmationCode] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const [isRegister, setIsRegister] = useState(false);
+    const [mode, setMode] = useState<Mode>('login');
+
+    const handleLogin = async () => {
+        await login(username, password);
+        onLoginSuccess();
+    };
+
+    const handleRegister = async () => {
+        const result = await register(username, email, password);
+        if (result.needsConfirmation) {
+            setMode('confirm');
+            setError(null);
+        } else {
+            // Auto sign in after registration if no confirmation needed
+            await handleLogin();
+        }
+    };
+
+    const handleConfirm = async () => {
+        await confirmRegistration(username, confirmationCode);
+        // After confirmation, sign in automatically
+        await login(username, password);
+        onLoginSuccess();
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
         setLoading(true);
         try {
-            localStorage.setItem('currentUser', JSON.stringify({ username, email: isRegister ? email : undefined }));
-            console.log(isRegister ? 'Registration successful' : 'Login successful');
-            onLoginSuccess();
+            if (mode === 'login') {
+                await handleLogin();
+            } else if (mode === 'register') {
+                await handleRegister();
+            } else {
+                await handleConfirm();
+            }
         } catch (err) {
-            console.error(isRegister ? 'Registration failed' : 'Login failed', err);
+            console.error('Auth error:', err);
             setError(err instanceof Error ? err.message : 'Operation failed');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const getTitle = () => {
+        switch (mode) {
+            case 'login': return 'Login';
+            case 'register': return 'Register';
+            case 'confirm': return 'Confirm Email';
+        }
+    };
+
+    const getButtonText = () => {
+        if (loading) {
+            switch (mode) {
+                case 'login': return 'Logging in...';
+                case 'register': return 'Registering...';
+                case 'confirm': return 'Confirming...';
+            }
+        }
+        switch (mode) {
+            case 'login': return 'Log In';
+            case 'register': return 'Register';
+            case 'confirm': return 'Confirm';
         }
     };
 
@@ -52,54 +106,93 @@ export default function LoginModal({ onLoginSuccess }: LoginModalProps) {
                 backgroundColor: '#2a2a2a',
             }}>
                 <h2 style={{ textAlign: 'center', marginBottom: 24 }}>
-                    {isRegister ? 'Register' : 'Login'}
+                    {getTitle()}
                 </h2>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                    {isRegister && (
-                        <TextInput
-                            label="Email"
-                            type="email"
-                            value={email}
-                            onChange={setEmail}
-                            placeholder="Enter your email"
-                            required
-                        />
+                    {mode === 'confirm' ? (
+                        <>
+                            <p style={{ margin: 0, textAlign: 'center', color: '#aaa' }}>
+                                We sent a confirmation code to your email.
+                            </p>
+                            <TextInput
+                                label="Confirmation Code"
+                                type="text"
+                                value={confirmationCode}
+                                onChange={setConfirmationCode}
+                                placeholder="Enter the code"
+                                required
+                            />
+                        </>
+                    ) : (
+                        <>
+                            {mode === 'register' && (
+                                <TextInput
+                                    label="Email"
+                                    type="email"
+                                    value={email}
+                                    onChange={setEmail}
+                                    placeholder="Enter your email"
+                                    required
+                                />
+                            )}
+
+                            <TextInput
+                                label="Username"
+                                type="text"
+                                value={username}
+                                onChange={setUsername}
+                                placeholder="Enter your username"
+                                required
+                            />
+
+                            <TextInput
+                                label="Password"
+                                type="password"
+                                value={password}
+                                onChange={setPassword}
+                                placeholder="Enter your password"
+                                required
+                            />
+                        </>
                     )}
 
-                    <TextInput
-                        label="Username"
-                        type="text"
-                        value={username}
-                        onChange={setUsername}
-                        placeholder="Enter your username"
-                        required
-                    />
-
-                    <TextInput
-                        label="Password"
-                        type="password"
-                        value={password}
-                        onChange={setPassword}
-                        placeholder="Enter your password"
-                        required
-                    />
-
                     <Button type="submit" disabled={loading}>
-                        {loading ? (isRegister ? 'Registering...' : 'Logging in...') : (isRegister ? 'Register' : 'Log In')}
+                        {getButtonText()}
                     </Button>
-                    {error && <p style={{ color: 'red', margin: 0, textAlign: 'center' }}>{error}</p>}
+                    {error && <p style={{ color: '#ff6b6b', margin: 0, textAlign: 'center' }}>{error}</p>}
                 </form>
-                <p style={{ marginTop: 20, textAlign: 'center' }}>
-                    {isRegister ? 'Already have an account? ' : "Don't have an account? "}
-                    <button
-                        type="button"
-                        onClick={() => setIsRegister(!isRegister)}
-                        style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
-                    >
-                        {isRegister ? 'Log In' : 'Register'}
-                    </button>
-                </p>
+
+                {mode !== 'confirm' && (
+                    <p style={{ marginTop: 20, textAlign: 'center' }}>
+                        {mode === 'register' ? 'Already have an account? ' : "Don't have an account? "}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMode(mode === 'login' ? 'register' : 'login');
+                                setError(null);
+                            }}
+                            style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
+                        >
+                            {mode === 'register' ? 'Log In' : 'Register'}
+                        </button>
+                    </p>
+                )}
+
+                {mode === 'confirm' && (
+                    <p style={{ marginTop: 20, textAlign: 'center' }}>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMode('register');
+                                setError(null);
+                            }}
+                            style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
+                        >
+                            Back to Register
+                        </button>
+                    </p>
+                )}
             </div>
         </div>
     );
