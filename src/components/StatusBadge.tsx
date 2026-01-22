@@ -1,5 +1,3 @@
-import { theme } from '../config/theme';
-
 type StatusBadgeProps = {
     status: 'online' | 'disconnected' | 'waiting' | 'playing';
 };
