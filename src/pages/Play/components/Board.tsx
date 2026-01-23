@@ -19,7 +19,7 @@ function Board({ gameId, playerColor, initialTurn, onTurnChange}: BoardProps) {
 
   const [chessPosition, setChessPosition] = useState(chessGame.fen());
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>(initialTurn);
-  const moveSound = new Audio("/sounds/move.mp3");
+  const moveSoundRef = useRef(new Audio("/sounds/move.mp3"));
 
   useEffect(() => {
     if (!lastMessage) return;
@@ -32,13 +32,13 @@ function Board({ gameId, playerColor, initialTurn, onTurnChange}: BoardProps) {
           promotion: "q",
         });
         setChessPosition(chessGame.fen());
-        moveSound.play();
+        moveSoundRef.current.play();
         setCurrentTurn(lastMessage.turn);
       } catch (error) {
-        console.log("Failed to make move");
+        console.log("Failed to make move", error);
       }
     }
-  }, [lastMessage]);
+  }, [lastMessage, chessGame]);
 
   const sendMove = (moveStr: string) => {
     sendMessage({
@@ -76,7 +76,7 @@ function Board({ gameId, playerColor, initialTurn, onTurnChange}: BoardProps) {
     });
 
     setChessPosition(chessGame.fen());
-    moveSound.play();
+    moveSoundRef.current.play();
 
     if (isPromotion(targetSquare, piece)) {
       move += "q";
