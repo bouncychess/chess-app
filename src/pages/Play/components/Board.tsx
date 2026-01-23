@@ -9,9 +9,10 @@ interface BoardProps {
   gameId: string | null;
   playerColor: PlayerColor;
   initialTurn: PlayerColor;
+  onTurnChange?: (turn: PlayerColor) => void;
 }
 
-function Board({ gameId, playerColor, initialTurn }: BoardProps) {
+function Board({ gameId, playerColor, initialTurn, onTurnChange}: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
   const chessRef = useRef(new Chess());
   const chessGame = chessRef.current;
@@ -83,6 +84,7 @@ function Board({ gameId, playerColor, initialTurn }: BoardProps) {
 
     sendMove(move);
     setCurrentTurn((prev) => (prev === "white" ? "black" : "white"));
+    onTurnChange?.(currentTurn === "white" ? "black" : "white");
     return false;
   }
 

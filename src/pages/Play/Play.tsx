@@ -109,6 +109,7 @@ function Play() {
               gameId={gameId}
               playerColor={playerColor}
               initialTurn={currentTurn}
+              onTurnChange={setCurrentTurn}
             />
           </GameClock>
         ) : (
@@ -117,6 +118,7 @@ function Play() {
               gameId={gameId}
               playerColor={playerColor}
               initialTurn={currentTurn}
+              onTurnChange={setCurrentTurn}
             />
             <Players players={players} currentPlayerId={playerId ?? undefined} />
           </>
