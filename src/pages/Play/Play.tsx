@@ -3,9 +3,11 @@ import { useWebSocket } from "../../context/WebSocketContext";
 import Board from "./components/Board";
 import Chat from "./components/Chat";
 import Players from "./components/Players";
+import { GameClock } from "./components/GameClock";
+import { TimeControlSelector } from "./components/TimeControlSelector";
 import { Button } from "../../components/buttons/Button";
 import { StatusBadge } from "../../components/StatusBadge";
-import type { PlayerColor, Player } from "../../types/chess";
+import type { PlayerColor, Player, TimeControl } from "../../types/chess";
 
 function Play() {
   const { sendMessage, lastMessage, isConnected } = useWebSocket();
@@ -16,6 +18,9 @@ function Play() {
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>("white");
   const [players, setPlayers] = useState<Player[]>([]);
   const [playerId, setPlayerId] = useState<string | null>(null);
+  const [selectedTimeControl, setSelectedTimeControl] = useState<TimeControl | null>(null);
+  const [whiteTime, setWhiteTime] = useState<number>(0);
+  const [blackTime, setBlackTime] = useState<number>(0);
 
   useEffect(() => {
     if (isConnected) {
@@ -33,6 +38,23 @@ function Play() {
       setPlayerColor(lastMessage.color);
       setCurrentTurn(lastMessage.turn);
       setStatus("playing");
+      if (lastMessage.whiteTime !== undefined) {
+        setWhiteTime(lastMessage.whiteTime);
+        setBlackTime(lastMessage.blackTime);
+      }
+    }
+    if (lastMessage.action === "move") {
+      if (lastMessage.whiteTime !== undefined) {
+        setWhiteTime(lastMessage.whiteTime);
+        setBlackTime(lastMessage.blackTime);
+      }
+      if (lastMessage.turn) {
+        setCurrentTurn(lastMessage.turn);
+      }
+    }
+    if (lastMessage.action === "clockSync") {
+      setWhiteTime(lastMessage.whiteTime);
+      setBlackTime(lastMessage.blackTime);
     }
     if (lastMessage.action === "players") {
       console.log("received players" + lastMessage);
@@ -46,8 +68,16 @@ function Play() {
       console.log("Already Playing");
       return;
     }
-    if (isConnected) {
-      sendMessage({ action: "play" });
+    if (isConnected && selectedTimeControl) {
+      sendMessage({
+        action: "play",
+        timeControl: {
+          initialTime: selectedTimeControl.initialTime,
+          increment: selectedTimeControl.increment,
+        },
+      });
+      setWhiteTime(selectedTimeControl.initialTime);
+      setBlackTime(selectedTimeControl.initialTime);
       setStatus("waiting");
     }
   };
@@ -58,14 +88,39 @@ function Play() {
       <div style={{ marginBottom: 16 }}>
         <StatusBadge status={status} />
       </div>
-      {!gameId && <Button onClick={onPlay}>Play</Button>}
+      {!gameId && (
+        <>
+          <TimeControlSelector
+            selected={selectedTimeControl}
+            onSelect={setSelectedTimeControl}
+          />
+          <Button onClick={onPlay} disabled={!selectedTimeControl}>Play</Button>
+        </>
+      )}
       <div style={{ display: "flex", gap: 20 }}>
-        <Board
-          gameId={gameId}
-          playerColor={playerColor}
-          initialTurn={currentTurn}
-        />
-        {!gameId && <Players players={players} currentPlayerId={playerId ?? undefined} />}
+        {gameId ? (
+          <GameClock
+            whiteTime={whiteTime}
+            blackTime={blackTime}
+            activeColor={status === "playing" ? currentTurn : null}
+            playerColor={playerColor}
+          >
+            <Board
+              gameId={gameId}
+              playerColor={playerColor}
+              initialTurn={currentTurn}
+            />
+          </GameClock>
+        ) : (
+          <>
+            <Board
+              gameId={gameId}
+              playerColor={playerColor}
+              initialTurn={currentTurn}
+            />
+            <Players players={players} currentPlayerId={playerId ?? undefined} />
+          </>
+        )}
       </div>
       {gameId && <Chat gameId={gameId} />}
     </div>
