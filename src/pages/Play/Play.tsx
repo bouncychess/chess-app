@@ -21,7 +21,10 @@ function Play() {
   const [selectedTimeControl, setSelectedTimeControl] = useState<TimeControl | null>(null);
   const [whiteTime, setWhiteTime] = useState<number>(0);
   const [blackTime, setBlackTime] = useState<number>(0);
-
+  const handleTurnChange = (newTurn: PlayerColor) => {
+    setCurrentTurn(newTurn);
+    (newTurn === "black" ? setWhiteTime : setBlackTime)(prev => prev + (selectedTimeControl?.increment ?? 0));
+  };
   useEffect(() => {
     if (isConnected) {
       setStatus("online");
@@ -44,12 +47,12 @@ function Play() {
       }
     }
     if (lastMessage.action === "move") {
+      if (lastMessage.turn) {
+        handleTurnChange(lastMessage.turn);
+      }
       if (lastMessage.whiteTime !== undefined) {
         setWhiteTime(lastMessage.whiteTime);
         setBlackTime(lastMessage.blackTime);
-      }
-      if (lastMessage.turn) {
-        setCurrentTurn(lastMessage.turn);
       }
     }
     if (lastMessage.action === "clockSync") {
@@ -62,6 +65,20 @@ function Play() {
       setPlayerId(lastMessage.playerId);
     }
   }, [lastMessage]);
+
+  useEffect(() => {
+    if (status !== "playing") return;
+
+    const interval = setInterval(() => {
+      if (currentTurn === "white") {
+        setWhiteTime(prev => Math.max(0, prev - 100));
+      } else {
+        setBlackTime(prev => Math.max(0, prev - 100));
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [status, currentTurn]);
 
   const onPlay = () => {
     if (gameId) {
@@ -109,7 +126,7 @@ function Play() {
               gameId={gameId}
               playerColor={playerColor}
               initialTurn={currentTurn}
-              onTurnChange={setCurrentTurn}
+              onTurnChange={handleTurnChange}
             />
           </GameClock>
         ) : (
@@ -118,7 +135,7 @@ function Play() {
               gameId={gameId}
               playerColor={playerColor}
               initialTurn={currentTurn}
-              onTurnChange={setCurrentTurn}
+              onTurnChange={handleTurnChange}
             />
             <Players players={players} currentPlayerId={playerId ?? undefined} />
           </>

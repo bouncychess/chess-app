@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import type { PlayerColor } from "../../../types/chess";
 
 interface ClockProps {
@@ -29,24 +28,8 @@ function formatTime(ms: number): string {
 }
 
 export function Clock({ time, isActive, playerColor, playerName }: ClockProps) {
-  const [displayTime, setDisplayTime] = useState(time);
-
-  useEffect(() => {
-    setDisplayTime(time);
-  }, [time]);
-
-  useEffect(() => {
-    if (!isActive || displayTime <= 0) return;
-
-    const interval = setInterval(() => {
-      setDisplayTime((prev) => Math.max(0, prev - 100));
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [isActive, displayTime <= 0]);
-
-  const isLowTime = displayTime < 30000 && displayTime > 0;
-  const isFlagged = displayTime <= 0;
+  const isLowTime = time < 30000 && time > 0;
+  const isFlagged = time <= 0;
 
   const getBackgroundColor = () => {
     if (isFlagged) return "#991b1b";
@@ -85,7 +68,7 @@ export function Clock({ time, isActive, playerColor, playerName }: ClockProps) {
           textAlign: "right",
         }}
       >
-        {formatTime(displayTime)}
+        {formatTime(time)}
       </span>
     </div>
   );
