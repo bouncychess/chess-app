@@ -4,7 +4,7 @@ import Board from "./components/Board";
 import Chat from "./components/Chat";
 import Players from "./components/Players";
 import { GameClock } from "./components/GameClock";
-import { TimeControlSelector } from "./components/TimeControlSelector";
+import { TimeControlSelector, DEFAULT_TIME_CONTROL } from "./components/TimeControlSelector";
 import { Button } from "../../components/buttons/Button";
 import { StatusBadge } from "../../components/StatusBadge";
 import type { PlayerColor, Player, TimeControl } from "../../types/chess";
@@ -18,11 +18,7 @@ function Play() {
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>("white");
   const [players, setPlayers] = useState<Player[]>([]);
   const [playerId, setPlayerId] = useState<string | null>(null);
-  const [selectedTimeControl, setSelectedTimeControl] = useState<TimeControl>({
-    initialTime: 3 * 60 * 1000,
-    increment: 0,
-    label: "3+0",
-  });
+  const [selectedTimeControl, setSelectedTimeControl] = useState<TimeControl>(DEFAULT_TIME_CONTROL);
   const [whiteTime, setWhiteTime] = useState<number>(3 * 60 * 1000);
   const [blackTime, setBlackTime] = useState<number>(3 * 60 * 1000);
   const handleTurnChange = (newTurn: PlayerColor) => {
