@@ -12,10 +12,10 @@ interface GameClockProps {
   children?: ReactNode;
 }
 
-function PlayerRow({ name, time, isActive }: { name: string; time: number; isActive: boolean }) {
+function PlayerRow({ name, time, isActive }: { name: string | null; time: number; isActive: boolean }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span style={{ fontSize: "0.85rem", fontWeight: 500 }}>{name}</span>
+      <span style={{ fontSize: "0.85rem", fontWeight: 500 }}>{name || ""}</span>
       <Clock time={time} isActive={isActive} />
     </div>
   );
@@ -26,13 +26,13 @@ export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whit
 
   const topRow = isPlayerWhite ? (
     <PlayerRow
-      name={blackName || "Black"}
+      name={blackName}
       time={blackTime}
       isActive={activeColor === "black"}
     />
   ) : (
     <PlayerRow
-      name={whiteName || "White"}
+      name={whiteName}
       time={whiteTime}
       isActive={activeColor === "white"}
     />
@@ -40,13 +40,13 @@ export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whit
 
   const bottomRow = isPlayerWhite ? (
     <PlayerRow
-      name={whiteName || "White"}
+      name={whiteName}
       time={whiteTime}
       isActive={activeColor === "white"}
     />
   ) : (
     <PlayerRow
-      name={blackName || "Black"}
+      name={blackName}
       time={blackTime}
       isActive={activeColor === "black"}
     />
