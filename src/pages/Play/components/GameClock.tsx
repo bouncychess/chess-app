@@ -7,45 +7,56 @@ interface GameClockProps {
   blackTime: number;
   activeColor: PlayerColor | null;
   playerColor: PlayerColor;
+  whiteName: string | null;
+  blackName: string | null;
   children?: ReactNode;
 }
 
-export function GameClock({ whiteTime, blackTime, activeColor, playerColor, children }: GameClockProps) {
+function PlayerRow({ name, time, isActive }: { name: string | null; time: number; isActive: boolean }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <span style={{ fontSize: "0.85rem", fontWeight: 500 }}>{name || ""}</span>
+      <Clock time={time} isActive={isActive} />
+    </div>
+  );
+}
+
+export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whiteName, blackName, children }: GameClockProps) {
   const isPlayerWhite = playerColor === "white";
 
-  const topClock = isPlayerWhite ? (
-    <Clock
+  const topRow = isPlayerWhite ? (
+    <PlayerRow
+      name={blackName}
       time={blackTime}
       isActive={activeColor === "black"}
-      playerColor="black"
     />
   ) : (
-    <Clock
+    <PlayerRow
+      name={whiteName}
       time={whiteTime}
       isActive={activeColor === "white"}
-      playerColor="white"
     />
   );
 
-  const bottomClock = isPlayerWhite ? (
-    <Clock
+  const bottomRow = isPlayerWhite ? (
+    <PlayerRow
+      name={whiteName}
       time={whiteTime}
       isActive={activeColor === "white"}
-      playerColor="white"
     />
   ) : (
-    <Clock
+    <PlayerRow
+      name={blackName}
       time={blackTime}
       isActive={activeColor === "black"}
-      playerColor="black"
     />
   );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {topClock}
+      {topRow}
       {children}
-      {bottomClock}
+      {bottomRow}
     </div>
   );
 }

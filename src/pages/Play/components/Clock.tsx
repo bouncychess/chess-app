@@ -1,10 +1,6 @@
-import type { PlayerColor } from "../../../types/chess";
-
 interface ClockProps {
   time: number;
   isActive: boolean;
-  playerColor: PlayerColor;
-  playerName?: string;
 }
 
 function formatTime(ms: number): string {
@@ -27,7 +23,7 @@ function formatTime(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-export function Clock({ time, isActive, playerColor, playerName }: ClockProps) {
+export function Clock({ time, isActive }: ClockProps) {
   const isLowTime = time < 30000 && time > 0;
   const isFlagged = time <= 0;
 
@@ -46,26 +42,18 @@ export function Clock({ time, isActive, playerColor, playerName }: ClockProps) {
   return (
     <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "8px 16px",
-        borderRadius: 8,
+        padding: "4px 12px",
+        borderRadius: 6,
         backgroundColor: getBackgroundColor(),
         color: getTextColor(),
         transition: "background-color 0.2s ease",
       }}
     >
-      <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>
-        {playerName || playerColor.charAt(0).toUpperCase() + playerColor.slice(1)}
-      </span>
       <span
         style={{
           fontFamily: "monospace",
-          fontSize: "1.5rem",
+          fontSize: "1.1rem",
           fontWeight: 600,
-          minWidth: 80,
-          textAlign: "right",
         }}
       >
         {formatTime(time)}

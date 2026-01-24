@@ -21,6 +21,8 @@ function Play() {
   const [selectedTimeControl, setSelectedTimeControl] = useState<TimeControl>(DEFAULT_TIME_CONTROL);
   const [whiteTime, setWhiteTime] = useState<number>(3 * 60 * 1000);
   const [blackTime, setBlackTime] = useState<number>(3 * 60 * 1000);
+  const [whiteUsername, setWhiteUsername] = useState<string | null>(null);
+  const [blackUsername, setBlackUsername] = useState<string | null>(null);
   const handleTurnChange = (newTurn: PlayerColor) => {
     setCurrentTurn(newTurn);
     (newTurn === "black" ? setWhiteTime : setBlackTime)(prev => prev + (selectedTimeControl?.increment ?? 0));
@@ -37,9 +39,12 @@ function Play() {
     if (!lastMessage) return;
 
     if (lastMessage.action === "startGame") {
+      console.log(lastMessage)
       setGameId(lastMessage.gameId);
       setPlayerColor(lastMessage.color);
       setCurrentTurn(lastMessage.turn);
+      setWhiteUsername(lastMessage.whiteUsername);
+      setBlackUsername(lastMessage.blackUsername);
       setStatus("playing");
       if (lastMessage.whiteTime !== undefined) {
         setWhiteTime(lastMessage.whiteTime);
@@ -123,6 +128,8 @@ function Play() {
         <GameClock
           whiteTime={whiteTime}
           blackTime={blackTime}
+          whiteName={whiteUsername}
+          blackName={blackUsername}
           activeColor={status === "playing" ? currentTurn : null}
           playerColor={playerColor}
         >
