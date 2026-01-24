@@ -18,9 +18,13 @@ function Play() {
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>("white");
   const [players, setPlayers] = useState<Player[]>([]);
   const [playerId, setPlayerId] = useState<string | null>(null);
-  const [selectedTimeControl, setSelectedTimeControl] = useState<TimeControl | null>(null);
-  const [whiteTime, setWhiteTime] = useState<number>(0);
-  const [blackTime, setBlackTime] = useState<number>(0);
+  const [selectedTimeControl, setSelectedTimeControl] = useState<TimeControl>({
+    initialTime: 3 * 60 * 1000,
+    increment: 0,
+    label: "3+0",
+  });
+  const [whiteTime, setWhiteTime] = useState<number>(3 * 60 * 1000);
+  const [blackTime, setBlackTime] = useState<number>(3 * 60 * 1000);
   const handleTurnChange = (newTurn: PlayerColor) => {
     setCurrentTurn(newTurn);
     (newTurn === "black" ? setWhiteTime : setBlackTime)(prev => prev + (selectedTimeControl?.increment ?? 0));
@@ -55,6 +59,7 @@ function Play() {
         setBlackTime(lastMessage.blackTime);
       }
     }
+    // Reconnect is going to need full game state (clock, moves, chat)
     if (lastMessage.action === "clockSync") {
       setWhiteTime(lastMessage.whiteTime);
       setBlackTime(lastMessage.blackTime);
@@ -106,40 +111,33 @@ function Play() {
         <StatusBadge status={status} />
       </div>
       {!gameId && (
-        <>
+        <div style={{ marginBottom: 20 }}>
           <TimeControlSelector
             selected={selectedTimeControl}
-            onSelect={setSelectedTimeControl}
+            onSelect={(tc) => {
+              setSelectedTimeControl(tc);
+              setWhiteTime(tc.initialTime);
+              setBlackTime(tc.initialTime);
+            }}
           />
           <Button onClick={onPlay} disabled={!selectedTimeControl}>Play</Button>
-        </>
+        </div>
       )}
       <div style={{ display: "flex", gap: 20 }}>
-        {gameId ? (
-          <GameClock
-            whiteTime={whiteTime}
-            blackTime={blackTime}
-            activeColor={status === "playing" ? currentTurn : null}
+        <GameClock
+          whiteTime={whiteTime}
+          blackTime={blackTime}
+          activeColor={status === "playing" ? currentTurn : null}
+          playerColor={playerColor}
+        >
+          <Board
+            gameId={gameId}
             playerColor={playerColor}
-          >
-            <Board
-              gameId={gameId}
-              playerColor={playerColor}
-              initialTurn={currentTurn}
-              onTurnChange={handleTurnChange}
-            />
-          </GameClock>
-        ) : (
-          <>
-            <Board
-              gameId={gameId}
-              playerColor={playerColor}
-              initialTurn={currentTurn}
-              onTurnChange={handleTurnChange}
-            />
-            <Players players={players} currentPlayerId={playerId ?? undefined} />
-          </>
-        )}
+            initialTurn={currentTurn}
+            onTurnChange={handleTurnChange}
+          />
+        </GameClock>
+        {!gameId && <Players players={players} currentPlayerId={playerId ?? undefined} />}
       </div>
       {gameId && <Chat gameId={gameId} />}
     </div>
