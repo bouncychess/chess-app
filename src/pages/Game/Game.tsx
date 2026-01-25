@@ -37,6 +37,7 @@ function Game() {
 
   // Request game state if we don't have it from navigation
   useEffect(() => {
+    console.log("getGameState check:", { initialState, isConnected, gameId, hasRequested: hasRequestedGameState.current });
     if (!initialState && isConnected && gameId && !hasRequestedGameState.current) {
       hasRequestedGameState.current = true;
       sendMessage({ action: "getGameState", gameId });
