@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import type { PieceDropHandlerArgs, DraggingPieceDataType } from "react-chessboard";
-import { useWebSocket } from "../../../context/WebSocketContext";
-import type { PlayerColor } from "../../../types/chess";
+import { useWebSocket } from "../../context/WebSocketContext";
+import type { PlayerColor } from "../../types/chess";
 
 interface BoardProps {
   gameId: string | null;

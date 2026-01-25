@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Clock } from "./Clock";
-import type { PlayerColor } from "../../../types/chess";
+import type { PlayerColor } from "../../types/chess";
 
 interface GameClockProps {
   whiteTime: number;

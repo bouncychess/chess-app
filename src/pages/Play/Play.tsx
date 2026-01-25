@@ -1,96 +1,59 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useWebSocket } from "../../context/WebSocketContext";
-import Board from "./components/Board";
-import Chat from "./components/Chat";
+import Board from "../../components/game/Board";
 import Players from "./components/Players";
-import { GameClock } from "./components/GameClock";
+import { GameClock } from "../../components/game/GameClock";
 import { TimeControlSelector, DEFAULT_TIME_CONTROL } from "./components/TimeControlSelector";
 import { Button } from "../../components/buttons/Button";
 import { StatusBadge } from "../../components/StatusBadge";
-import type { PlayerColor, Player, TimeControl } from "../../types/chess";
+import type { Player, TimeControl } from "../../types/chess";
 
 function Play() {
+  const navigate = useNavigate();
   const { sendMessage, lastMessage, isConnected } = useWebSocket();
 
-  const [gameId, setGameId] = useState<string | null>(null);
-  const [status, setStatus] = useState<'online' | 'disconnected' | 'waiting' | 'playing'>('online');
-  const [playerColor, setPlayerColor] = useState<PlayerColor>("white");
-  const [currentTurn, setCurrentTurn] = useState<PlayerColor>("white");
+  const [status, setStatus] = useState<'online' | 'disconnected' | 'waiting'>('online');
   const [players, setPlayers] = useState<Player[]>([]);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [selectedTimeControl, setSelectedTimeControl] = useState<TimeControl>(DEFAULT_TIME_CONTROL);
-  const [whiteTime, setWhiteTime] = useState<number>(3 * 60 * 1000);
-  const [blackTime, setBlackTime] = useState<number>(3 * 60 * 1000);
-  const [whiteUsername, setWhiteUsername] = useState<string | null>(null);
-  const [blackUsername, setBlackUsername] = useState<string | null>(null);
-  const handleTurnChange = (newTurn: PlayerColor) => {
-    setCurrentTurn(newTurn);
-    (newTurn === "black" ? setWhiteTime : setBlackTime)(prev => prev + (selectedTimeControl?.increment ?? 0));
-  };
+  const [previewTime, setPreviewTime] = useState<number>(DEFAULT_TIME_CONTROL.initialTime);
+
   useEffect(() => {
     if (isConnected) {
-      setStatus("online");
+      if (status === 'disconnected') {
+        setStatus("online");
+      }
     } else {
       setStatus("disconnected");
     }
-  }, [isConnected]);
+  }, [isConnected, status]);
 
   useEffect(() => {
     if (!lastMessage) return;
 
     if (lastMessage.action === "startGame") {
-      console.log(lastMessage)
-      setGameId(lastMessage.gameId);
-      setPlayerColor(lastMessage.color);
-      setCurrentTurn(lastMessage.turn);
-      setWhiteUsername(lastMessage.whiteUsername);
-      setBlackUsername(lastMessage.blackUsername);
-      setStatus("playing");
-      if (lastMessage.whiteTime !== undefined) {
-        setWhiteTime(lastMessage.whiteTime);
-        setBlackTime(lastMessage.blackTime);
-      }
+      console.log("startGame received, navigating to game:", lastMessage);
+      navigate(`/game/${lastMessage.gameId}`, {
+        state: {
+          playerColor: lastMessage.color,
+          currentTurn: lastMessage.turn || "white",
+          whiteTime: lastMessage.whiteTime,
+          blackTime: lastMessage.blackTime,
+          whiteUsername: lastMessage.whiteUsername,
+          blackUsername: lastMessage.blackUsername,
+          increment: selectedTimeControl.increment,
+        }
+      });
     }
-    if (lastMessage.action === "move") {
-      if (lastMessage.turn) {
-        handleTurnChange(lastMessage.turn);
-      }
-      if (lastMessage.whiteTime !== undefined) {
-        setWhiteTime(lastMessage.whiteTime);
-        setBlackTime(lastMessage.blackTime);
-      }
-    }
-    // Reconnect is going to need full game state (clock, moves, chat)
-    if (lastMessage.action === "clockSync") {
-      setWhiteTime(lastMessage.whiteTime);
-      setBlackTime(lastMessage.blackTime);
-    }
+
     if (lastMessage.action === "players") {
-      console.log("received players" + lastMessage);
       setPlayers(lastMessage.players);
       setPlayerId(lastMessage.playerId);
     }
-  }, [lastMessage]);
-
-  useEffect(() => {
-    if (status !== "playing") return;
-
-    const interval = setInterval(() => {
-      if (currentTurn === "white") {
-        setWhiteTime(prev => Math.max(0, prev - 100));
-      } else {
-        setBlackTime(prev => Math.max(0, prev - 100));
-      }
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [status, currentTurn]);
+  }, [lastMessage, navigate, selectedTimeControl.increment]);
 
   const onPlay = () => {
-    if (gameId) {
-      console.log("Already Playing");
-      return;
-    }
     if (isConnected && selectedTimeControl) {
       sendMessage({
         action: "play",
@@ -99,8 +62,6 @@ function Play() {
           increment: selectedTimeControl.increment,
         },
       });
-      setWhiteTime(selectedTimeControl.initialTime);
-      setBlackTime(selectedTimeControl.initialTime);
       setStatus("waiting");
     }
   };
@@ -111,38 +72,36 @@ function Play() {
       <div style={{ marginBottom: 16 }}>
         <StatusBadge status={status} />
       </div>
-      {!gameId && (
-        <div style={{ marginBottom: 20 }}>
-          <TimeControlSelector
-            selected={selectedTimeControl}
-            onSelect={(tc) => {
-              setSelectedTimeControl(tc);
-              setWhiteTime(tc.initialTime);
-              setBlackTime(tc.initialTime);
-            }}
-          />
-          <Button onClick={onPlay} disabled={!selectedTimeControl}>Play</Button>
-        </div>
-      )}
+      <div style={{ marginBottom: 20 }}>
+        <TimeControlSelector
+          selected={selectedTimeControl}
+          onSelect={(tc) => {
+            setSelectedTimeControl(tc);
+            setPreviewTime(tc.initialTime);
+          }}
+        />
+        <Button onClick={onPlay} disabled={!selectedTimeControl || status === "waiting"}>
+          {status === "waiting" ? "Waiting for opponent..." : "Play"}
+        </Button>
+      </div>
       <div style={{ display: "flex", gap: 20 }}>
         <GameClock
-          whiteTime={whiteTime}
-          blackTime={blackTime}
-          whiteName={whiteUsername}
-          blackName={blackUsername}
-          activeColor={status === "playing" ? currentTurn : null}
-          playerColor={playerColor}
+          whiteTime={previewTime}
+          blackTime={previewTime}
+          whiteName={null}
+          blackName={null}
+          activeColor={null}
+          playerColor="white"
         >
           <Board
-            gameId={gameId}
-            playerColor={playerColor}
-            initialTurn={currentTurn}
-            onTurnChange={handleTurnChange}
+            gameId={null}
+            playerColor="white"
+            initialTurn="white"
+            onTurnChange={() => {}}
           />
         </GameClock>
-        {!gameId && <Players players={players} currentPlayerId={playerId ?? undefined} />}
+        <Players players={players} currentPlayerId={playerId ?? undefined} />
       </div>
-      {gameId && <Chat gameId={gameId} />}
     </div>
   );
 }
