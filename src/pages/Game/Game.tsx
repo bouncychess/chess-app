@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { useWebSocket } from "../../context/WebSocketContext";
 import Board from "../../components/game/Board";
@@ -20,7 +20,7 @@ interface GameState {
 function Game() {
   const { gameId } = useParams<{ gameId: string }>();
   const location = useLocation();
-  const { lastMessage, isConnected } = useWebSocket();
+  const { sendMessage, lastMessage, isConnected } = useWebSocket();
 
   // Initialize from navigation state
   const initialState = location.state as GameState | null;
@@ -30,8 +30,18 @@ function Game() {
   const [blackTime, setBlackTime] = useState<number>(initialState?.blackTime ?? 180000);
   const [whiteUsername, setWhiteUsername] = useState<string | null>(initialState?.whiteUsername ?? null);
   const [blackUsername, setBlackUsername] = useState<string | null>(initialState?.blackUsername ?? null);
-  const [increment] = useState<number>(initialState?.increment ?? 0);
-  const [status, setStatus] = useState<'online' | 'disconnected' | 'playing'>(initialState ? 'playing' : 'online');
+  const [increment, setIncrement] = useState<number>(initialState?.increment ?? 0);
+  const [pgn, setPgn] = useState<string | null>(null);
+  const [status, setStatus] = useState<'online' | 'disconnected' | 'playing' | 'loading'>(initialState ? 'playing' : 'loading');
+  const hasRequestedGameState = useRef(false);
+
+  // Request game state if we don't have it from navigation
+  useEffect(() => {
+    if (!initialState && isConnected && gameId && !hasRequestedGameState.current) {
+      hasRequestedGameState.current = true;
+      sendMessage({ action: "getGameState", gameId });
+    }
+  }, [initialState, isConnected, gameId, sendMessage]);
 
   const handleTurnChange = (newTurn: PlayerColor) => {
     setCurrentTurn(newTurn);
@@ -80,6 +90,19 @@ function Game() {
       setWhiteTime(lastMessage.whiteTime);
       setBlackTime(lastMessage.blackTime);
     }
+
+    // Handle gameState response when loading game directly
+    if (lastMessage.action === "gameState" && lastMessage.gameId === gameId) {
+      setPlayerColor(lastMessage.playerColor);
+      setCurrentTurn(lastMessage.currentTurn);
+      setWhiteTime(lastMessage.whiteTime);
+      setBlackTime(lastMessage.blackTime);
+      setWhiteUsername(lastMessage.whiteUsername);
+      setBlackUsername(lastMessage.blackUsername);
+      setIncrement(lastMessage.increment ?? 0);
+      setPgn(lastMessage.pgn ?? null);
+      setStatus("playing");
+    }
   }, [lastMessage, gameId]);
 
   // Client-side clock countdown
@@ -120,6 +143,7 @@ function Game() {
             gameId={gameId}
             playerColor={playerColor}
             initialTurn={currentTurn}
+            initialPgn={pgn}
             onTurnChange={handleTurnChange}
           />
         </GameClock>

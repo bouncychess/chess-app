@@ -1,5 +1,5 @@
 type StatusBadgeProps = {
-    status: 'online' | 'disconnected' | 'waiting' | 'playing';
+    status: 'online' | 'disconnected' | 'waiting' | 'playing' | 'loading';
 };
 
 const statusConfig = {
@@ -21,6 +21,11 @@ const statusConfig = {
     playing: {
         label: 'Playing',
         backgroundColor: '#3b82f6',
+        color: '#ffffff',
+    },
+    loading: {
+        label: 'Loading...',
+        backgroundColor: '#6b7280',
         color: '#ffffff',
     },
 };
