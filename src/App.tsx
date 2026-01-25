@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home/Home';
+import News from './pages/News/News';
 import Play from './pages/Play/Play';
+import Game from './pages/Game/Game';
 import Logout from './pages/Logout/Logout';
 import Article from './pages/Article/Article';
 import Layout from './components/layout/Layout';
@@ -16,7 +18,9 @@ export default function App() {
                     <Routes>
                         <Route path="/" element={<Navigate to="/play" replace />} />
                         <Route path="/play" element={<ProtectedRoute><Layout><Play /></Layout></ProtectedRoute>} />
+                        <Route path="/game/:gameId" element={<ProtectedRoute><Layout><Game /></Layout></ProtectedRoute>} />
                         <Route path="/home" element={<ProtectedRoute><Layout><Home /></Layout></ProtectedRoute>} />
+                        <Route path="/news" element={<ProtectedRoute><Layout><News /></Layout></ProtectedRoute>} />
                         <Route path="/articles/:id" element={<Layout><Article /></Layout>} />
                         <Route path="/logout" element={<Logout />} />
                     </Routes>

@@ -16,17 +16,17 @@ export default function Sidebar() {
             flexDirection: 'column',
             boxSizing: 'border-box',
         }}>
-            <h2 style={{ margin: '0 0 1rem 0' }}>Chess</h2>
+            <Link to="/home" style={{ textDecoration: 'none', color: 'inherit' }}><h2 style={{ margin: '0 0 1rem 0' }}>Chess</h2></Link>
             <nav style={{ flex: 1 }}>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                    <li><Link to="/home" style={{ color: theme.colors.sidebarText }}>Home</Link></li>
+                    <li><Link to="/news" style={{ color: theme.colors.sidebarText }}>News</Link></li>
                     <li><Link to="/play" style={{ color: theme.colors.sidebarText }}>Play</Link></li>
                 </ul>
             </nav>
             <div style={{ borderTop: '1px solid #374151', paddingTop: '1rem' }}>
                 {user && (
                     <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.875rem', color: '#9ca3af' }}>
-                        Hi, {user.username}
+                        {user.username}
                     </p>
                 )}
                 <Link to="/logout" style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Logout</Link>
