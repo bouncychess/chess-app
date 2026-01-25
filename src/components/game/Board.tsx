@@ -9,10 +9,11 @@ interface BoardProps {
   gameId: string | null;
   playerColor: PlayerColor;
   initialTurn: PlayerColor;
+  initialPgn?: string | null;
   onTurnChange?: (turn: PlayerColor) => void;
 }
 
-function Board({ gameId, playerColor, initialTurn, onTurnChange}: BoardProps) {
+function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange}: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
   const chessRef = useRef(new Chess());
   const chessGame = chessRef.current;
@@ -20,6 +21,20 @@ function Board({ gameId, playerColor, initialTurn, onTurnChange}: BoardProps) {
   const [chessPosition, setChessPosition] = useState(chessGame.fen());
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>(initialTurn);
   const moveSoundRef = useRef(new Audio("/sounds/move.mp3"));
+
+  // Load initial PGN if provided
+  useEffect(() => {
+    if (initialPgn) {
+      try {
+        chessGame.loadPgn(initialPgn);
+        setChessPosition(chessGame.fen());
+        const turn = chessGame.turn() === 'w' ? 'white' : 'black';
+        setCurrentTurn(turn);
+      } catch (error) {
+        console.error("Failed to load PGN:", error);
+      }
+    }
+  }, [initialPgn, chessGame]);
 
   useEffect(() => {
     if (!lastMessage) return;
