@@ -35,13 +35,13 @@ function Game() {
   const [status, setStatus] = useState<'online' | 'disconnected' | 'playing' | 'loading'>(initialState ? 'playing' : 'loading');
   const hasRequestedGameState = useRef(false);
 
-  // Request game state if we don't have it from navigation
+  // Always request fresh game state from server when connected
   useEffect(() => {
-    if (!initialState && isConnected && gameId && !hasRequestedGameState.current) {
+    if (isConnected && gameId && !hasRequestedGameState.current) {
       hasRequestedGameState.current = true;
       sendMessage({ action: "getGameState", gameId });
     }
-  }, [initialState, isConnected, gameId, sendMessage]);
+  }, [isConnected, gameId, sendMessage]);
 
   const handleTurnChange = (newTurn: PlayerColor) => {
     setCurrentTurn(newTurn);
