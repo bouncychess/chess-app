@@ -25,6 +25,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
+    // Prevent duplicate connections (React Strict Mode runs effects twice)
+    if (socketRef.current) {
+      return;
+    }
+
     const connectWebSocket = async () => {
       try {
         // Try to get the Cognito ID token if authenticated
