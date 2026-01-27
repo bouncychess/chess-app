@@ -10,7 +10,7 @@ const articles: Article[] = [
     { id: '4', title: 'Head Size Closely Linked to Intelligence', thumbnail: '/images/articles/clive_head.jpg' },
 ];
 
-export default function Home() {
+export default function News() {
     return (
         <div>
             <h1 style={{ marginTop: 0, marginBottom: 24 }}>Fresh off the Press!</h1>
