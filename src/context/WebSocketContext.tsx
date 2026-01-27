@@ -25,25 +25,20 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    // Only connect when authenticated
-    if (!isAuthenticated) {
-      return;
-    }
-
     const connectWebSocket = async () => {
       try {
-        // Get the Cognito ID token
-        const session = await fetchAuthSession();
-        const token = session.tokens?.idToken?.toString();
-
-        if (!token) {
-          console.error("No auth token available");
-          return;
+        // Try to get the Cognito ID token if authenticated
+        let token: string | undefined;
+        try {
+          const session = await fetchAuthSession();
+          token = session.tokens?.idToken?.toString();
+        } catch {
+          // Not authenticated, continue without token
         }
 
-        // Pass token as query parameter
-        console.log(`Webscoket Token: ${token}`)
-        const socket = new WebSocket(`${WEBSOCKET_URL}?token=${token}`);
+        // Connect with or without token
+        const url = token ? `${WEBSOCKET_URL}?token=${token}` : WEBSOCKET_URL;
+        const socket = new WebSocket(url);
         socketRef.current = socket;
 
         socket.onopen = () => {
