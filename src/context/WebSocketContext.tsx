@@ -25,12 +25,13 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    // Prevent duplicate connections (React Strict Mode runs effects twice)
-    if (socketRef.current) {
-      return;
-    }
+    let cancelled = false;
 
     const connectWebSocket = async () => {
+      // Prevent duplicate connections (React Strict Mode runs effects twice)
+      if (socketRef.current) {
+        return;
+      }
       try {
         // Try to get the Cognito ID token if authenticated
         let token: string | undefined;
@@ -47,6 +48,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         socketRef.current = socket;
 
         socket.onopen = () => {
+          if (cancelled) return;
           setIsConnected(true);
           console.log("WebSocket connected");
           socket.send(JSON.stringify({ action: "connected" }));
@@ -77,7 +79,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     connectWebSocket();
 
     return () => {
+      cancelled = true;
       socketRef.current?.close();
+      socketRef.current = null;
     };
   }, [isAuthenticated]);
 
