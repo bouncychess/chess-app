@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../config/theme';
@@ -54,9 +54,22 @@ const ChevronRightIcon = () => (
     </svg>
 );
 
+const MOBILE_BREAKPOINT = 768;
+
 export default function Sidebar() {
     const { user } = useAuth();
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < MOBILE_BREAKPOINT) {
+                setCollapsed(true);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const linkStyle = {
         color: theme.colors.sidebarText,
