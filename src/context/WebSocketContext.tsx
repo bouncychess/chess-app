@@ -25,10 +25,6 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    // Only connect when authenticated
-    if (!isAuthenticated) {
-      return;
-    }
 
     const connectWebSocket = async () => {
       try {
