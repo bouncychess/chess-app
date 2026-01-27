@@ -49,7 +49,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         socket.onopen = () => {
           setIsConnected(true);
           console.log("WebSocket connected");
-          sendMessage({ action: "connected" });
+          socket.send(JSON.stringify({ action: "connected" }));
         };
 
         socket.onmessage = (event) => {
