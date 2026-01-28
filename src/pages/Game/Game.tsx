@@ -32,7 +32,7 @@ function Game() {
   const [blackUsername, setBlackUsername] = useState<string | null>(initialState?.blackUsername ?? null);
   const [increment, setIncrement] = useState<number>(initialState?.increment ?? 0);
   const [pgn, setPgn] = useState<string | null>(null);
-  const [status, setStatus] = useState<'online' | 'disconnected' | 'playing' | 'loading'>(initialState ? 'playing' : 'loading');
+  const [status, setStatus] = useState<'online' | 'disconnected' | 'playing' | 'loading'>('loading');
   const hasRequestedGameState = useRef(false);
 
   // Always request fresh game state from server when connected
@@ -133,7 +133,6 @@ function Game() {
   if (status === "loading") {
     return (
       <div style={{ padding: 20 }}>
-        <h2>Game</h2>
         <div style={{ marginBottom: 16 }}>
           <StatusBadge status={status} />
         </div>
@@ -143,7 +142,6 @@ function Game() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>Game</h2>
       <div style={{ display: "flex", gap: 20 }}>
         <GameClock
           whiteTime={whiteTime}
