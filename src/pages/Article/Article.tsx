@@ -43,7 +43,7 @@ export default function Article() {
 
     return (
         <div style={{ maxWidth: 800 }}>
-            <Link to="/home" style={{ color: '#007bff', textDecoration: 'none', marginBottom: 16, display: 'inline-block' }}>
+            <Link to="/news" style={{ color: '#007bff', textDecoration: 'none', marginBottom: 16, display: 'inline-block' }}>
                 ← Back to Articles
             </Link>
             <h1 style={{ marginTop: 16, marginBottom: 24 }}>{article.title}</h1>

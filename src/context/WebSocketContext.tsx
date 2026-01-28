@@ -25,31 +25,38 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    // Only connect when authenticated
-    if (!isAuthenticated) {
-      return;
-    }
+    let cancelled = false;
 
     const connectWebSocket = async () => {
-      try {
-        // Get the Cognito ID token
-        const session = await fetchAuthSession();
-        const token = session.tokens?.idToken?.toString();
+      // Prevent duplicate connections
+      if (socketRef.current) {
+        return;
+      }
 
-        if (!token) {
-          console.error("No auth token available");
-          return;
+      try {
+        // Try to get the Cognito ID token if authenticated
+        let token: string | undefined;
+        try {
+          const session = await fetchAuthSession();
+          token = session.tokens?.idToken?.toString();
+        } catch {
+          // Not authenticated, continue without token
         }
 
-        // Pass token as query parameter
-        console.log(`Webscoket Token: ${token}`)
-        const socket = new WebSocket(`${WEBSOCKET_URL}?token=${token}`);
+        // Check if cancelled during async operation (React Strict Mode cleanup)
+        if (cancelled) return;
+
+        // Connect with or without token
+        console.log("Connecting to Websocket");
+        const url = token ? `${WEBSOCKET_URL}?token=${token}` : WEBSOCKET_URL;
+        const socket = new WebSocket(url);
         socketRef.current = socket;
 
         socket.onopen = () => {
+          if (cancelled) return;
           setIsConnected(true);
           console.log("WebSocket connected");
-          sendMessage({ action: "connected" });
+          socket.send(JSON.stringify({ action: "connected" }));
         };
 
         socket.onmessage = (event) => {
@@ -77,7 +84,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     connectWebSocket();
 
     return () => {
-      socketRef.current?.close();
+      cancelled = true;
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
+      }
     };
   }, [isAuthenticated]);
 
