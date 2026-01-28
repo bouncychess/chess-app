@@ -6,7 +6,6 @@ import Players from "./components/Players";
 import { GameClock } from "../../components/game/GameClock";
 import { TimeControlSelector, DEFAULT_TIME_CONTROL } from "./components/TimeControlSelector";
 import { Button } from "../../components/buttons/Button";
-import { StatusBadge } from "../../components/StatusBadge";
 import type { Player, TimeControl } from "../../types/chess";
 
 function Play() {
