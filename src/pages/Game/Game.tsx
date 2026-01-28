@@ -53,9 +53,9 @@ function Game() {
   };
 
   useEffect(() => {
-    if (!isConnected) {
+    if (!isConnected && status === "playing") {
       setStatus("disconnected");
-    } else if (status === "disconnected") {
+    } else if (isConnected && status === "disconnected") {
       setStatus("playing");
     }
   }, [isConnected, status]);
@@ -130,12 +130,20 @@ function Game() {
     return <div style={{ padding: 20 }}>Invalid game ID</div>;
   }
 
+  if (status === "loading") {
+    return (
+      <div style={{ padding: 20 }}>
+        <h2>Game</h2>
+        <div style={{ marginBottom: 16 }}>
+          <StatusBadge status={status} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: 20 }}>
       <h2>Game</h2>
-      <div style={{ marginBottom: 16 }}>
-        <StatusBadge status={status} />
-      </div>
       <div style={{ display: "flex", gap: 20 }}>
         <GameClock
           whiteTime={whiteTime}
