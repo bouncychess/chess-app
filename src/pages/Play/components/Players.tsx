@@ -7,7 +7,7 @@ interface PlayersProps {
 
 function Players({ players, currentPlayerId }: PlayersProps) {
   return (
-    <div style={{ minWidth: 200, padding: 12, border: "1px solid #ccc", borderRadius: 4 }}>
+    <div style={{ minWidth: 200, maxWidth: 300, flex: "1 1 200px", padding: 12, border: "1px solid #ccc", borderRadius: 4 }}>
       <h3 style={{ margin: "0 0 12px 0" }}>Online Players</h3>
       {players.length === 0 ? (
         <p style={{ color: "#888" }}>No players online</p>

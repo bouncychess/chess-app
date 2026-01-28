@@ -105,15 +105,21 @@ function Game() {
     }
   }, [lastMessage, gameId]);
 
-  // Client-side clock countdown
+  // Client-side clock countdown using actual elapsed time
   useEffect(() => {
     if (status !== "playing") return;
 
+    let lastTick = Date.now();
+
     const interval = setInterval(() => {
+      const now = Date.now();
+      const elapsed = now - lastTick;
+      lastTick = now;
+
       if (currentTurn === "white") {
-        setWhiteTime(prev => Math.max(0, prev - 100));
+        setWhiteTime(prev => Math.max(0, prev - elapsed));
       } else {
-        setBlackTime(prev => Math.max(0, prev - 100));
+        setBlackTime(prev => Math.max(0, prev - elapsed));
       }
     }, 100);
 

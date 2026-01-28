@@ -16,7 +16,7 @@ function formatTime(ms: number): string {
     return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   }
 
-  if (totalSeconds < 10) {
+  if (totalSeconds < 180) {
     return `${minutes}:${seconds.toString().padStart(2, "0")}.${deciseconds}`;
   }
 

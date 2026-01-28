@@ -85,7 +85,7 @@ function Play() {
           {status === "waiting" ? "Waiting for opponent..." : "Play"}
         </Button>
       </div>
-      <div style={{ display: "flex", gap: 20 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
         <GameClock
           whiteTime={previewTime}
           blackTime={previewTime}
