@@ -95,7 +95,9 @@ export default function Sidebar() {
         }}>
             {!collapsed && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                    <h2 style={{ margin: 0 }}>Chess</h2>
+                    <Link to="/play" style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <h2 style={{ margin: 0, cursor: 'pointer' }}>Chess</h2>
+                    </Link>
                     <button
                         onClick={() => setCollapsed(true)}
                         style={{
@@ -160,9 +162,20 @@ export default function Sidebar() {
                 {user ? (
                     <>
                         {!collapsed && (
-                            <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.875rem', color: '#9ca3af' }}>
-                                Hi, {user.username}
-                            </p>
+                            <Link
+                                to="/profile"
+                                style={{
+                                    margin: '0 0 0.5rem 0',
+                                    fontSize: '0.875rem',
+                                    color: '#9ca3af',
+                                    textDecoration: 'none',
+                                    display: 'block',
+                                    cursor: 'pointer'
+                                }}
+                                title="View Profile"
+                            >
+                                {user.username}
+                            </Link>
                         )}
                         <Link to="/logout" style={{ ...linkStyle, color: '#9ca3af', fontSize: '0.875rem' }} title="Logout">
                             <LogoutIcon />
