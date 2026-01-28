@@ -13,28 +13,25 @@ interface BoardProps {
   onTurnChange?: (turn: PlayerColor) => void;
 }
 
+function createChessInstance(pgn?: string | null): Chess {
+  const chess = new Chess();
+  if (pgn) {
+    try {
+      chess.loadPgn(pgn);
+    } catch (error) {
+      console.error("Failed to load PGN:", error);
+    }
+  }
+  return chess;
+}
+
 function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange}: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
-  const chessRef = useRef(new Chess());
-  const chessGame = chessRef.current;
+  const [chessGame] = useState(() => createChessInstance(initialPgn));
 
-  const [chessPosition, setChessPosition] = useState(chessGame.fen());
+  const [chessPosition, setChessPosition] = useState(() => chessGame.fen());
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>(initialTurn);
   const moveSoundRef = useRef(new Audio("/sounds/move.mp3"));
-
-  // Load initial PGN if provided
-  useEffect(() => {
-    if (initialPgn) {
-      try {
-        chessGame.loadPgn(initialPgn);
-        setChessPosition(chessGame.fen());
-        const turn = chessGame.turn() === 'w' ? 'white' : 'black';
-        setCurrentTurn(turn);
-      } catch (error) {
-        console.error("Failed to load PGN:", error);
-      }
-    }
-  }, [initialPgn, chessGame]);
 
   useEffect(() => {
     if (!lastMessage) return;

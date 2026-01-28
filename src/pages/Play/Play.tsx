@@ -68,10 +68,6 @@ function Play() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>Chess Live</h2>
-      <div style={{ marginBottom: 16 }}>
-        <StatusBadge status={status} />
-      </div>
       <div style={{ marginBottom: 20 }}>
         <TimeControlSelector
           selected={selectedTimeControl}
