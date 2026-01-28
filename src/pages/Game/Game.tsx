@@ -53,10 +53,8 @@ function Game() {
   };
 
   useEffect(() => {
-    if (!isConnected && status === "playing") {
+    if (!isConnected) {
       setStatus("disconnected");
-    } else if (isConnected && status === "disconnected") {
-      setStatus("playing");
     }
   }, [isConnected, status]);
 
