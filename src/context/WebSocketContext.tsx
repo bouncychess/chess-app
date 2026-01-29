@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { useAuth } from "./AuthContext";
 import type { GameAction } from "../types/chess";
@@ -58,7 +58,6 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           if (cancelled) return;
           setIsConnected(true);
           console.log("WebSocket connected");
-          socket.send(JSON.stringify({ action: "connected" }));
         };
 
         socket.onmessage = (event) => {
@@ -97,14 +96,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   }, [isAuthenticated]);
 
-  const sendMessage = (message: WebSocketMessage) => {
+  const sendMessage = useCallback((message: WebSocketMessage) => {
     console.log("Sending message:", message);
     if (socketRef.current?.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify(message));
     } else {
       console.warn("WebSocket is not open");
     }
-  };
+  }, []);
 
   return (
     <WebSocketContext.Provider value={{ sendMessage, lastMessage, isConnected, username }}>
