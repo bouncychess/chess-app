@@ -5,7 +5,7 @@ import Board from "../../components/game/Board";
 import Chat from "./components/Chat";
 import { GameClock } from "../../components/game/GameClock";
 import { StatusBadge } from "../../components/StatusBadge";
-import type { PlayerColor } from "../../types/chess";
+import type { PlayerColor, ChatMessage } from "../../types/chess";
 
 interface GameState {
   playerColor: PlayerColor;
@@ -32,6 +32,7 @@ function Game() {
   const [blackUsername, setBlackUsername] = useState<string | null>(initialState?.blackUsername ?? null);
   const [increment, setIncrement] = useState<number>(initialState?.increment ?? 0);
   const [pgn, setPgn] = useState<string | null>(null);
+  const [chatLog, setChatLog] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<'online' | 'disconnected' | 'playing' | 'loading'>('loading');
   const hasRequestedGameState = useRef(false);
 
@@ -101,6 +102,7 @@ function Game() {
       setBlackUsername(lastMessage.blackUsername);
       setIncrement(lastMessage.increment ?? 0);
       setPgn(lastMessage.pgn ?? null);
+      setChatLog(lastMessage.chat ?? []);
       setStatus("playing");
     }
   }, [lastMessage, gameId]);
@@ -160,7 +162,7 @@ function Game() {
           />
         </GameClock>
       </div>
-      <Chat gameId={gameId} />
+      <Chat gameId={gameId} initialChat={chatLog} />
     </div>
   );
 }
