@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChatMessage } from "../../../types/chess";
 import { useWebSocket } from "../../../context/WebSocketContext";
+import { theme } from "../../../config/theme";
 
 interface ChatProps {
     gameId: string;
@@ -68,13 +69,14 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
 
     return (
         <div style={{
-            width: 480,
-            maxWidth: '100%',
-            border: '1px solid #e0e0e0',
-            borderRadius: 8,
-            overflow: 'hidden',
-            backgroundColor: '#fff',
-            marginTop: 16,
+            ...theme.card,
+            minWidth: 200,
+            maxWidth: 350,
+            width: '100%',
+            height: 160,
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
         }}>
             <style>{`
                 @keyframes fadeHighlight {
@@ -83,15 +85,15 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
                 }
             `}</style>
             <div style={{
-                height: 150,
+                flex: 1,
                 overflowY: 'auto',
-                padding: 12,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 8,
+                gap: 4,
+                marginBottom: 12,
             }}>
                 {chatLog.length === 0 ? (
-                    <div style={{ color: '#999', fontSize: 13, fontStyle: 'italic' }}>
+                    <div style={{ color: theme.colors.placeholder, fontSize: '0.875rem' }}>
                         No messages yet
                     </div>
                 ) : (
@@ -99,25 +101,21 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
                         <div
                             key={idx}
                             style={{
-                                fontSize: 14,
+                                fontSize: '0.875rem',
                                 lineHeight: 1.4,
                                 padding: '2px 4px',
                                 borderRadius: 4,
                                 animation: idx >= lastSeenLength ? 'fadeHighlight 2s ease-out' : undefined,
                             }}
                         >
-                            <span style={{ fontWeight: 600, color: '#333' }}>{msg.username}: </span>
-                            <span style={{ color: '#555' }}>{msg.message}</span>
+                            <span style={{ fontWeight: 600, color: theme.colors.text }}>{msg.username}: </span>
+                            <span style={{ color: theme.colors.text }}>{msg.message}</span>
                         </div>
                     ))
                 )}
                 <div ref={messagesEndRef} />
             </div>
-            <div style={{
-                padding: 8,
-                borderTop: '1px solid #e0e0e0',
-                backgroundColor: '#fafafa',
-            }}>
+            <div>
                 <input
                     type="text"
                     placeholder={username ? "Type a message..." : "Connecting..."}
@@ -132,12 +130,14 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
                     }}
                     style={{
                         width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
+                        padding: '6px 8px',
+                        border: `1px solid ${theme.colors.border}`,
                         borderRadius: 4,
-                        fontSize: 14,
+                        fontSize: '0.875rem',
                         outline: 'none',
                         boxSizing: 'border-box',
+                        backgroundColor: theme.colors.cardBackground,
+                        color: theme.colors.text,
                     }}
                 />
             </div>
