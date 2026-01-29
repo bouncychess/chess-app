@@ -11,6 +11,7 @@ interface BoardProps {
   initialTurn: PlayerColor;
   initialPgn?: string | null;
   onTurnChange?: (turn: PlayerColor) => void;
+  onPgnChange?: (pgn: string) => void;
 }
 
 function createChessInstance(pgn?: string | null): Chess {
@@ -25,7 +26,7 @@ function createChessInstance(pgn?: string | null): Chess {
   return chess;
 }
 
-function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange}: BoardProps) {
+function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange }: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
 
@@ -46,6 +47,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange}: Bo
         setChessPosition(chessGame.fen());
         moveSoundRef.current.play();
         setCurrentTurn(lastMessage.turn);
+        onPgnChange?.(chessGame.pgn());
       } catch (error) {
         console.log("Failed to make move", error);
       }
@@ -97,6 +99,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange}: Bo
     sendMove(move);
     setCurrentTurn((prev) => (prev === "white" ? "black" : "white"));
     onTurnChange?.(currentTurn === "white" ? "black" : "white");
+    onPgnChange?.(chessGame.pgn());
     return false;
   }
 
