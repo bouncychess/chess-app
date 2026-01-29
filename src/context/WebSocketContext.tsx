@@ -58,12 +58,13 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           if (cancelled) return;
           setIsConnected(true);
           console.log("WebSocket connected");
+          socket.send(JSON.stringify({ action: "connected" }));
         };
 
         socket.onmessage = (event) => {
           try {
             const parsed = JSON.parse(event.data);
-            if (parsed.action === "players" && parsed.username) {
+            if (parsed.action === "connected" && parsed.username) {
               setUsername(parsed.username);
             }
             setLastMessage(parsed);
