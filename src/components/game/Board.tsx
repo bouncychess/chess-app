@@ -12,6 +12,8 @@ interface BoardProps {
   initialPgn?: string | null;
   onTurnChange?: (turn: PlayerColor) => void;
   onPgnChange?: (pgn: string) => void;
+  overridePosition?: string | null;
+  isViewingHistory?: boolean;
 }
 
 function createChessInstance(pgn?: string | null): Chess {
@@ -26,7 +28,7 @@ function createChessInstance(pgn?: string | null): Chess {
   return chess;
 }
 
-function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange }: BoardProps) {
+function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, overridePosition, isViewingHistory = false }: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
 
@@ -77,6 +79,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     if (!targetSquare) {
       return false;
     }
+    if (isViewingHistory) {
+      return false;
+    }
     if (playerColor !== currentTurn) {
       console.log("Not your turn");
       return false;
@@ -104,7 +109,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   }
 
   const chessboardOptions = {
-    position: chessPosition,
+    position: overridePosition ?? chessPosition,
     boardOrientation: playerColor,
     onPieceDrop,
     id: "on-piece-drop",
