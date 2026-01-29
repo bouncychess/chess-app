@@ -240,15 +240,19 @@ function Game() {
             isViewingHistory={isViewingHistory}
           />
         </GameClock>
-        <MoveNotation
-          pgn={pgn || ""}
-          viewedMoveIndex={viewedMoveIndex}
-          totalMoveCount={totalMoveCount}
-          onMoveClick={handleMoveClick}
-          onGoToLive={handleGoToLive}
-        />
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, alignSelf: "stretch" }}>
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <MoveNotation
+              pgn={pgn || ""}
+              viewedMoveIndex={viewedMoveIndex}
+              totalMoveCount={totalMoveCount}
+              onMoveClick={handleMoveClick}
+              onGoToLive={handleGoToLive}
+            />
+          </div>
+          <Chat gameId={gameId} initialChat={chatLog} />
+        </div>
       </div>
-      <Chat gameId={gameId} initialChat={chatLog} />
     </div>
   );
 }

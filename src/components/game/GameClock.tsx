@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Clock } from "./Clock";
+import { theme } from "../../config/theme";
 import type { PlayerColor } from "../../types/chess";
 
 interface GameClockProps {
@@ -53,7 +54,12 @@ export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whit
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      ...theme.card,
+    }}>
       {topRow}
       {children}
       {bottomRow}

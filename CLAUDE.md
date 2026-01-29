@@ -1,0 +1,39 @@
+# Claude Code Instructions
+
+## Styling Guidelines
+
+### Theme Usage
+All components should use the theme from `src/config/theme.ts` for consistent styling.
+
+### Card/Panel Components
+When creating new card or panel components, use `theme.card` for consistent styling:
+
+```tsx
+import { theme } from "../../config/theme";
+
+// Spread theme.card and add component-specific styles
+<div style={{
+  ...theme.card,
+  // additional styles
+  width: 200,
+  display: 'flex',
+}}>
+```
+
+The `theme.card` object provides:
+- `backgroundColor`: Card background color
+- `borderRadius`: 8px rounded corners
+- `padding`: 16px padding
+- `boxShadow`: Subtle shadow for depth
+
+### Colors
+Use `theme.colors` for all color values:
+- `theme.colors.text` - Primary text color
+- `theme.colors.placeholder` - Placeholder/secondary text
+- `theme.colors.border` - Border color for inputs
+- `theme.colors.cardBackground` - Background for cards (also in theme.card)
+
+### Font Sizes
+Use rem-based font sizes for consistency:
+- `0.875rem` - Small text (14px equivalent)
+- `1rem` - Normal text (16px equivalent)

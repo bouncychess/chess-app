@@ -52,13 +52,11 @@ export function MoveNotation({
   return (
     <div
       style={{
-        backgroundColor: theme.colors.cardBackground,
-        borderRadius: 8,
-        padding: 16,
-        width: 200,
-        maxHeight: 400,
+        ...theme.card,
+        width: 175,
+        height: "100%",
+        boxSizing: "border-box",
         overflowY: "auto",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
         display: "flex",
         flexDirection: "column",
       }}
