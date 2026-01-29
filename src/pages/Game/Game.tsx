@@ -34,6 +34,7 @@ function Game() {
   const [pgn, setPgn] = useState<string | null>(null);
   const [chatLog, setChatLog] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<'online' | 'disconnected' | 'playing' | 'loading'>('loading');
+  const [gameStarted, setGameStarted] = useState(false);
   const hasRequestedGameState = useRef(false);
 
   // Always request fresh game state from server when connected
@@ -46,6 +47,7 @@ function Game() {
 
   const handleTurnChange = (newTurn: PlayerColor) => {
     setCurrentTurn(newTurn);
+    setGameStarted(true);
     if (newTurn === "black") {
       setWhiteTime(prev => prev + increment);
     } else {
@@ -104,12 +106,17 @@ function Game() {
       setPgn(lastMessage.pgn ?? null);
       setChatLog(lastMessage.chat ?? []);
       setStatus("playing");
+      // Game has started if there's a PGN (moves made) or it's black's turn
+      if (lastMessage.pgn || lastMessage.currentTurn === "black") {
+        setGameStarted(true);
+      }
     }
   }, [lastMessage, gameId]);
 
   // Client-side clock countdown using actual elapsed time
+  // Only starts ticking after white makes their first move
   useEffect(() => {
-    if (status !== "playing") return;
+    if (status !== "playing" || !gameStarted) return;
 
     let lastTick = Date.now();
 
@@ -126,7 +133,7 @@ function Game() {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [status, currentTurn]);
+  }, [status, currentTurn, gameStarted]);
 
   if (!gameId) {
     return <div style={{ padding: 20 }}>Invalid game ID</div>;
@@ -150,7 +157,7 @@ function Game() {
           blackTime={blackTime}
           whiteName={whiteUsername}
           blackName={blackUsername}
-          activeColor={status === "playing" ? currentTurn : null}
+          activeColor={status === "playing" && gameStarted ? currentTurn : null}
           playerColor={playerColor}
         >
           <Board
