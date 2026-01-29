@@ -111,6 +111,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const chessboardOptions = {
     position: overridePosition ?? chessPosition,
     boardOrientation: playerColor,
+    animationDurationInMs: 0,
     onPieceDrop,
     id: "on-piece-drop",
   };
