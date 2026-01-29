@@ -2,10 +2,10 @@ import type { Player } from "../../../types/chess";
 
 interface PlayersProps {
   players: Player[];
-  currentPlayerId?: string;
+  currentUsername?: string;
 }
 
-function Players({ players, currentPlayerId }: PlayersProps) {
+function Players({ players, currentUsername }: PlayersProps) {
   return (
     <div style={{ minWidth: 200, maxWidth: 300, flex: "1 1 200px", padding: 12, border: "1px solid #ccc", borderRadius: 4 }}>
       <h3 style={{ margin: "0 0 12px 0" }}>Online Players</h3>
@@ -14,11 +14,11 @@ function Players({ players, currentPlayerId }: PlayersProps) {
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: 400, overflowY: "auto" }}>
           {players.map((player) => (
-            <li key={player.id} style={{
+            <li key={player.username} style={{
               padding: "4px 8px",
               display: "flex",
               justifyContent: "space-between",
-              backgroundColor: player.id === currentPlayerId ? "rgba(34, 197, 94, 0.3)" : "transparent",
+              backgroundColor: player.username === currentUsername ? "rgba(34, 197, 94, 0.3)" : "transparent",
               borderRadius: 4
             }}>
               <span>{player.username}</span>

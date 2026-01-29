@@ -35,10 +35,11 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
     useEffect(() => {
         if (!lastMessage) return;
 
-        if (lastMessage.action === "chat" && lastMessage.chat) {
+        // Skip if this is our own message (already added optimistically)
+        if (lastMessage.action === "chat" && lastMessage.chat && lastMessage.chat.username !== username) {
             setChatLog((prevLog) => [...prevLog, lastMessage.chat]);
         }
-    }, [lastMessage]);
+    }, [lastMessage, username]);
 
     // Auto-scroll to bottom when new messages are added
     useEffect(() => {
