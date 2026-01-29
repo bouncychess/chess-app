@@ -10,23 +10,22 @@ import type { Player, TimeControl } from "../../types/chess";
 
 function Play() {
   const navigate = useNavigate();
-  const { sendMessage, lastMessage, isConnected } = useWebSocket();
+  const { sendMessage, lastMessage, isConnected, username } = useWebSocket();
 
   const [status, setStatus] = useState<'online' | 'disconnected' | 'waiting'>('online');
   const [players, setPlayers] = useState<Player[]>([]);
-  const [playerId, setPlayerId] = useState<string | null>(null);
   const [selectedTimeControl, setSelectedTimeControl] = useState<TimeControl>(DEFAULT_TIME_CONTROL);
   const [previewTime, setPreviewTime] = useState<number>(DEFAULT_TIME_CONTROL.initialTime);
 
+  // Request players list when connected
   useEffect(() => {
     if (isConnected) {
-      if (status === 'disconnected') {
-        setStatus("online");
-      }
+      setStatus("online");
+      sendMessage({ action: "getPlayers" });
     } else {
       setStatus("disconnected");
     }
-  }, [isConnected, status]);
+  }, [isConnected, sendMessage]);
 
   useEffect(() => {
     if (!lastMessage) return;
@@ -48,7 +47,6 @@ function Play() {
 
     if (lastMessage.action === "players") {
       setPlayers(lastMessage.players);
-      setPlayerId(lastMessage.playerId);
     }
   }, [lastMessage, navigate, selectedTimeControl.increment]);
 
@@ -95,7 +93,7 @@ function Play() {
             onTurnChange={() => {}}
           />
         </GameClock>
-        <Players players={players} currentPlayerId={playerId ?? undefined} />
+        <Players players={players} currentUsername={username ?? undefined} />
       </div>
     </div>
   );
