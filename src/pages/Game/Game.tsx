@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { useWebSocket } from "../../context/WebSocketContext";
 import Board from "../../components/game/Board";
@@ -6,6 +6,7 @@ import Chat from "./components/Chat";
 import { GameClock } from "../../components/game/GameClock";
 import { MoveNotation } from "../../components/game/MoveNotation";
 import { StatusBadge } from "../../components/StatusBadge";
+import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
 import type { PlayerColor, ChatMessage } from "../../types/chess";
 
 interface GameState {
@@ -36,7 +37,15 @@ function Game() {
   const [chatLog, setChatLog] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<'online' | 'disconnected' | 'playing' | 'loading'>('loading');
   const [gameStarted, setGameStarted] = useState(false);
+  const [viewedMoveIndex, setViewedMoveIndex] = useState<number | null>(null);
   const hasRequestedGameState = useRef(false);
+
+  // Derived values for move navigation
+  const totalMoveCount = getMoveCount(pgn || "");
+  const isViewingHistory = viewedMoveIndex !== null;
+  const displayPosition = isViewingHistory
+    ? getFenAtMoveIndex(pgn || "", viewedMoveIndex)
+    : null;
 
   // Always request fresh game state from server when connected
   useEffect(() => {
@@ -58,7 +67,40 @@ function Game() {
 
   const handlePgnChange = (newPgn: string) => {
     setPgn(newPgn);
+    setViewedMoveIndex(null); // Return to live view when a new move is made
   };
+
+  const handleMoveClick = (moveIndex: number) => {
+    setViewedMoveIndex(moveIndex);
+  };
+
+  const handleGoToLive = () => {
+    setViewedMoveIndex(null);
+  };
+
+  const handleNavigate = useCallback((direction: "prev" | "next") => {
+    if (direction === "prev") {
+      if (viewedMoveIndex === null) {
+        // Going back from live position
+        if (totalMoveCount > 0) {
+          setViewedMoveIndex(totalMoveCount - 1);
+        }
+      } else if (viewedMoveIndex > 0) {
+        setViewedMoveIndex(viewedMoveIndex - 1);
+      } else if (viewedMoveIndex === 0) {
+        setViewedMoveIndex(-1); // Starting position
+      }
+    } else {
+      if (viewedMoveIndex === null) {
+        return; // Already at live position
+      }
+      if (viewedMoveIndex >= totalMoveCount - 1) {
+        setViewedMoveIndex(null); // Return to live
+      } else {
+        setViewedMoveIndex(viewedMoveIndex + 1);
+      }
+    }
+  }, [viewedMoveIndex, totalMoveCount]);
 
   useEffect(() => {
     if (!isConnected && status === "playing") {
@@ -140,6 +182,28 @@ function Game() {
     return () => clearInterval(interval);
   }, [status, currentTurn, gameStarted]);
 
+  // Keyboard navigation for moves
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't capture if user is typing in an input
+      if (event.target instanceof HTMLInputElement ||
+          event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        handleNavigate("prev");
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        handleNavigate("next");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleNavigate]);
+
   if (!gameId) {
     return <div style={{ padding: 20 }}>Invalid game ID</div>;
   }
@@ -172,9 +236,17 @@ function Game() {
             initialPgn={pgn}
             onTurnChange={handleTurnChange}
             onPgnChange={handlePgnChange}
+            overridePosition={displayPosition}
+            isViewingHistory={isViewingHistory}
           />
         </GameClock>
-        <MoveNotation pgn={pgn || ""} />
+        <MoveNotation
+          pgn={pgn || ""}
+          viewedMoveIndex={viewedMoveIndex}
+          totalMoveCount={totalMoveCount}
+          onMoveClick={handleMoveClick}
+          onGoToLive={handleGoToLive}
+        />
       </div>
       <Chat gameId={gameId} initialChat={chatLog} />
     </div>
