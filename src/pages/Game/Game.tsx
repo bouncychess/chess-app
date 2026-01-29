@@ -4,6 +4,7 @@ import { useWebSocket } from "../../context/WebSocketContext";
 import Board from "../../components/game/Board";
 import Chat from "./components/Chat";
 import { GameClock } from "../../components/game/GameClock";
+import { MoveNotation } from "../../components/game/MoveNotation";
 import { StatusBadge } from "../../components/StatusBadge";
 import type { PlayerColor, ChatMessage } from "../../types/chess";
 
@@ -53,6 +54,10 @@ function Game() {
     } else {
       setBlackTime(prev => prev + increment);
     }
+  };
+
+  const handlePgnChange = (newPgn: string) => {
+    setPgn(newPgn);
   };
 
   useEffect(() => {
@@ -151,7 +156,7 @@ function Game() {
 
   return (
     <div style={{ padding: 20 }}>
-      <div style={{ display: "flex", gap: 20 }}>
+      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
         <GameClock
           whiteTime={whiteTime}
           blackTime={blackTime}
@@ -166,8 +171,10 @@ function Game() {
             initialTurn={currentTurn}
             initialPgn={pgn}
             onTurnChange={handleTurnChange}
+            onPgnChange={handlePgnChange}
           />
         </GameClock>
+        <MoveNotation pgn={pgn || ""} />
       </div>
       <Chat gameId={gameId} initialChat={chatLog} />
     </div>
