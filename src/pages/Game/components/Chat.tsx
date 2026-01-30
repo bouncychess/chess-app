@@ -117,7 +117,7 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
             <div>
                 <input
                     type="text"
-                    placeholder={username ? "" : "Connecting..."}
+                    placeholder={username ? "Type a message..." : "Connecting..."}
                     value={text}
                     disabled={!username}
                     onChange={(e) => setText(e.target.value)}
