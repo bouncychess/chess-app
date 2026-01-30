@@ -9,7 +9,7 @@ interface PlayersProps {
 
 function Players({ players, currentUsername }: PlayersProps) {
   return (
-    <ResizableCard initialWidth={300} minWidth={200} maxWidth={400}>
+    <ResizableCard>
       <h3 style={theme.cardHeader}>Online Players</h3>
       {players.length === 0 ? (
         <p style={{ color: theme.colors.placeholder, fontSize: "0.875rem", margin: 0 }}>No players online</p>

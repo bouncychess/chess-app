@@ -19,10 +19,15 @@ interface GameState {
   increment: number;
 }
 
+// Ratio of sidebar space for MoveNotation (0-1). Chat gets the remaining space.
+// 0.5 = equal split, 0.6 = MoveNotation gets 60%, etc.
+const MOVE_NOTATION_RATIO = 0.6;
+
 function Game() {
   const { gameId } = useParams<{ gameId: string }>();
   const location = useLocation();
   const { sendMessage, lastMessage, isConnected } = useWebSocket();
+  const [boardSize, setBoardSize] = useState(400);
 
   // Initialize from navigation state
   const initialState = location.state as GameState | null;
@@ -240,17 +245,22 @@ function Game() {
             initialPgn={pgn}
             onTurnChange={handleTurnChange}
             onPgnChange={handlePgnChange}
+            onSizeChange={setBoardSize}
             overridePosition={displayPosition}
             isViewingHistory={isViewingHistory}
           />
         </GameClock>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <MoveNotation
-            pgn={pgn || ""}
-            viewedMoveIndex={viewedMoveIndex}
-            onMoveClick={handleMoveClick}
-          />
-          <Chat gameId={gameId} initialChat={chatLog} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + 120 }}>
+          <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0, overflow: "hidden" }}>
+            <MoveNotation
+              pgn={pgn || ""}
+              viewedMoveIndex={viewedMoveIndex}
+              onMoveClick={handleMoveClick}
+            />
+          </div>
+          <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, overflow: "hidden" }}>
+            <Chat gameId={gameId} initialChat={chatLog} />
+          </div>
         </div>
       </div>
     </div>

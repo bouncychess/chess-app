@@ -10,7 +10,7 @@ interface TimeControlSelectorProps {
 
 export function TimeControlSelector({ selected, onSelect }: TimeControlSelectorProps) {
   return (
-    <ResizableCard initialWidth={300} minWidth={200} maxWidth={500}>
+    <ResizableCard>
       <h3 style={theme.cardHeader}>Time Control</h3>
       <div
         style={{
