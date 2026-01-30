@@ -250,7 +250,7 @@ function Game() {
             isViewingHistory={isViewingHistory}
           />
         </GameClock>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + 120 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + 116 }}>
           <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0, overflow: "hidden" }}>
             <MoveNotation
               pgn={pgn || ""}
