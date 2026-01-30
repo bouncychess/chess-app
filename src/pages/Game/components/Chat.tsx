@@ -13,7 +13,7 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
     const { sendMessage, lastMessage, username } = useWebSocket();
     const [chatLog, setChatLog] = useState<ChatMessage[]>(initialChat);
     const [text, setText] = useState<string>('');
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
     const [lastSeenLength, setLastSeenLength] = useState(initialChat.length);
 
     // Sync initial chat when it changes (e.g., gameState loaded)
@@ -45,7 +45,10 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
 
     // Auto-scroll to bottom when new messages are added
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        const container = messagesContainerRef.current;
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
     }, [chatLog]);
 
     const sendChat = (message: ChatMessage) => {
@@ -81,14 +84,17 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
                     to { background-color: transparent; }
                 }
             `}</style>
-            <div style={{
-                flex: 1,
-                overflowY: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 4,
-                marginBottom: 12,
-            }}>
+            <div
+                ref={messagesContainerRef}
+                style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                    marginBottom: 12,
+                }}
+            >
                 {chatLog.length === 0 ? (
                     <div style={{ color: theme.colors.placeholder, fontSize: '0.875rem' }}>
                         No messages yet
@@ -110,7 +116,6 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
                         </div>
                     ))
                 )}
-                <div ref={messagesEndRef} />
             </div>
             <div>
                 <input

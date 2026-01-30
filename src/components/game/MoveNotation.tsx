@@ -46,14 +46,25 @@ export function MoveNotation({
 }: MoveNotationProps) {
   const moves = parsePgn(pgn);
   const moveRowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to selected move when viewedMoveIndex changes
   useEffect(() => {
     if (viewedMoveIndex === null || viewedMoveIndex < 0) return;
+    const container = containerRef.current;
+    if (!container) return;
+
     // Calculate which row contains this move (each row has 2 half-moves)
     const rowNumber = Math.floor(viewedMoveIndex / 2) + 1;
     const rowElement = moveRowRefs.current.get(rowNumber);
-    rowElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (rowElement) {
+      // Scroll within container only
+      const rowTop = rowElement.offsetTop - container.offsetTop;
+      const rowHeight = rowElement.offsetHeight;
+      const containerHeight = container.clientHeight;
+      const targetScroll = rowTop - (containerHeight / 2) + (rowHeight / 2);
+      container.scrollTop = Math.max(0, targetScroll);
+    }
   }, [viewedMoveIndex]);
 
   return (
@@ -71,14 +82,17 @@ export function MoveNotation({
           No moves yet
         </p>
       ) : (
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
-          flex: 1,
-          overflowY: "auto",
-          scrollBehavior: "smooth",
-        }}>
+        <div
+          ref={containerRef}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            flex: 1,
+            overflowY: "auto",
+            scrollBehavior: "smooth",
+          }}
+        >
           {moves.map((move) => {
             const whiteIndex = getMoveHalfIndex(move.moveNumber, false);
             const blackIndex = getMoveHalfIndex(move.moveNumber, true);
