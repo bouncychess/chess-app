@@ -13,6 +13,7 @@ interface BoardProps {
   initialPgn?: string | null;
   onTurnChange?: (turn: PlayerColor) => void;
   onPgnChange?: (pgn: string) => void;
+  onSizeChange?: (size: number) => void;
   overridePosition?: string | null;
   isViewingHistory?: boolean;
 }
@@ -29,7 +30,7 @@ function createChessInstance(pgn?: string | null): Chess {
   return chess;
 }
 
-function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, overridePosition, isViewingHistory = false }: BoardProps) {
+function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false }: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
 
@@ -133,6 +134,11 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const isResizing = useRef(false);
   const startPos = useRef({ x: 0, size: 0 });
 
+  // Notify parent when board size changes
+  useEffect(() => {
+    onSizeChange?.(boardSize);
+  }, [boardSize, onSizeChange]);
+
   // Auto-resize on window resize (only if not manually resizing)
   useEffect(() => {
     const handleWindowResize = () => {
@@ -184,12 +190,27 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
           position: "absolute",
           bottom: 0,
           right: 0,
-          width: 20,
-          height: 20,
+          width: 24,
+          height: 24,
           cursor: "nwse-resize",
-          background: `linear-gradient(135deg, transparent 50%, ${theme.colors.border} 50%)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: 0.5,
+          transition: "opacity 0.15s ease",
         }}
-      />
+        onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
+        onMouseLeave={(e) => e.currentTarget.style.opacity = "0.5"}
+      >
+        <svg width="18" height="18" viewBox="0 0 18 18">
+          <path
+            d="M16 2L2 16M16 8L8 16M16 14L14 16"
+            stroke={theme.colors.text}
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+      </div>
     </div>
   );
 }

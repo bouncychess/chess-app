@@ -55,8 +55,6 @@ export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whit
 
   return (
     <ResizableCard
-      initialWidth={300}
-      maxWidth={"100%"}
       style={{ display: "flex", flexDirection: "column", gap: 8, width: "fit-content" }}
     >
       {topRow}

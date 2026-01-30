@@ -69,9 +69,6 @@ export function MoveNotation({
 
   return (
     <ResizableCard
-      initialWidth={300}
-      minWidth={200}
-      maxWidth={400}
       style={{ height: "100%", display: "flex", flexDirection: "column" }}
     >
       <h3 style={{ ...theme.cardHeader, flexShrink: 0 }}>

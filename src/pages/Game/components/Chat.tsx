@@ -73,9 +73,6 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
 
     return (
         <ResizableCard
-            initialWidth={300}
-            minWidth={200}
-            maxWidth={400}
             style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
         >
             <style>{`
@@ -120,7 +117,7 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
             <div>
                 <input
                     type="text"
-                    placeholder={username ? "Type a message..." : "Connecting..."}
+                    placeholder={username ? "" : "Connecting..."}
                     value={text}
                     disabled={!username}
                     onChange={(e) => setText(e.target.value)}
