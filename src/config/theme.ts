@@ -20,6 +20,8 @@ export const theme = {
         primaryText: '#ffffff',
         secondary: 'grey',
         secondaryText: '#ffffff',
+        danger: '#991b1b',
+        dangerText: '#ffffff',
         buttonHoverBorder: '#ffffff',
 
         // Form elements

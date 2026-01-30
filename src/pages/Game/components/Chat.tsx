@@ -73,7 +73,7 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
             minWidth: 200,
             maxWidth: 350,
             width: '100%',
-            height: 160,
+            height: '100%',
             boxSizing: 'border-box',
             display: 'flex',
             flexDirection: 'column',

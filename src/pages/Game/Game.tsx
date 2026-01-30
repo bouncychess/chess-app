@@ -42,8 +42,10 @@ function Game() {
 
   // Derived values for move navigation
   const totalMoveCount = getMoveCount(pgn || "");
-  const isViewingHistory = viewedMoveIndex !== null;
-  const displayPosition = isViewingHistory
+  // Viewing history means looking at a position other than the latest (including starting position -1)
+  const isViewingHistory = viewedMoveIndex !== null &&
+    (viewedMoveIndex === -1 || viewedMoveIndex < totalMoveCount - 1);
+  const displayPosition = viewedMoveIndex !== null
     ? getFenAtMoveIndex(pgn || "", viewedMoveIndex)
     : null;
 
@@ -67,15 +69,13 @@ function Game() {
 
   const handlePgnChange = (newPgn: string) => {
     setPgn(newPgn);
-    setViewedMoveIndex(null); // Return to live view when a new move is made
+    // Select the latest move
+    const newMoveCount = getMoveCount(newPgn);
+    setViewedMoveIndex(newMoveCount > 0 ? newMoveCount - 1 : null);
   };
 
   const handleMoveClick = (moveIndex: number) => {
     setViewedMoveIndex(moveIndex);
-  };
-
-  const handleGoToLive = () => {
-    setViewedMoveIndex(null);
   };
 
   const handleNavigate = useCallback((direction: "prev" | "next") => {
@@ -95,7 +95,7 @@ function Game() {
         return; // Already at live position
       }
       if (viewedMoveIndex >= totalMoveCount - 1) {
-        setViewedMoveIndex(null); // Return to live
+        return; // Stay at last move
       } else {
         setViewedMoveIndex(viewedMoveIndex + 1);
       }
@@ -153,8 +153,12 @@ function Game() {
       setPgn(lastMessage.pgn ?? null);
       setChatLog(lastMessage.chat ?? []);
       setStatus("playing");
-      // Game has started if there's a PGN (moves made) or it's black's turn
-      if (lastMessage.pgn || lastMessage.currentTurn === "black") {
+      // Select the latest move if there are any moves
+      if (lastMessage.pgn) {
+        const moveCount = getMoveCount(lastMessage.pgn);
+        setViewedMoveIndex(moveCount > 0 ? moveCount - 1 : null);
+        setGameStarted(true);
+      } else if (lastMessage.currentTurn === "black") {
         setGameStarted(true);
       }
     }
@@ -241,16 +245,16 @@ function Game() {
           />
         </GameClock>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, alignSelf: "stretch" }}>
-          <div style={{ flex: 1, minHeight: 0 }}>
+          <div style={{ flex: "2 1 0", minHeight: 0 }}>
             <MoveNotation
               pgn={pgn || ""}
               viewedMoveIndex={viewedMoveIndex}
-              totalMoveCount={totalMoveCount}
               onMoveClick={handleMoveClick}
-              onGoToLive={handleGoToLive}
             />
           </div>
-          <Chat gameId={gameId} initialChat={chatLog} />
+          <div style={{ flex: "1 1 0", minHeight: 0 }}>
+            <Chat gameId={gameId} initialChat={chatLog} />
+          </div>
         </div>
       </div>
     </div>

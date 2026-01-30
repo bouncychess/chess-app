@@ -37,3 +37,8 @@ Use `theme.colors` for all color values:
 Use rem-based font sizes for consistency:
 - `0.875rem` - Small text (14px equivalent)
 - `1rem` - Normal text (16px equivalent)
+
+## Meta
+
+### Updating This File
+If you notice patterns, conventions, or guidelines that would be helpful to document, suggest adding them to this file. This helps maintain consistency across the codebase and ensures future sessions have the context they need.

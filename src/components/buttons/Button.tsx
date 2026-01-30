@@ -7,7 +7,7 @@ type ButtonProps = {
     onClick?: () => void;
     disabled?: boolean;
     type?: 'button' | 'submit';
-    variant?: 'primary' | 'secondary';
+    variant?: 'primary' | 'secondary' | 'danger';
 };
 
 export const Button = ({
@@ -25,6 +25,10 @@ export const Button = ({
         secondary: {
             backgroundColor: theme.colors.secondary,
             color: theme.colors.secondaryText,
+        },
+        danger: {
+            backgroundColor: theme.colors.danger,
+            color: theme.colors.dangerText,
         },
     };
 
