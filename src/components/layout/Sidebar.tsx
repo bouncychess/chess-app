@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../config/theme';
+import { Tooltip } from '../Tooltip';
 
 // Simple SVG icons
 const NewsIcon = () => (
@@ -150,10 +151,25 @@ export default function Sidebar() {
                         </Link>
                     </li>
                     <li>
-                        <Link to="/profile" style={linkStyle} title="Profile">
-                            <ProfileIcon />
-                            {!collapsed && <span>Profile</span>}
-                        </Link>
+                        {user ? (
+                            <Link to={`/user/${user.username}`} style={linkStyle} title="Profile">
+                                <ProfileIcon />
+                                {!collapsed && <span>Profile</span>}
+                            </Link>
+                        ) : (
+                            <Tooltip content="Sign in to view profile" position="right">
+                                <span
+                                    style={{
+                                        ...linkStyle,
+                                        opacity: 0.5,
+                                        cursor: 'not-allowed',
+                                    }}
+                                >
+                                    <ProfileIcon />
+                                    {!collapsed && <span>Profile</span>}
+                                </span>
+                            </Tooltip>
+                        )}
                     </li>
                 </ul>
             </nav>
@@ -163,7 +179,7 @@ export default function Sidebar() {
                     <>
                         {!collapsed && (
                             <Link
-                                to="/profile"
+                                to={`/user/${user.username}`}
                                 style={{
                                     margin: '0 0 0.5rem 0',
                                     fontSize: '0.875rem',
