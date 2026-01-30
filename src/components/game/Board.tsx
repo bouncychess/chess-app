@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import type { PieceDropHandlerArgs, DraggingPieceDataType } from "react-chessboard";
 import { useWebSocket } from "../../context/WebSocketContext";
 import type { PlayerColor } from "../../types/chess";
+import { theme } from "../../config/theme";
 
 interface BoardProps {
   gameId: string | null;
@@ -108,6 +109,64 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     return false;
   }
 
+  // Calculate optimal board size to fit viewport without scrolling
+  const calculateOptimalSize = useCallback(() => {
+    if (typeof window === "undefined") return 400;
+
+    // Account for: page padding (40px), player rows (~60px total), sidebar (~340px)
+    const verticalPadding = 200; // padding + player name rows
+    const horizontalPadding = 400; // padding + sidebar space
+
+    const maxWidth = window.innerWidth - horizontalPadding;
+    const maxHeight = window.innerHeight - verticalPadding;
+
+    // Board must be square, so use the smaller dimension
+    const optimalSize = Math.min(maxWidth, maxHeight);
+
+    // Clamp between min and max
+    const minSize = 300;
+    const maxSize = 800;
+    return Math.max(minSize, Math.min(maxSize, optimalSize));
+  }, []);
+
+  const [boardSize, setBoardSize] = useState(calculateOptimalSize);
+  const isResizing = useRef(false);
+  const startPos = useRef({ x: 0, size: 0 });
+
+  // Auto-resize on window resize (only if not manually resizing)
+  useEffect(() => {
+    const handleWindowResize = () => {
+      if (!isResizing.current) {
+        setBoardSize(calculateOptimalSize());
+      }
+    };
+    window.addEventListener("resize", handleWindowResize);
+    return () => window.removeEventListener("resize", handleWindowResize);
+  }, [calculateOptimalSize]);
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!isResizing.current) return;
+    const delta = e.clientX - startPos.current.x;
+    const minSize = 300;
+    const maxSize = 800;
+    const newSize = Math.max(minSize, Math.min(maxSize, startPos.current.size + delta));
+    setBoardSize(newSize);
+  }, []);
+
+  const handleResizeEnd = useCallback(() => {
+    isResizing.current = false;
+    document.removeEventListener("mousemove", handleResizeMove);
+    document.removeEventListener("mouseup", handleResizeEnd);
+  }, [handleResizeMove]);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizing.current = true;
+    startPos.current = { x: e.clientX, size: boardSize };
+    document.addEventListener("mousemove", handleResizeMove);
+    document.addEventListener("mouseup", handleResizeEnd);
+  }, [boardSize, handleResizeMove, handleResizeEnd]);
+
   const chessboardOptions = {
     position: overridePosition ?? chessPosition,
     boardOrientation: playerColor,
@@ -117,8 +176,20 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   };
 
   return (
-    <div>
+    <div style={{ position: "relative", width: boardSize, height: boardSize }}>
       <Chessboard options={chessboardOptions} />
+      <div
+        onMouseDown={handleResizeStart}
+        style={{
+          position: "absolute",
+          bottom: 0,
+          right: 0,
+          width: 20,
+          height: 20,
+          cursor: "nwse-resize",
+          background: `linear-gradient(135deg, transparent 50%, ${theme.colors.border} 50%)`,
+        }}
+      />
     </div>
   );
 }
