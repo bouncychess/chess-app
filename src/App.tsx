@@ -23,7 +23,7 @@ export default function App() {
                         <Route path="/user/:username" element={<Layout><Profile /></Layout>} />
                         <Route path="/signin" element={<Layout><SignIn /></Layout>} />
                         <Route path="/articles/:id" element={<Layout><Article /></Layout>} />
-                        <Route path="/logout" element={<Logout />} />
+                        <Route path="/logout" element={<Layout><Logout /></Layout>} />
                     </Routes>
                 </Router>
             </WebSocketProvider>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../config/theme';
+import { Tooltip } from '../Tooltip';
 
 // Simple SVG icons
 const NewsIcon = () => (
@@ -149,14 +150,27 @@ export default function Sidebar() {
                             {!collapsed && <span>Play</span>}
                         </Link>
                     </li>
-                    {user && (
-                        <li>
+                    <li>
+                        {user ? (
                             <Link to={`/user/${user.username}`} style={linkStyle} title="Profile">
                                 <ProfileIcon />
                                 {!collapsed && <span>Profile</span>}
                             </Link>
-                        </li>
-                    )}
+                        ) : (
+                            <Tooltip content="Sign in to view profile" position="right">
+                                <span
+                                    style={{
+                                        ...linkStyle,
+                                        opacity: 0.5,
+                                        cursor: 'not-allowed',
+                                    }}
+                                >
+                                    <ProfileIcon />
+                                    {!collapsed && <span>Profile</span>}
+                                </span>
+                            </Tooltip>
+                        )}
+                    </li>
                 </ul>
             </nav>
 
