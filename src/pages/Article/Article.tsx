@@ -36,7 +36,7 @@ export default function Article() {
         return (
             <div>
                 <h1>Article not found</h1>
-                <Link to="/home" style={{ color: '#007bff' }}>Back to Home</Link>
+                <Link to="/news" style={{ color: '#007bff' }}>Back to News</Link>
             </div>
         );
     }
@@ -44,7 +44,7 @@ export default function Article() {
     return (
         <div style={{ maxWidth: 800 }}>
             <Link to="/news" style={{ color: '#007bff', textDecoration: 'none', marginBottom: 16, display: 'inline-block' }}>
-                ← Back to Articles
+                ← Back to News
             </Link>
             <h1 style={{ marginTop: 16, marginBottom: 24 }}>{article.title}</h1>
             <p style={{ fontSize: '1.1rem', lineHeight: 1.6 }}>{article.content}</p>
