@@ -20,7 +20,7 @@ export default function App() {
                         <Route path="/play" element={<Layout><Play /></Layout>} />
                         <Route path="/game/:gameId" element={<Layout><Game /></Layout>} />
                         <Route path="/news" element={<Layout><News /></Layout>} />
-                        <Route path="/profile" element={<Layout><Profile /></Layout>} />
+                        <Route path="/user/:username" element={<Layout><Profile /></Layout>} />
                         <Route path="/signin" element={<Layout><SignIn /></Layout>} />
                         <Route path="/articles/:id" element={<Layout><Article /></Layout>} />
                         <Route path="/logout" element={<Logout />} />

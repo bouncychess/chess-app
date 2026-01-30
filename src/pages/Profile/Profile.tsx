@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Button } from '../../components/buttons/Button';
 import { theme } from '../../config/theme';
-import { getMyProfile, updateMyProfile, type UserProfile } from '../../services/profile';
+import { getUserProfile, updateUserProfile, type UserProfile } from '../../services/profile';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Profile() {
+    const { username: profileUsername } = useParams<{ username: string }>();
     const { user } = useAuth();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
@@ -13,18 +15,20 @@ export default function Profile() {
     const [editedDetails, setEditedDetails] = useState('');
     const [saving, setSaving] = useState(false);
 
-    const username = user?.username ?? null;
-    const isGuest = !username || username.startsWith('guest_');
+    const currentUsername = user?.username ?? null;
+    const isOwnProfile = currentUsername === profileUsername;
+    const canEdit = isOwnProfile && currentUsername && !currentUsername.startsWith('guest_');
 
     useEffect(() => {
         async function fetchProfile() {
-            if (!username || isGuest) {
+            if (!profileUsername) {
                 setLoading(false);
+                setError('No username specified');
                 return;
             }
 
             try {
-                const data = await getMyProfile(username);
+                const data = await getUserProfile(profileUsername);
                 setProfile(data);
                 setEditedDetails(data.profile_details || '');
             } catch (err) {
@@ -35,16 +39,16 @@ export default function Profile() {
         }
 
         fetchProfile();
-    }, [username, isGuest]);
+    }, [profileUsername]);
 
     const handleSave = async () => {
-        if (!username) return;
+        if (!currentUsername || !canEdit) return;
 
         setSaving(true);
         setError(null);
 
         try {
-            const updated = await updateMyProfile(username, {
+            const updated = await updateUserProfile(currentUsername, {
                 profile_details: editedDetails || null,
             });
             setProfile(updated);
@@ -70,22 +74,6 @@ export default function Profile() {
         );
     }
 
-    if (isGuest) {
-        return (
-            <div style={{ padding: 20 }}>
-                <h2>Profile</h2>
-                <div style={{
-                    ...theme.card,
-                    maxWidth: 500,
-                }}>
-                    <p style={{ margin: 0, color: theme.colors.text }}>
-                        Guest users cannot have profiles. Please log in or register to create a profile.
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
     if (error && !profile) {
         return (
             <div style={{ padding: 20 }}>
@@ -102,33 +90,12 @@ export default function Profile() {
 
     return (
         <div style={{ padding: 20 }}>
-            <h2>Profile</h2>
+            <h2>{profile?.username}</h2>
 
             <div style={{
                 ...theme.card,
                 maxWidth: 500,
             }}>
-                {/* Username */}
-                <div style={{ marginBottom: 20 }}>
-                    <label style={{
-                        display: 'block',
-                        fontSize: '0.875rem',
-                        fontWeight: 500,
-                        marginBottom: 4,
-                        color: theme.colors.text,
-                    }}>
-                        Username
-                    </label>
-                    <div style={{
-                        padding: '8px 12px',
-                        backgroundColor: theme.colors.background,
-                        borderRadius: 4,
-                        color: theme.colors.text,
-                    }}>
-                        {profile?.username}
-                    </div>
-                </div>
-
                 {/* Rating */}
                 <div style={{ marginBottom: 20 }}>
                     <label style={{
@@ -160,7 +127,7 @@ export default function Profile() {
                         marginBottom: 4,
                         color: theme.colors.text,
                     }}>
-                        About Me
+                        About
                     </label>
                     {isEditing ? (
                         <textarea
@@ -203,23 +170,25 @@ export default function Profile() {
                     </p>
                 )}
 
-                {/* Action buttons */}
-                <div style={{ display: 'flex', gap: 12 }}>
-                    {isEditing ? (
-                        <>
-                            <Button onClick={handleSave} disabled={saving}>
-                                {saving ? 'Saving...' : 'Save'}
+                {/* Action buttons - only show if viewing own profile */}
+                {canEdit && (
+                    <div style={{ display: 'flex', gap: 12 }}>
+                        {isEditing ? (
+                            <>
+                                <Button onClick={handleSave} disabled={saving}>
+                                    {saving ? 'Saving...' : 'Save'}
+                                </Button>
+                                <Button onClick={handleCancel} variant="secondary" disabled={saving}>
+                                    Cancel
+                                </Button>
+                            </>
+                        ) : (
+                            <Button onClick={() => setIsEditing(true)}>
+                                Edit Profile
                             </Button>
-                            <Button onClick={handleCancel} variant="secondary" disabled={saving}>
-                                Cancel
-                            </Button>
-                        </>
-                    ) : (
-                        <Button onClick={() => setIsEditing(true)}>
-                            Edit Profile
-                        </Button>
-                    )}
-                </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

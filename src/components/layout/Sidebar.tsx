@@ -149,12 +149,14 @@ export default function Sidebar() {
                             {!collapsed && <span>Play</span>}
                         </Link>
                     </li>
-                    <li>
-                        <Link to="/profile" style={linkStyle} title="Profile">
-                            <ProfileIcon />
-                            {!collapsed && <span>Profile</span>}
-                        </Link>
-                    </li>
+                    {user && (
+                        <li>
+                            <Link to={`/user/${user.username}`} style={linkStyle} title="Profile">
+                                <ProfileIcon />
+                                {!collapsed && <span>Profile</span>}
+                            </Link>
+                        </li>
+                    )}
                 </ul>
             </nav>
 
@@ -163,7 +165,7 @@ export default function Sidebar() {
                     <>
                         {!collapsed && (
                             <Link
-                                to="/profile"
+                                to={`/user/${user.username}`}
                                 style={{
                                     margin: '0 0 0.5rem 0',
                                     fontSize: '0.875rem',

@@ -17,6 +17,7 @@ function Play() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedTimeControl, setSelectedTimeControl] = useState<TimeControl>(DEFAULT_TIME_CONTROL);
   const [previewTime, setPreviewTime] = useState<number>(DEFAULT_TIME_CONTROL.initialTime);
+  const [boardSize, setBoardSize] = useState(400);
 
   // Request players list when connected
   useEffect(() => {
@@ -80,9 +81,10 @@ function Play() {
             playerColor="white"
             initialTurn="white"
             onTurnChange={() => {}}
+            onSizeChange={setBoardSize}
           />
         </GameClock>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + 116 }}>
           <TimeControlSelector
             selected={selectedTimeControl}
             onSelect={(tc) => {
@@ -93,7 +95,9 @@ function Play() {
           <Button variant="danger" onClick={onPlay} disabled={!selectedTimeControl || status === "waiting"}>
             {status === "waiting" ? "Waiting for opponent..." : "Play"}
           </Button>
-          <Players players={players} currentUsername={username ?? undefined} />
+          <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+            <Players players={players} currentUsername={username ?? undefined} />
+          </div>
         </div>
       </div>
     </div>

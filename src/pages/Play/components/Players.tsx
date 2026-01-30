@@ -9,12 +9,12 @@ interface PlayersProps {
 
 function Players({ players, currentUsername }: PlayersProps) {
   return (
-    <ResizableCard>
-      <h3 style={theme.cardHeader}>Online Players</h3>
+    <ResizableCard style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <h3 style={{ ...theme.cardHeader, flexShrink: 0 }}>Online Players</h3>
       {players.length === 0 ? (
         <p style={{ color: theme.colors.placeholder, fontSize: "0.875rem", margin: 0 }}>No players online</p>
       ) : (
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: 400, overflowY: "auto" }}>
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, flex: 1, overflowY: "auto" }}>
           {players.map((player) => (
             <li key={player.username} style={{
               padding: "4px 8px",
