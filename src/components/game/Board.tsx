@@ -117,7 +117,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   };
 
   return (
-    <div style={{ maxWidth: 480 }}>
+    <div>
       <Chessboard options={chessboardOptions} />
     </div>
   );

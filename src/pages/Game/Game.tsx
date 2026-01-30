@@ -224,7 +224,7 @@ function Game() {
 
   return (
     <div style={{ padding: 20 }}>
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
         <GameClock
           whiteTime={whiteTime}
           blackTime={blackTime}
@@ -244,17 +244,13 @@ function Game() {
             isViewingHistory={isViewingHistory}
           />
         </GameClock>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, alignSelf: "stretch", width: 300 }}>
-          <div style={{ flex: "2 1 0", minHeight: 0 }}>
-            <MoveNotation
-              pgn={pgn || ""}
-              viewedMoveIndex={viewedMoveIndex}
-              onMoveClick={handleMoveClick}
-            />
-          </div>
-          <div style={{ flex: "1 1 0", minHeight: 0 }}>
-            <Chat gameId={gameId} initialChat={chatLog} />
-          </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <MoveNotation
+            pgn={pgn || ""}
+            viewedMoveIndex={viewedMoveIndex}
+            onMoveClick={handleMoveClick}
+          />
+          <Chat gameId={gameId} initialChat={chatLog} />
         </div>
       </div>
     </div>

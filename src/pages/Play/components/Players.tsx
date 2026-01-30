@@ -1,5 +1,6 @@
 import type { Player } from "../../../types/chess";
 import { theme } from "../../../config/theme";
+import { ResizableCard } from "../../../components/ResizableCard";
 
 interface PlayersProps {
   players: Player[];
@@ -8,13 +9,7 @@ interface PlayersProps {
 
 function Players({ players, currentUsername }: PlayersProps) {
   return (
-    <div style={{
-      ...theme.card,
-      minWidth: 200,
-      maxWidth: 300,
-      flex: "1 1 200px",
-      boxSizing: "border-box",
-    }}>
+    <ResizableCard initialWidth={300} minWidth={200} maxWidth={400}>
       <h3 style={theme.cardHeader}>Online Players</h3>
       {players.length === 0 ? (
         <p style={{ color: theme.colors.placeholder, fontSize: "0.875rem", margin: 0 }}>No players online</p>
@@ -36,7 +31,7 @@ function Players({ players, currentUsername }: PlayersProps) {
           ))}
         </ul>
       )}
-    </div>
+    </ResizableCard>
   );
 }
 

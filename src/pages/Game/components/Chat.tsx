@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ChatMessage } from "../../../types/chess";
 import { useWebSocket } from "../../../context/WebSocketContext";
 import { theme } from "../../../config/theme";
+import { ResizableCard } from "../../../components/ResizableCard";
 
 interface ChatProps {
     gameId: string;
@@ -68,16 +69,12 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
       };
 
     return (
-        <div style={{
-            ...theme.card,
-            minWidth: 200,
-            maxWidth: 300,
-            width: '100%',
-            height: '100%',
-            boxSizing: 'border-box',
-            display: 'flex',
-            flexDirection: 'column',
-        }}>
+        <ResizableCard
+            initialWidth={300}
+            minWidth={200}
+            maxWidth={400}
+            style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+        >
             <style>{`
                 @keyframes fadeHighlight {
                     from { background-color: #e8e8e8; }
@@ -141,7 +138,7 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
                     }}
                 />
             </div>
-        </div>
+        </ResizableCard>
     )
 
 }
