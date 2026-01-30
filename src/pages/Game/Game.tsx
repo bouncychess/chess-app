@@ -244,7 +244,7 @@ function Game() {
             isViewingHistory={isViewingHistory}
           />
         </GameClock>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, alignSelf: "stretch" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, alignSelf: "stretch", width: 300 }}>
           <div style={{ flex: "2 1 0", minHeight: 0 }}>
             <MoveNotation
               pgn={pgn || ""}

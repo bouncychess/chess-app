@@ -13,7 +13,7 @@ export function TimeControlSelector({ selected, onSelect }: TimeControlSelectorP
       ...theme.card,
       boxSizing: "border-box",
     }}>
-      <h3 style={{ margin: "0 0 12px 0", fontSize: "1rem", color: theme.colors.text }}>Time Control</h3>
+      <h3 style={theme.cardHeader}>Time Control</h3>
       <div
         style={{
           display: "grid",

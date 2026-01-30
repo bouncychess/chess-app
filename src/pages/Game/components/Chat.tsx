@@ -71,7 +71,7 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
         <div style={{
             ...theme.card,
             minWidth: 200,
-            maxWidth: 350,
+            maxWidth: 300,
             width: '100%',
             height: '100%',
             boxSizing: 'border-box',
