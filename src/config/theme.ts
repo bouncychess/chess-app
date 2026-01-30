@@ -36,4 +36,10 @@ export const theme = {
         padding: 16,
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
     } as const,
+    // Common card header styling
+    cardHeader: {
+        margin: '0 0 12px 0',
+        fontSize: '1rem',
+        color: '#1a1a1a',
+    } as const,
 };

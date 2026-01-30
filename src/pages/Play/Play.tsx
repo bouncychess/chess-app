@@ -83,9 +83,6 @@ function Play() {
           />
         </GameClock>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <Button variant="danger" onClick={onPlay} disabled={!selectedTimeControl || status === "waiting"}>
-            {status === "waiting" ? "Waiting for opponent..." : "Play"}
-          </Button>
           <TimeControlSelector
             selected={selectedTimeControl}
             onSelect={(tc) => {
@@ -93,6 +90,9 @@ function Play() {
               setPreviewTime(tc.initialTime);
             }}
           />
+          <Button variant="danger" onClick={onPlay} disabled={!selectedTimeControl || status === "waiting"}>
+            {status === "waiting" ? "Waiting for opponent..." : "Play"}
+          </Button>
           <Players players={players} currentUsername={username ?? undefined} />
         </div>
       </div>

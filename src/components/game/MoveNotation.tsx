@@ -59,22 +59,16 @@ export function MoveNotation({
     <div
       style={{
         ...theme.card,
-        width: 175,
+        minWidth: 200,
+        maxWidth: 300,
+        width: "100%",
         height: "100%",
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
       }}
     >
-      <h3
-        style={{
-          margin: "0 0 12px 0",
-          fontSize: "1rem",
-          color: theme.colors.text,
-          flexShrink: 0,
-          textAlign: "center",
-        }}
-      >
+      <h3 style={{ ...theme.cardHeader, flexShrink: 0 }}>
         Moves
       </h3>
       {moves.length === 0 ? (

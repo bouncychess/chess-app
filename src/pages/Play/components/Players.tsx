@@ -15,7 +15,7 @@ function Players({ players, currentUsername }: PlayersProps) {
       flex: "1 1 200px",
       boxSizing: "border-box",
     }}>
-      <h3 style={{ margin: "0 0 12px 0", fontSize: "1rem", color: theme.colors.text }}>Online Players</h3>
+      <h3 style={theme.cardHeader}>Online Players</h3>
       {players.length === 0 ? (
         <p style={{ color: theme.colors.placeholder, fontSize: "0.875rem", margin: 0 }}>No players online</p>
       ) : (
