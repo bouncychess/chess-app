@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChatMessage } from "../../../types/chess";
 import { useWebSocket } from "../../../context/WebSocketContext";
+import { theme } from "../../../config/theme";
+import { ResizableCard } from "../../../components/ResizableCard";
 
 interface ChatProps {
     gameId: string;
@@ -11,7 +13,7 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
     const { sendMessage, lastMessage, username } = useWebSocket();
     const [chatLog, setChatLog] = useState<ChatMessage[]>(initialChat);
     const [text, setText] = useState<string>('');
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
     const [lastSeenLength, setLastSeenLength] = useState(initialChat.length);
 
     // Sync initial chat when it changes (e.g., gameState loaded)
@@ -43,7 +45,10 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
 
     // Auto-scroll to bottom when new messages are added
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        const container = messagesContainerRef.current;
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
     }, [chatLog]);
 
     const sendChat = (message: ChatMessage) => {
@@ -67,31 +72,28 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
       };
 
     return (
-        <div style={{
-            width: 480,
-            maxWidth: '100%',
-            border: '1px solid #e0e0e0',
-            borderRadius: 8,
-            overflow: 'hidden',
-            backgroundColor: '#fff',
-            marginTop: 16,
-        }}>
+        <ResizableCard
+            style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+        >
             <style>{`
                 @keyframes fadeHighlight {
                     from { background-color: #e8e8e8; }
                     to { background-color: transparent; }
                 }
             `}</style>
-            <div style={{
-                height: 150,
-                overflowY: 'auto',
-                padding: 12,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-            }}>
+            <div
+                ref={messagesContainerRef}
+                style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                    marginBottom: 12,
+                }}
+            >
                 {chatLog.length === 0 ? (
-                    <div style={{ color: '#999', fontSize: 13, fontStyle: 'italic' }}>
+                    <div style={{ color: theme.colors.placeholder, fontSize: '0.875rem' }}>
                         No messages yet
                     </div>
                 ) : (
@@ -99,28 +101,23 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
                         <div
                             key={idx}
                             style={{
-                                fontSize: 14,
+                                fontSize: '0.875rem',
                                 lineHeight: 1.4,
                                 padding: '2px 4px',
                                 borderRadius: 4,
                                 animation: idx >= lastSeenLength ? 'fadeHighlight 2s ease-out' : undefined,
                             }}
                         >
-                            <span style={{ fontWeight: 600, color: '#333' }}>{msg.username}: </span>
-                            <span style={{ color: '#555' }}>{msg.message}</span>
+                            <span style={{ fontWeight: 600, color: theme.colors.text }}>{msg.username}: </span>
+                            <span style={{ color: theme.colors.text }}>{msg.message}</span>
                         </div>
                     ))
                 )}
-                <div ref={messagesEndRef} />
             </div>
-            <div style={{
-                padding: 8,
-                borderTop: '1px solid #e0e0e0',
-                backgroundColor: '#fafafa',
-            }}>
+            <div>
                 <input
                     type="text"
-                    placeholder={username ? "Type a message..." : "Connecting..."}
+                    placeholder={username ? "" : "Connecting..."}
                     value={text}
                     disabled={!username}
                     onChange={(e) => setText(e.target.value)}
@@ -132,16 +129,18 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
                     }}
                     style={{
                         width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
+                        padding: '6px 8px',
+                        border: `1px solid ${theme.colors.border}`,
                         borderRadius: 4,
-                        fontSize: 14,
+                        fontSize: '0.875rem',
                         outline: 'none',
                         boxSizing: 'border-box',
+                        backgroundColor: theme.colors.cardBackground,
+                        color: theme.colors.text,
                     }}
                 />
             </div>
-        </div>
+        </ResizableCard>
     )
 
 }

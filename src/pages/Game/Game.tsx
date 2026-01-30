@@ -19,10 +19,15 @@ interface GameState {
   increment: number;
 }
 
+// Ratio of sidebar space for MoveNotation (0-1). Chat gets the remaining space.
+// 0.5 = equal split, 0.6 = MoveNotation gets 60%, etc.
+const MOVE_NOTATION_RATIO = 0.6;
+
 function Game() {
   const { gameId } = useParams<{ gameId: string }>();
   const location = useLocation();
   const { sendMessage, lastMessage, isConnected } = useWebSocket();
+  const [boardSize, setBoardSize] = useState(400);
 
   // Initialize from navigation state
   const initialState = location.state as GameState | null;
@@ -42,8 +47,10 @@ function Game() {
 
   // Derived values for move navigation
   const totalMoveCount = getMoveCount(pgn || "");
-  const isViewingHistory = viewedMoveIndex !== null;
-  const displayPosition = isViewingHistory
+  // Viewing history means looking at a position other than the latest (including starting position -1)
+  const isViewingHistory = viewedMoveIndex !== null &&
+    (viewedMoveIndex === -1 || viewedMoveIndex < totalMoveCount - 1);
+  const displayPosition = viewedMoveIndex !== null
     ? getFenAtMoveIndex(pgn || "", viewedMoveIndex)
     : null;
 
@@ -67,15 +74,13 @@ function Game() {
 
   const handlePgnChange = (newPgn: string) => {
     setPgn(newPgn);
-    setViewedMoveIndex(null); // Return to live view when a new move is made
+    // Select the latest move
+    const newMoveCount = getMoveCount(newPgn);
+    setViewedMoveIndex(newMoveCount > 0 ? newMoveCount - 1 : null);
   };
 
   const handleMoveClick = (moveIndex: number) => {
     setViewedMoveIndex(moveIndex);
-  };
-
-  const handleGoToLive = () => {
-    setViewedMoveIndex(null);
   };
 
   const handleNavigate = useCallback((direction: "prev" | "next") => {
@@ -95,7 +100,7 @@ function Game() {
         return; // Already at live position
       }
       if (viewedMoveIndex >= totalMoveCount - 1) {
-        setViewedMoveIndex(null); // Return to live
+        return; // Stay at last move
       } else {
         setViewedMoveIndex(viewedMoveIndex + 1);
       }
@@ -153,8 +158,12 @@ function Game() {
       setPgn(lastMessage.pgn ?? null);
       setChatLog(lastMessage.chat ?? []);
       setStatus("playing");
-      // Game has started if there's a PGN (moves made) or it's black's turn
-      if (lastMessage.pgn || lastMessage.currentTurn === "black") {
+      // Select the latest move if there are any moves
+      if (lastMessage.pgn) {
+        const moveCount = getMoveCount(lastMessage.pgn);
+        setViewedMoveIndex(moveCount > 0 ? moveCount - 1 : null);
+        setGameStarted(true);
+      } else if (lastMessage.currentTurn === "black") {
         setGameStarted(true);
       }
     }
@@ -220,7 +229,7 @@ function Game() {
 
   return (
     <div style={{ padding: 20 }}>
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
         <GameClock
           whiteTime={whiteTime}
           blackTime={blackTime}
@@ -236,19 +245,24 @@ function Game() {
             initialPgn={pgn}
             onTurnChange={handleTurnChange}
             onPgnChange={handlePgnChange}
+            onSizeChange={setBoardSize}
             overridePosition={displayPosition}
             isViewingHistory={isViewingHistory}
           />
         </GameClock>
-        <MoveNotation
-          pgn={pgn || ""}
-          viewedMoveIndex={viewedMoveIndex}
-          totalMoveCount={totalMoveCount}
-          onMoveClick={handleMoveClick}
-          onGoToLive={handleGoToLive}
-        />
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + 120 }}>
+          <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0, overflow: "hidden" }}>
+            <MoveNotation
+              pgn={pgn || ""}
+              viewedMoveIndex={viewedMoveIndex}
+              onMoveClick={handleMoveClick}
+            />
+          </div>
+          <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, overflow: "hidden" }}>
+            <Chat gameId={gameId} initialChat={chatLog} />
+          </div>
+        </div>
       </div>
-      <Chat gameId={gameId} initialChat={chatLog} />
     </div>
   );
 }

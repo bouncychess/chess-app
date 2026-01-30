@@ -1,11 +1,11 @@
+import { useEffect, useRef } from "react";
 import { theme } from "../../config/theme";
+import { ResizableCard } from "../ResizableCard";
 
 interface MoveNotationProps {
   pgn: string;
   viewedMoveIndex?: number | null;
-  totalMoveCount?: number;
   onMoveClick?: (moveIndex: number) => void;
-  onGoToLive?: () => void;
 }
 
 interface ParsedMove {
@@ -42,34 +42,36 @@ function getMoveHalfIndex(moveNumber: number, isBlack: boolean): number {
 export function MoveNotation({
   pgn,
   viewedMoveIndex = null,
-  totalMoveCount = 0,
   onMoveClick,
-  onGoToLive,
 }: MoveNotationProps) {
   const moves = parsePgn(pgn);
-  const isViewingHistory = viewedMoveIndex !== null;
+  const moveRowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to selected move when viewedMoveIndex changes
+  useEffect(() => {
+    if (viewedMoveIndex === null || viewedMoveIndex < 0) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Calculate which row contains this move (each row has 2 half-moves)
+    const rowNumber = Math.floor(viewedMoveIndex / 2) + 1;
+    const rowElement = moveRowRefs.current.get(rowNumber);
+    if (rowElement) {
+      // Scroll within container only
+      const rowTop = rowElement.offsetTop - container.offsetTop;
+      const rowHeight = rowElement.offsetHeight;
+      const containerHeight = container.clientHeight;
+      const targetScroll = rowTop - (containerHeight / 2) + (rowHeight / 2);
+      container.scrollTop = Math.max(0, targetScroll);
+    }
+  }, [viewedMoveIndex]);
 
   return (
-    <div
-      style={{
-        backgroundColor: theme.colors.cardBackground,
-        borderRadius: 8,
-        padding: 16,
-        width: 200,
-        maxHeight: 400,
-        overflowY: "auto",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-        display: "flex",
-        flexDirection: "column",
-      }}
+    <ResizableCard
+      style={{ height: "100%", display: "flex", flexDirection: "column" }}
     >
-      <h3
-        style={{
-          margin: "0 0 12px 0",
-          fontSize: "1rem",
-          color: theme.colors.text,
-        }}
-      >
+      <h3 style={{ ...theme.cardHeader, flexShrink: 0 }}>
         Moves
       </h3>
       {moves.length === 0 ? (
@@ -77,7 +79,17 @@ export function MoveNotation({
           No moves yet
         </p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+        <div
+          ref={containerRef}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            flex: 1,
+            overflowY: "auto",
+            scrollBehavior: "smooth",
+          }}
+        >
           {moves.map((move) => {
             const whiteIndex = getMoveHalfIndex(move.moveNumber, false);
             const blackIndex = getMoveHalfIndex(move.moveNumber, true);
@@ -87,6 +99,9 @@ export function MoveNotation({
             return (
               <div
                 key={move.moveNumber}
+                ref={(el) => {
+                  if (el) moveRowRefs.current.set(move.moveNumber, el);
+                }}
                 style={{
                   display: "flex",
                   fontSize: "0.875rem",
@@ -101,8 +116,8 @@ export function MoveNotation({
                   style={{
                     width: 50,
                     cursor: "pointer",
-                    backgroundColor: isWhiteSelected ? theme.colors.borderFocus : "transparent",
-                    color: isWhiteSelected ? "#fff" : theme.colors.text,
+                    backgroundColor: isWhiteSelected ? theme.colors.secondary : "transparent",
+                    color: isWhiteSelected ? theme.colors.secondaryText : theme.colors.text,
                     borderRadius: 2,
                     padding: "0 4px",
                     marginRight: 2,
@@ -116,8 +131,8 @@ export function MoveNotation({
                     style={{
                       width: 50,
                       cursor: "pointer",
-                      backgroundColor: isBlackSelected ? theme.colors.borderFocus : "transparent",
-                      color: isBlackSelected ? "#fff" : theme.colors.text,
+                      backgroundColor: isBlackSelected ? theme.colors.secondary : "transparent",
+                      color: isBlackSelected ? theme.colors.secondaryText : theme.colors.text,
                       borderRadius: 2,
                       padding: "0 4px",
                     }}
@@ -130,74 +145,6 @@ export function MoveNotation({
           })}
         </div>
       )}
-      {totalMoveCount > 0 && (
-        <div style={{ display: "flex", gap: 8, marginTop: 12, justifyContent: "center" }}>
-          <button
-            onClick={() => {
-              if (viewedMoveIndex === null) {
-                onMoveClick?.(totalMoveCount - 1);
-              } else if (viewedMoveIndex > 0) {
-                onMoveClick?.(viewedMoveIndex - 1);
-              } else if (viewedMoveIndex === 0) {
-                onMoveClick?.(-1);
-              }
-            }}
-            disabled={viewedMoveIndex === -1}
-            style={{
-              padding: "4px 12px",
-              backgroundColor: theme.colors.secondary,
-              color: theme.colors.secondaryText,
-              border: "none",
-              borderRadius: 4,
-              cursor: viewedMoveIndex === -1 ? "not-allowed" : "pointer",
-              opacity: viewedMoveIndex === -1 ? 0.5 : 1,
-            }}
-          >
-            &lt;
-          </button>
-          <button
-            onClick={() => {
-              if (viewedMoveIndex === null) return;
-              if (viewedMoveIndex >= totalMoveCount - 1) {
-                onGoToLive?.();
-              } else {
-                onMoveClick?.(viewedMoveIndex + 1);
-              }
-            }}
-            disabled={viewedMoveIndex === null}
-            style={{
-              padding: "4px 12px",
-              backgroundColor: theme.colors.secondary,
-              color: theme.colors.secondaryText,
-              border: "none",
-              borderRadius: 4,
-              cursor: viewedMoveIndex === null ? "not-allowed" : "pointer",
-              opacity: viewedMoveIndex === null ? 0.5 : 1,
-            }}
-          >
-            &gt;
-          </button>
-        </div>
-      )}
-      {isViewingHistory && onGoToLive && (
-        <button
-          onClick={onGoToLive}
-          style={{
-            marginTop: 8,
-            width: "100%",
-            padding: "8px",
-            backgroundColor: theme.colors.borderFocus,
-            color: "#fff",
-            border: "none",
-            borderRadius: 4,
-            cursor: "pointer",
-            fontSize: "0.875rem",
-            fontWeight: 600,
-          }}
-        >
-          Go to Live
-        </button>
-      )}
-    </div>
+    </ResizableCard>
   );
 }

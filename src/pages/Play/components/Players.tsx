@@ -1,4 +1,6 @@
 import type { Player } from "../../../types/chess";
+import { theme } from "../../../config/theme";
+import { ResizableCard } from "../../../components/ResizableCard";
 
 interface PlayersProps {
   players: Player[];
@@ -7,10 +9,10 @@ interface PlayersProps {
 
 function Players({ players, currentUsername }: PlayersProps) {
   return (
-    <div style={{ minWidth: 200, maxWidth: 300, flex: "1 1 200px", padding: 12, border: "1px solid #ccc", borderRadius: 4 }}>
-      <h3 style={{ margin: "0 0 12px 0" }}>Online Players</h3>
+    <ResizableCard>
+      <h3 style={theme.cardHeader}>Online Players</h3>
       {players.length === 0 ? (
-        <p style={{ color: "#888" }}>No players online</p>
+        <p style={{ color: theme.colors.placeholder, fontSize: "0.875rem", margin: 0 }}>No players online</p>
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: 400, overflowY: "auto" }}>
           {players.map((player) => (
@@ -19,15 +21,17 @@ function Players({ players, currentUsername }: PlayersProps) {
               display: "flex",
               justifyContent: "space-between",
               backgroundColor: player.username === currentUsername ? "rgba(34, 197, 94, 0.3)" : "transparent",
-              borderRadius: 4
+              borderRadius: 4,
+              fontSize: "0.875rem",
+              color: theme.colors.text,
             }}>
               <span>{player.username}</span>
-              <span style={{ color: "#888", fontSize: "0.9em" }}>{player.status}</span>
+              <span style={{ color: theme.colors.placeholder }}>{player.status}</span>
             </li>
           ))}
         </ul>
       )}
-    </div>
+    </ResizableCard>
   );
 }
 

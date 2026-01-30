@@ -66,18 +66,6 @@ function Play() {
 
   return (
     <div style={{ padding: 20 }}>
-      <div style={{ marginBottom: 20 }}>
-        <TimeControlSelector
-          selected={selectedTimeControl}
-          onSelect={(tc) => {
-            setSelectedTimeControl(tc);
-            setPreviewTime(tc.initialTime);
-          }}
-        />
-        <Button onClick={onPlay} disabled={!selectedTimeControl || status === "waiting"}>
-          {status === "waiting" ? "Waiting for opponent..." : "Play"}
-        </Button>
-      </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
         <GameClock
           whiteTime={previewTime}
@@ -94,7 +82,19 @@ function Play() {
             onTurnChange={() => {}}
           />
         </GameClock>
-        <Players players={players} currentUsername={username ?? undefined} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <TimeControlSelector
+            selected={selectedTimeControl}
+            onSelect={(tc) => {
+              setSelectedTimeControl(tc);
+              setPreviewTime(tc.initialTime);
+            }}
+          />
+          <Button variant="danger" onClick={onPlay} disabled={!selectedTimeControl || status === "waiting"}>
+            {status === "waiting" ? "Waiting for opponent..." : "Play"}
+          </Button>
+          <Players players={players} currentUsername={username ?? undefined} />
+        </div>
       </div>
     </div>
   );
