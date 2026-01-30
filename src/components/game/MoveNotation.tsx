@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { theme } from "../../config/theme";
+import { ResizableCard } from "../ResizableCard";
 
 interface MoveNotationProps {
   pgn: string;
@@ -56,17 +57,11 @@ export function MoveNotation({
   }, [viewedMoveIndex]);
 
   return (
-    <div
-      style={{
-        ...theme.card,
-        minWidth: 200,
-        maxWidth: 300,
-        width: "100%",
-        height: "100%",
-        boxSizing: "border-box",
-        display: "flex",
-        flexDirection: "column",
-      }}
+    <ResizableCard
+      initialWidth={300}
+      minWidth={200}
+      maxWidth={400}
+      style={{ height: "100%", display: "flex", flexDirection: "column" }}
     >
       <h3 style={{ ...theme.cardHeader, flexShrink: 0 }}>
         Moves
@@ -139,6 +134,6 @@ export function MoveNotation({
           })}
         </div>
       )}
-    </div>
+    </ResizableCard>
   );
 }
