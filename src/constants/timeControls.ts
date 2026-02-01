@@ -9,4 +9,4 @@ export const TIME_CONTROLS: TimeControl[] = [
   { initialTime: 900000, increment: 10000, label: "10+5" },
 ];
 
-export const DEFAULT_TIME_CONTROL: TimeControl = TIME_CONTROLS[2];
+export const DEFAULT_TIME_CONTROL: TimeControl = TIME_CONTROLS[1];
