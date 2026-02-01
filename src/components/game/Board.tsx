@@ -41,6 +41,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const moveSoundRef = useRef(new Audio("/sounds/move.mp3"));
+  const prevSelectedRef = useRef<Square | null>(null);
 
   useEffect(() => {
     if (!lastMessage) return;
@@ -149,26 +150,25 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   function onSquareClick({ square }: SquareHandlerArgs): void {
     const sq = square as Square;
     const piece = chessGame.get(sq);
+    const prevSelected = prevSelectedRef.current;
+    prevSelectedRef.current = null;
 
     // If viewing history, don't allow selection
     if (isViewingHistory) {
-      setSelectedSquare(null);
       return;
     }
 
-    // If we have a selected square
-    if (selectedSquare) {
-      // If clicking the same square, deselect
-      if (selectedSquare === sq) {
-        setSelectedSquare(null);
+    // If we had a selected square (from before pointerDown cleared it)
+    if (prevSelected) {
+      // If clicking the same square, stay deselected
+      if (prevSelected === sq) {
         return;
       }
 
       // If it's our turn, try to move there
       if (gameId && playerColor === currentTurn) {
-        const moved = tryMove(selectedSquare, sq);
+        const moved = tryMove(prevSelected, sq);
         if (moved) {
-          setSelectedSquare(null);
           return;
         }
       }
@@ -176,9 +176,6 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       // If clicked on own piece, switch selection to it
       if (piece && piece.color === (playerColor === "white" ? "w" : "b")) {
         setSelectedSquare(sq);
-      } else {
-        // Clicked elsewhere - clear selection
-        setSelectedSquare(null);
       }
       return;
     }
@@ -297,7 +294,12 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   return (
     <div style={{ position: "relative", width: boardSize, height: boardSize, borderRadius: 8, overflow: "hidden" }}>
-      <Chessboard options={chessboardOptions} />
+      <div onPointerDown={() => {
+        prevSelectedRef.current = selectedSquare;
+        setSelectedSquare(null);
+      }}>
+        <Chessboard options={chessboardOptions} />
+      </div>
 
       {pendingPromotion && (
         <PromotionPicker
