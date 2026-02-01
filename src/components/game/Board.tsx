@@ -125,7 +125,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     const optimalSize = Math.min(maxWidth, maxHeight);
 
     // Clamp between min and max
-    const minSize = 300;
+    const minSize = 220;
     const maxSize = 800;
     return Math.max(minSize, Math.min(maxSize, optimalSize));
   }, []);
@@ -153,7 +153,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const handleResizeMove = useCallback((e: MouseEvent) => {
     if (!isResizing.current) return;
     const delta = e.clientX - startPos.current.x;
-    const minSize = 300;
+    const minSize = 220;
     const maxSize = 800;
     const newSize = Math.max(minSize, Math.min(maxSize, startPos.current.size + delta));
     setBoardSize(newSize);
