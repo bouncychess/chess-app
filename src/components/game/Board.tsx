@@ -115,7 +115,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     if (typeof window === "undefined") return 400;
 
     // Account for: page padding (40px), player rows (~60px total), sidebar (~340px)
-    const verticalPadding = 200; // padding + player name rows
+    const verticalPadding = 250; // padding + player name rows
     const horizontalPadding = 400; // padding + sidebar space
 
     const maxWidth = window.innerWidth - horizontalPadding;
