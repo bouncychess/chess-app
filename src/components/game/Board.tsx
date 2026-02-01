@@ -182,7 +182,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   };
 
   return (
-    <div style={{ position: "relative", width: boardSize, height: boardSize }}>
+    <div style={{ position: "relative", width: boardSize, height: boardSize, borderRadius: 8, overflow: "hidden" }}>
       <Chessboard options={chessboardOptions} />
       <div
         onMouseDown={handleResizeStart}
