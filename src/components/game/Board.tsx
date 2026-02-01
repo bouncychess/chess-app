@@ -179,6 +179,23 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     animationDurationInMs: 0,
     onPieceDrop,
     id: "on-piece-drop",
+    darkSquareStyle: {
+      backgroundColor: '#5b8fb9'
+    },
+    lightSquareStyle: {
+      backgroundColor: "#f0f4f8"
+    },
+    arrowOptions: {
+      color: "#20b2aa", // sea green
+      secondaryColor: "#2e8b57", // darker sea green
+      tertiaryColor: "#3cb371", // medium sea green
+      arrowLengthReducerDenominator: 8,
+      sameTargetArrowLengthReducerDenominator: 4,
+      arrowWidthDenominator: 5,
+      activeArrowWidthMultiplier: 0.9,
+      opacity: 0.5,
+      activeOpacity: 0.3,
+    }
   };
 
   return (
