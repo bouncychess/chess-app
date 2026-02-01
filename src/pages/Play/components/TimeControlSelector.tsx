@@ -10,13 +10,13 @@ interface TimeControlSelectorProps {
 
 export function TimeControlSelector({ selected, onSelect }: TimeControlSelectorProps) {
   return (
-    <ResizableCard>
+    <ResizableCard style={{width: 250}}>
       <h3 style={theme.cardHeader}>Time Control</h3>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 8,
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 8
         }}
       >
         {TIME_CONTROLS.map((tc) => {

@@ -83,7 +83,7 @@ export default function Sidebar() {
 
     return (
         <aside style={{
-            width: collapsed ? '60px' : '200px',
+            width: collapsed ? '60px' : '175px',
             background: theme.colors.sidebarBackground,
             color: theme.colors.sidebarText,
             padding: '1rem',
