@@ -1,3 +1,5 @@
+import { fetchAuthSession } from 'aws-amplify/auth';
+
 const PROFILE_API_URL = import.meta.env.VITE_PROFILE_API_URL || 'http://localhost:8002';
 
 export type UserProfile = {
@@ -32,12 +34,20 @@ export async function updateUserProfile(
     username: string,
     update: UserProfileUpdate
 ): Promise<UserProfile> {
+    const session = await fetchAuthSession();
+    const token = session.tokens?.idToken?.toString();
+
+    if (!token) {
+        throw new Error('Not authenticated');
+    }
+
     const response = await fetch(
         `${PROFILE_API_URL}/api/v1/users/${encodeURIComponent(username)}`,
         {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify(update),
         }
