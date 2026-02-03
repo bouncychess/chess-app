@@ -11,6 +11,8 @@ export function ResizableCard({ children, style }: CardProps) {
     <div style={{
       ...theme.card,
       ...style,
+      borderRadius: theme.card.borderRadius,
+      overflow: 'hidden',
     }}>
       {children}
     </div>

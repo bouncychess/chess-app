@@ -89,7 +89,7 @@ function Play() {
             onSizeChange={setBoardSize}
           />
         </GameClock>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + 116 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + 85 }}>
           <TimeControlSelector
             selected={selectedTimeControl}
             onSelect={(tc) => {
@@ -100,7 +100,7 @@ function Play() {
           <Button variant="danger" onClick={onPlay} disabled={!selectedTimeControl || status === "waiting"}>
             {status === "waiting" ? "Waiting for opponent..." : "Play"}
           </Button>
-          <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+          <div style={{ flex: 1, minHeight: 0 }}>
             <Players players={players} currentUsername={username ?? undefined} />
           </div>
         </div>
