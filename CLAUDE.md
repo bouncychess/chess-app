@@ -38,6 +38,22 @@ Use rem-based font sizes for consistency:
 - `0.875rem` - Small text (14px equivalent)
 - `1rem` - Normal text (16px equivalent)
 
+### Tooltips
+Use the `Tooltip` component from `src/components/Tooltip.tsx` for hover tooltips instead of the native HTML `title` attribute:
+
+```tsx
+import { Tooltip } from "../../components/Tooltip";
+
+<Tooltip content="Tooltip message here" position="right">
+  <button>Hover me</button>
+</Tooltip>
+```
+
+Props:
+- `content`: The tooltip text to display
+- `position`: Where to show the tooltip - `'top'`, `'bottom'`, `'left'`, or `'right'` (default: `'right'`)
+- `style`: Optional CSS styles for the wrapper
+
 ## Meta
 
 ### Updating This File
