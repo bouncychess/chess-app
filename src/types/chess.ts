@@ -1,6 +1,6 @@
 export type PlayerColor = "white" | "black";
 
-export type GameAction = "play" | "move" | "chat" | "connected" | "startGame" | "players" | "getPlayers" | "clockSync" | "timeout" | "getGameState" | "gameState";
+export type GameAction = "play" | "gameEnded" | "move" | "chat" | "connected" | "startGame" | "players" | "getPlayers" | "clockSync" | "timeout" | "getGameState" | "gameState";
 
 export interface Player {
   id: string;

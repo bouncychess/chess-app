@@ -6,6 +6,7 @@ interface MoveNotationProps {
   pgn: string;
   viewedMoveIndex?: number | null;
   onMoveClick?: (moveIndex: number) => void;
+  gameEnded: boolean;
 }
 
 interface ParsedMove {
@@ -43,6 +44,7 @@ export function MoveNotation({
   pgn,
   viewedMoveIndex = null,
   onMoveClick,
+  gameEnded,
 }: MoveNotationProps) {
   const moves = parsePgn(pgn);
   const moveRowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -145,6 +147,9 @@ export function MoveNotation({
           })}
         </div>
       )}
+      <div>
+        {String(gameEnded)}
+        </div>
     </ResizableCard>
   );
 }

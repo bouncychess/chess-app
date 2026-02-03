@@ -42,6 +42,7 @@ function Game() {
   const [chatLog, setChatLog] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<'online' | 'disconnected' | 'playing' | 'loading'>('loading');
   const [gameStarted, setGameStarted] = useState(false);
+  const [gameEnded, setGameEnded] = useState(false);
   const [viewedMoveIndex, setViewedMoveIndex] = useState<number | null>(null);
   const hasRequestedGameState = useRef(false);
 
@@ -130,7 +131,9 @@ function Game() {
         setBlackTime(lastMessage.blackTime);
       }
     }
-
+    if (lastMessage.action === "gameEnded"){
+      setGameEnded(true)
+    }
     if (lastMessage.action === "move") {
       if (lastMessage.turn) {
         handleTurnChange(lastMessage.turn);
@@ -256,6 +259,7 @@ function Game() {
               pgn={pgn || ""}
               viewedMoveIndex={viewedMoveIndex}
               onMoveClick={handleMoveClick}
+              gameEnded={gameEnded}
             />
           </div>
           <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, overflow: "hidden" }}>
