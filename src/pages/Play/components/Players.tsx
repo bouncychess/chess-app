@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { Player } from "../../../types/chess";
 import { theme } from "../../../config/theme";
 import { ResizableCard } from "../../../components/ResizableCard";
@@ -26,7 +27,13 @@ function Players({ players, currentUsername }: PlayersProps) {
               color: theme.colors.text,
             }}>
               <span>{player.username}</span>
-              <span style={{ color: theme.colors.placeholder }}>{player.status}</span>
+              {player.gameId ? (
+                <Link to={`/game/${player.gameId}`} style={{ color: theme.colors.link, textDecoration: "none" }}>
+                  {player.status}
+                </Link>
+              ) : (
+                <span style={{ color: theme.colors.placeholder }}>{player.status}</span>
+              )}
             </li>
           ))}
         </ul>

@@ -64,6 +64,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         socket.onmessage = (event) => {
           try {
             const parsed = JSON.parse(event.data);
+            console.log("Received message:", parsed);
             if (parsed.action === "connected" && parsed.username) {
               setUsername(parsed.username);
             }

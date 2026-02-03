@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWebSocket } from "../../context/WebSocketContext";
 import Board from "../../components/game/Board";
@@ -18,14 +18,19 @@ function Play() {
   const [selectedTimeControl, setSelectedTimeControl] = useState<TimeControl>(DEFAULT_TIME_CONTROL);
   const [previewTime, setPreviewTime] = useState<number>(DEFAULT_TIME_CONTROL.initialTime);
   const [boardSize, setBoardSize] = useState(400);
+  const hasRequestedPlayers = useRef(false);
 
-  // Request players list when connected
+  // Request players list on mount and when connection changes
   useEffect(() => {
     if (isConnected) {
       setStatus("online");
-      sendMessage({ action: "getPlayers" });
+      if (!hasRequestedPlayers.current) {
+        hasRequestedPlayers.current = true;
+        sendMessage({ action: "getPlayers" });
+      }
     } else {
       setStatus("disconnected");
+      hasRequestedPlayers.current = false;
     }
   }, [isConnected, sendMessage]);
 

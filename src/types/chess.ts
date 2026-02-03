@@ -6,6 +6,7 @@ export interface Player {
   id: string;
   username: string;
   status: string;
+  gameId?: string;
 }
 
 export interface TimeControl {
