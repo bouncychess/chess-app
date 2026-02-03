@@ -86,6 +86,7 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
                 style={{
                     flex: 1,
                     overflowY: 'auto',
+                    overflowX: 'hidden',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 4,
@@ -105,6 +106,7 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
                                 lineHeight: 1.4,
                                 padding: '2px 4px',
                                 borderRadius: 4,
+                                wordBreak: 'break-word',
                                 animation: idx >= lastSeenLength ? 'fadeHighlight 2s ease-out' : undefined,
                             }}
                         >

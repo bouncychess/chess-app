@@ -250,15 +250,15 @@ function Game() {
             isViewingHistory={isViewingHistory}
           />
         </GameClock>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + 116 }}>
-          <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0, overflow: "hidden" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, width: 200, height: boardSize + 85 }}>
+          <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0 }}>
             <MoveNotation
               pgn={pgn || ""}
               viewedMoveIndex={viewedMoveIndex}
               onMoveClick={handleMoveClick}
             />
           </div>
-          <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, overflow: "hidden" }}>
+          <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, marginTop: 34, width: 300}}>
             <Chat gameId={gameId} initialChat={chatLog} />
           </div>
         </div>
