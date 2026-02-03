@@ -157,7 +157,7 @@ export default function Sidebar() {
                                 {!collapsed && <span>Profile</span>}
                             </Link>
                         ) : (
-                            <Tooltip content="Sign in to view your profile" position="right">
+                            <Tooltip content="Sign in to create profile" position="right">
                                 <span style={{ ...linkStyle, opacity: 0.5, cursor: 'default' }}>
                                     <ProfileIcon />
                                     {!collapsed && <span>Profile</span>}
