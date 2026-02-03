@@ -1,7 +1,7 @@
 export const theme = {
     colors: {
         // Main content area
-        background: '#fafafa',
+        background: '#e8e8e8',
         text: '#1a1a1a',
 
         // Sidebar
@@ -35,8 +35,7 @@ export const theme = {
         borderRadius: 8,
         padding: 16,
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        width: 300,
-        boxSizing: 'border-box',
+        overflow: 'hidden',
     } as const,
     // Common card header styling
     cardHeader: {
