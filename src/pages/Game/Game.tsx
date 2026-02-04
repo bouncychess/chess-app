@@ -7,7 +7,7 @@ import { GameClock } from "../../components/game/GameClock";
 import { MoveNotation } from "../../components/game/MoveNotation";
 import { StatusBadge } from "../../components/StatusBadge";
 import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
-import type { PlayerColor, ChatMessage } from "../../types/chess";
+import type { PlayerColor, ChatMessage, GameResult, GameEndReason } from "../../types/chess";
 
 interface GameState {
   playerColor: PlayerColor;
@@ -42,8 +42,11 @@ function Game() {
   const [chatLog, setChatLog] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<'online' | 'disconnected' | 'playing' | 'loading'>('loading');
   const [gameStarted, setGameStarted] = useState(false);
+  const [gameResult, setGameResult] = useState<GameResult | null>(null);
+  const [gameEndReason, setGameEndReason] = useState<GameEndReason | null>(null);
   const [viewedMoveIndex, setViewedMoveIndex] = useState<number | null>(null);
   const hasRequestedGameState = useRef(false);
+  const hasReportedTimeout = useRef(false);
 
   // Derived values for move navigation
   const totalMoveCount = getMoveCount(pgn || "");
@@ -130,7 +133,10 @@ function Game() {
         setBlackTime(lastMessage.blackTime);
       }
     }
-
+    if (lastMessage.action === "gameEnd" && lastMessage.gameId === gameId) {
+      setGameResult(lastMessage.result);
+      setGameEndReason(lastMessage.reason);
+    }
     if (lastMessage.action === "move") {
       if (lastMessage.turn) {
         handleTurnChange(lastMessage.turn);
@@ -158,6 +164,11 @@ function Game() {
       setPgn(lastMessage.pgn ?? null);
       setChatLog(lastMessage.chat ?? []);
       setStatus("playing");
+      // Handle finished game state
+      if (lastMessage.result) {
+        setGameResult(lastMessage.result);
+        setGameEndReason(lastMessage.endReason ?? null);
+      }
       // Select the latest move if there are any moves
       if (lastMessage.pgn) {
         const moveCount = getMoveCount(lastMessage.pgn);
@@ -172,7 +183,7 @@ function Game() {
   // Client-side clock countdown using actual elapsed time
   // Only starts ticking after white makes their first move
   useEffect(() => {
-    if (status !== "playing" || !gameStarted) return;
+    if (status !== "playing" || !gameStarted || gameResult !== null) return;
 
     let lastTick = Date.now();
 
@@ -189,7 +200,21 @@ function Game() {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [status, currentTurn, gameStarted]);
+  }, [status, currentTurn, gameStarted, gameResult]);
+
+  // Detect timeout and notify server
+  useEffect(() => {
+    if (gameResult !== null || !gameStarted || !gameId) return;
+    if (hasReportedTimeout.current) return;
+
+    const timeoutOccurred = (currentTurn === "white" && whiteTime <= 0) ||
+                           (currentTurn === "black" && blackTime <= 0);
+
+    if (timeoutOccurred) {
+      hasReportedTimeout.current = true;
+      sendMessage({ action: "timeout", gameId });
+    }
+  }, [whiteTime, blackTime, currentTurn, gameResult, gameStarted, gameId, sendMessage]);
 
   // Keyboard navigation for moves
   useEffect(() => {
@@ -248,6 +273,7 @@ function Game() {
             onSizeChange={setBoardSize}
             overridePosition={displayPosition}
             isViewingHistory={isViewingHistory}
+            gameResult={gameResult}
           />
         </GameClock>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, width: 200, height: boardSize + 85 }}>
@@ -256,6 +282,8 @@ function Game() {
               pgn={pgn || ""}
               viewedMoveIndex={viewedMoveIndex}
               onMoveClick={handleMoveClick}
+              gameResult={gameResult}
+              gameEndReason={gameEndReason}
             />
           </div>
           <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, marginTop: 34, width: 300}}>
