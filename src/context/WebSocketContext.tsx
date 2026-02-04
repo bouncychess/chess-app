@@ -30,6 +30,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     let cancelled = false;
 
     const connectWebSocket = async () => {
+      // Wait until auth state is determined
+      if (isAuthenticated === null) {
+        return;
+      }
+
       // Prevent duplicate connections
       if (socketRef.current) {
         return;
