@@ -1,11 +1,24 @@
+import { useEffect, useState } from 'react';
 import { theme } from '../config/theme';
 
-interface DisconnectedOverlayProps {
-    isDisconnected: boolean;
+interface ConnectingOverlayProps {
+    isConnecting: boolean;
 }
 
-export function DisconnectedOverlay({ isDisconnected }: DisconnectedOverlayProps) {
-    if (!isDisconnected) return null;
+export function ConnectingOverlay({ isConnecting }: ConnectingOverlayProps) {
+    const [showOverlay, setShowOverlay] = useState(false);
+
+    // Delay showing the overlay to avoid flashing during brief reconnections
+    useEffect(() => {
+        if (isConnecting) {
+            const timer = setTimeout(() => setShowOverlay(true), 500);
+            return () => clearTimeout(timer);
+        } else {
+            setShowOverlay(false);
+        }
+    }, [isConnecting]);
+
+    if (!showOverlay) return null;
 
     return (
         <>
@@ -112,12 +125,9 @@ export function DisconnectedOverlay({ isDisconnected }: DisconnectedOverlayProps
                                 c0.656,2.297,1.231,4.923,1.477,7.631c0.164,1.395,0.246,2.872,0.246,4.349L280.779,469.087z"/>
                         </g>
                     </svg>
-                    <h3 style={{ margin: '0 0 8px 0', color: theme.colors.text }}>
-                        Disconnected
+                    <h3 style={{ margin: 0, color: theme.colors.text }}>
+                        Connecting
                     </h3>
-                    <p style={{ margin: 0, color: theme.colors.placeholder, fontSize: '0.875rem' }}>
-                        Refresh to reconnect...
-                    </p>
                 </div>
             </div>
         </>
