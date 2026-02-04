@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Chess } from "chess.js";
+import { Chess, type Square } from "chess.js";
 import { Chessboard } from "react-chessboard";
-import type { PieceDropHandlerArgs, DraggingPieceDataType } from "react-chessboard";
+import type { PieceDropHandlerArgs, SquareHandlerArgs } from "react-chessboard";
 import { useWebSocket } from "../../context/WebSocketContext";
 import type { PlayerColor, GameResult } from "../../types/chess";
 import { theme } from "../../config/theme";
+import PromotionPicker, { type PromotionPiece } from "./PromotionPicker";
 
 interface BoardProps {
   gameId: string | null;
@@ -16,6 +17,7 @@ interface BoardProps {
   onSizeChange?: (size: number) => void;
   overridePosition?: string | null;
   isViewingHistory?: boolean;
+  autoPromoteToQueen?: boolean;
   gameResult?: GameResult | null;
 }
 
@@ -31,23 +33,27 @@ function createChessInstance(pgn?: string | null): Chess {
   return chess;
 }
 
-function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, gameResult = null }: BoardProps) {
+function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null }: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
 
   const [chessPosition, setChessPosition] = useState(() => chessGame.fen());
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>(initialTurn);
+  const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
+  const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const moveSoundRef = useRef(new Audio("/sounds/move.mp3"));
+  const prevSelectedRef = useRef<Square | null>(null);
 
   useEffect(() => {
     if (!lastMessage) return;
 
     if (lastMessage.action === "move") {
       try {
+        const moveStr = lastMessage.move;
         chessGame.move({
-          from: lastMessage.move.slice(0, 2),
-          to: lastMessage.move.slice(2, 4),
-          promotion: "q",
+          from: moveStr.slice(0, 2),
+          to: moveStr.slice(2, 4),
+          promotion: moveStr.length > 4 ? moveStr[4] as PromotionPiece : undefined,
         });
         setChessPosition(chessGame.fen());
         moveSoundRef.current.play();
@@ -68,59 +74,140 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     });
   };
 
-  const isPromotion = (target: string, piece: DraggingPieceDataType): boolean => {
-    return (
-      (piece.pieceType === "wP" && target[1] === "8") ||
-      (piece.pieceType === "bP" && target[1] === "1")
-    );
+  // Check if a move is a pawn promotion
+  const isPromotionMove = (from: string, to: string): boolean => {
+    const piece = chessGame.get(from as Square);
+    if (!piece || piece.type !== "p") return false;
+    return (piece.color === "w" && to[1] === "8") || (piece.color === "b" && to[1] === "1");
   };
 
-  function onPieceDrop({ sourceSquare, targetSquare, piece }: PieceDropHandlerArgs): boolean {
-    if (!gameId) {
+  // Execute a move with optional promotion piece
+  const executeMove = (from: string, to: string, promotion?: PromotionPiece): boolean => {
+    try {
+      const moveResult = chessGame.move({
+        from,
+        to,
+        promotion: promotion || "q",
+      });
+
+      if (!moveResult) return false;
+
+      setChessPosition(chessGame.fen());
+      moveSoundRef.current.play();
+
+      const move = promotion ? `${from}${to}${promotion}` : `${from}${to}`;
+      sendMove(move);
+      setCurrentTurn((prev) => (prev === "white" ? "black" : "white"));
+      onTurnChange?.(currentTurn === "white" ? "black" : "white");
+      onPgnChange?.(chessGame.pgn());
+      return true;
+    } catch {
       return false;
     }
-    if (!targetSquare) {
-      return false;
-    }
-    if (isViewingHistory) {
-      return false;
-    }
-    if (gameResult !== null) {
-      console.log("Game has ended");
-      return false;
-    }
-    if (playerColor !== currentTurn) {
-      console.log("Not your turn");
+  };
+
+  // Attempt to make a move (used by both drag-drop and click-to-move)
+  const tryMove = (from: string, to: string): boolean => {
+    if (!gameId || isViewingHistory || gameResult !== null || playerColor !== currentTurn) {
       return false;
     }
 
-    let move = `${sourceSquare}${targetSquare}`;
-    chessGame.move({
-      from: sourceSquare,
-      to: targetSquare,
-      promotion: "q",
-    });
-
-    setChessPosition(chessGame.fen());
-    moveSoundRef.current.play();
-
-    if (isPromotion(targetSquare, piece)) {
-      move += "q";
+    // Check if this is a promotion
+    if (isPromotionMove(from, to)) {
+      if (autoPromoteToQueen) {
+        return executeMove(from, to, "q");
+      }
+      // Show the picker
+      setPendingPromotion({ from, to });
+      return true;
     }
 
-    sendMove(move);
-    setCurrentTurn((prev) => (prev === "white" ? "black" : "white"));
-    onTurnChange?.(currentTurn === "white" ? "black" : "white");
-    onPgnChange?.(chessGame.pgn());
+    return executeMove(from, to);
+  };
+
+  // Handle promotion piece selection
+  const handlePromotionSelect = (piece: PromotionPiece) => {
+    if (pendingPromotion) {
+      executeMove(pendingPromotion.from, pendingPromotion.to, piece);
+      setPendingPromotion(null);
+    }
+  };
+
+  const cancelPromotion = () => {
+    setPendingPromotion(null);
+  };
+
+  function onPieceDragBegin(): void {
+    setSelectedSquare(null);
+  }
+
+  function onPieceDrop({ sourceSquare, targetSquare }: PieceDropHandlerArgs): boolean {
+    if (!targetSquare) return false;
+    setSelectedSquare(null);
+    tryMove(sourceSquare, targetSquare);
     return false;
   }
+
+  function onSquareClick({ square }: SquareHandlerArgs): void {
+    const sq = square as Square;
+    const piece = chessGame.get(sq);
+    const prevSelected = prevSelectedRef.current;
+    prevSelectedRef.current = null;
+
+    // If viewing history, don't allow selection
+    if (isViewingHistory) {
+      return;
+    }
+
+    // If we had a selected square (from before pointerDown cleared it)
+    if (prevSelected) {
+      // If clicking the same square, stay deselected
+      if (prevSelected === sq) {
+        return;
+      }
+
+      // If it's our turn, try to move there
+      if (gameId && playerColor === currentTurn) {
+        const moved = tryMove(prevSelected, sq);
+        if (moved) {
+          return;
+        }
+      }
+
+      // If clicked on own piece, switch selection to it
+      if (piece && piece.color === (playerColor === "white" ? "w" : "b")) {
+        setSelectedSquare(sq);
+      }
+      return;
+    }
+
+    // No piece selected - select own piece if clicked
+    if (piece && piece.color === (playerColor === "white" ? "w" : "b")) {
+      setSelectedSquare(sq);
+    }
+  }
+
+  // Get styles for selected square
+  const getSelectedSquareStyles = (): Record<string, React.CSSProperties> => {
+    const styles: Record<string, React.CSSProperties> = {};
+
+    if (selectedSquare) {
+      // 5% of square width (boardSize / 8)
+      const borderWidth = Math.round(boardSize * 0.06 / 8);
+      styles[selectedSquare] = {
+        boxShadow: `inset 0 0 0 ${borderWidth}px rgba(255, 221, 0, 0.8)`,
+      };
+    }
+
+    return styles;
+  };
 
   // Calculate optimal board size to fit viewport without scrolling
   const calculateOptimalSize = useCallback(() => {
     if (typeof window === "undefined") return 400;
 
     // Account for: page padding (40px), player rows (~60px total), sidebar (~340px)
-    const verticalPadding = 200; // padding + player name rows
+    const verticalPadding = 250; // padding + player name rows
     const horizontalPadding = 400; // padding + sidebar space
 
     const maxWidth = window.innerWidth - horizontalPadding;
@@ -130,7 +217,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     const optimalSize = Math.min(maxWidth, maxHeight);
 
     // Clamp between min and max
-    const minSize = 300;
+    const minSize = 220;
     const maxSize = 800;
     return Math.max(minSize, Math.min(maxSize, optimalSize));
   }, []);
@@ -158,7 +245,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const handleResizeMove = useCallback((e: MouseEvent) => {
     if (!isResizing.current) return;
     const delta = e.clientX - startPos.current.x;
-    const minSize = 300;
+    const minSize = 220;
     const maxSize = 800;
     const newSize = Math.max(minSize, Math.min(maxSize, startPos.current.size + delta));
     setBoardSize(newSize);
@@ -183,12 +270,46 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     boardOrientation: playerColor,
     animationDurationInMs: 0,
     onPieceDrop,
+    onPieceDragBegin,
+    onSquareClick,
+    squareStyles: getSelectedSquareStyles(),
     id: "on-piece-drop",
+    darkSquareStyle: {
+      backgroundColor: '#5b8fb9'
+    },
+    lightSquareStyle: {
+      backgroundColor: "#f0f4f8"
+    },
+    arrowOptions: {
+      color: "#20b2aa", // sea green
+      secondaryColor: "#2e8b57", // darker sea green
+      tertiaryColor: "#3cb371", // medium sea green
+      arrowLengthReducerDenominator: 8,
+      sameTargetArrowLengthReducerDenominator: 4,
+      arrowWidthDenominator: 5,
+      activeArrowWidthMultiplier: 0.9,
+      opacity: 0.5,
+      activeOpacity: 0.3,
+    }
   };
 
   return (
-    <div style={{ position: "relative", width: boardSize, height: boardSize }}>
-      <Chessboard options={chessboardOptions} />
+    <div style={{ position: "relative", width: boardSize, height: boardSize, borderRadius: 8, overflow: "hidden" }}>
+      <div onPointerDown={() => {
+        prevSelectedRef.current = selectedSquare;
+        setSelectedSquare(null);
+      }}>
+        <Chessboard options={chessboardOptions} />
+      </div>
+
+      {pendingPromotion && (
+        <PromotionPicker
+          playerColor={playerColor}
+          onSelect={handlePromotionSelect}
+          onCancel={cancelPromotion}
+        />
+      )}
+
       <div
         onMouseDown={handleResizeStart}
         style={{

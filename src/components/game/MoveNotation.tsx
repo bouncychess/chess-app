@@ -99,9 +99,6 @@ export function MoveNotation({
     <ResizableCard
       style={{ height: "100%", display: "flex", flexDirection: "column" }}
     >
-      <h3 style={{ ...theme.cardHeader, flexShrink: 0 }}>
-        Moves
-      </h3>
       {moves.length === 0 ? (
         <p style={{ color: theme.colors.placeholder, fontSize: "0.875rem", margin: 0 }}>
           No moves yet
