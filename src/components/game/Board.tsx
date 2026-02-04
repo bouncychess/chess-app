@@ -3,7 +3,7 @@ import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import type { PieceDropHandlerArgs, DraggingPieceDataType } from "react-chessboard";
 import { useWebSocket } from "../../context/WebSocketContext";
-import type { PlayerColor } from "../../types/chess";
+import type { PlayerColor, GameResult } from "../../types/chess";
 import { theme } from "../../config/theme";
 
 interface BoardProps {
@@ -16,6 +16,7 @@ interface BoardProps {
   onSizeChange?: (size: number) => void;
   overridePosition?: string | null;
   isViewingHistory?: boolean;
+  gameResult?: GameResult | null;
 }
 
 function createChessInstance(pgn?: string | null): Chess {
@@ -30,7 +31,7 @@ function createChessInstance(pgn?: string | null): Chess {
   return chess;
 }
 
-function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false }: BoardProps) {
+function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, gameResult = null }: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
 
@@ -82,6 +83,10 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       return false;
     }
     if (isViewingHistory) {
+      return false;
+    }
+    if (gameResult !== null) {
+      console.log("Game has ended");
       return false;
     }
     if (playerColor !== currentTurn) {

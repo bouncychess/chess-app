@@ -46,6 +46,7 @@ function Game() {
   const [gameEndReason, setGameEndReason] = useState<GameEndReason | null>(null);
   const [viewedMoveIndex, setViewedMoveIndex] = useState<number | null>(null);
   const hasRequestedGameState = useRef(false);
+  const hasReportedTimeout = useRef(false);
 
   // Derived values for move navigation
   const totalMoveCount = getMoveCount(pgn || "");
@@ -163,6 +164,11 @@ function Game() {
       setPgn(lastMessage.pgn ?? null);
       setChatLog(lastMessage.chat ?? []);
       setStatus("playing");
+      // Handle finished game state
+      if (lastMessage.result) {
+        setGameResult(lastMessage.result);
+        setGameEndReason(lastMessage.endReason ?? null);
+      }
       // Select the latest move if there are any moves
       if (lastMessage.pgn) {
         const moveCount = getMoveCount(lastMessage.pgn);
@@ -195,6 +201,20 @@ function Game() {
 
     return () => clearInterval(interval);
   }, [status, currentTurn, gameStarted, gameResult]);
+
+  // Detect timeout and notify server
+  useEffect(() => {
+    if (gameResult !== null || !gameStarted || !gameId) return;
+    if (hasReportedTimeout.current) return;
+
+    const timeoutOccurred = (currentTurn === "white" && whiteTime <= 0) ||
+                           (currentTurn === "black" && blackTime <= 0);
+
+    if (timeoutOccurred) {
+      hasReportedTimeout.current = true;
+      sendMessage({ action: "timeout", gameId });
+    }
+  }, [whiteTime, blackTime, currentTurn, gameResult, gameStarted, gameId, sendMessage]);
 
   // Keyboard navigation for moves
   useEffect(() => {
@@ -253,6 +273,7 @@ function Game() {
             onSizeChange={setBoardSize}
             overridePosition={displayPosition}
             isViewingHistory={isViewingHistory}
+            gameResult={gameResult}
           />
         </GameClock>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + 116 }}>
