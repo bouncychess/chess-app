@@ -6,7 +6,6 @@ import Chat from "./components/Chat";
 import { GameClock } from "../../components/game/GameClock";
 import { MoveNotation } from "../../components/game/MoveNotation";
 import { StatusBadge } from "../../components/StatusBadge";
-import { DisconnectedOverlay } from "../../components/DisconnectedOverlay";
 import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
 import type { PlayerColor, ChatMessage } from "../../types/chess";
 
@@ -229,8 +228,7 @@ function Game() {
   }
 
   return (
-    <div style={{ padding: 20, position: "relative" }}>
-      <DisconnectedOverlay isDisconnected={!isConnected} />
+    <div style={{ padding: 20 }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
         <GameClock
           whiteTime={whiteTime}
