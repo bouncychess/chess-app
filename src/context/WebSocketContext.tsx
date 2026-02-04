@@ -21,6 +21,8 @@ const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL;
 
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptsRef = useRef(0);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
@@ -61,6 +63,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         socket.onopen = () => {
           if (cancelled) return;
+          reconnectAttemptsRef.current = 0;
           setIsConnected(true);
           console.log("WebSocket connected");
           socket.send(JSON.stringify({ action: "connected" }));
@@ -80,8 +83,17 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         };
 
         socket.onclose = () => {
+          socketRef.current = null;
           setIsConnected(false);
           console.warn("WebSocket closed");
+
+          // Auto-reconnect with exponential backoff (max 30s)
+          if (!cancelled) {
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+            reconnectAttemptsRef.current++;
+            console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
+            reconnectTimerRef.current = setTimeout(connectWebSocket, delay);
+          }
         };
 
         socket.onerror = (e) => {
@@ -96,6 +108,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     return () => {
       cancelled = true;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       if (socketRef.current) {
         socketRef.current.close();
         socketRef.current = null;
