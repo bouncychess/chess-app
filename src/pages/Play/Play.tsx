@@ -7,6 +7,7 @@ import { GameClock } from "../../components/game/GameClock";
 import { TimeControlSelector } from "./components/TimeControlSelector";
 import { DEFAULT_TIME_CONTROL } from "../../constants/timeControls";
 import { Button } from "../../components/buttons/Button";
+import { DisconnectedOverlay } from "../../components/DisconnectedOverlay";
 import type { Player, TimeControl } from "../../types/chess";
 
 function Play() {
@@ -71,7 +72,8 @@ function Play() {
   };
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 20, position: "relative" }}>
+      <DisconnectedOverlay isDisconnected={!isConnected} />
       <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
         <GameClock
           whiteTime={previewTime}
