@@ -3,7 +3,7 @@ import { Chess, type Square } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import type { PieceDropHandlerArgs, SquareHandlerArgs } from "react-chessboard";
 import { useWebSocket } from "../../context/WebSocketContext";
-import type { PlayerColor } from "../../types/chess";
+import type { PlayerColor, GameResult } from "../../types/chess";
 import { theme } from "../../config/theme";
 import PromotionPicker, { type PromotionPiece } from "./PromotionPicker";
 
@@ -18,6 +18,7 @@ interface BoardProps {
   overridePosition?: string | null;
   isViewingHistory?: boolean;
   autoPromoteToQueen?: boolean;
+  gameResult?: GameResult | null;
 }
 
 function createChessInstance(pgn?: string | null): Chess {
@@ -32,7 +33,7 @@ function createChessInstance(pgn?: string | null): Chess {
   return chess;
 }
 
-function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true }: BoardProps) {
+function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null }: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
 
@@ -107,7 +108,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   // Attempt to make a move (used by both drag-drop and click-to-move)
   const tryMove = (from: string, to: string): boolean => {
-    if (!gameId || isViewingHistory || playerColor !== currentTurn) {
+    if (!gameId || isViewingHistory || gameResult !== null || playerColor !== currentTurn) {
       return false;
     }
 

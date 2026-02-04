@@ -1,6 +1,18 @@
 export type PlayerColor = "white" | "black";
 
-export type GameAction = "play" | "move" | "chat" | "connected" | "startGame" | "players" | "getPlayers" | "clockSync" | "timeout" | "getGameState" | "gameState";
+export type GameResult = "white" | "black" | "draw";
+
+export type GameEndReason =
+  | "checkmate"
+  | "resignation"
+  | "timeout"
+  | "stalemate"
+  | "insufficient_material"
+  | "fifty_move_rule"
+  | "threefold_repetition"
+  | "agreement";
+
+export type GameAction = "play" | "gameEnd" | "move" | "chat" | "connected" | "startGame" | "players" | "getPlayers" | "clockSync" | "timeout" | "getGameState" | "gameState";
 
 export interface Player {
   id: string;
