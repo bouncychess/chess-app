@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { theme } from '../config/theme';
 
 interface ConnectingOverlayProps {
@@ -5,7 +6,19 @@ interface ConnectingOverlayProps {
 }
 
 export function ConnectingOverlay({ isConnecting }: ConnectingOverlayProps) {
-    if (!isConnecting) return null;
+    const [showOverlay, setShowOverlay] = useState(false);
+
+    // Delay showing the overlay to avoid flashing during brief reconnections
+    useEffect(() => {
+        if (isConnecting) {
+            const timer = setTimeout(() => setShowOverlay(true), 500);
+            return () => clearTimeout(timer);
+        } else {
+            setShowOverlay(false);
+        }
+    }, [isConnecting]);
+
+    if (!showOverlay) return null;
 
     return (
         <>
