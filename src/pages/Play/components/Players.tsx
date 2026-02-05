@@ -3,6 +3,16 @@ import type { Player } from "../../../types/chess";
 import { theme } from "../../../config/theme";
 import { ResizableCard } from "../../../components/ResizableCard";
 
+const BotIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={theme.colors.danger} strokeWidth="2" style={{ marginLeft: 4, flexShrink: 0 }}>
+    <rect x="3" y="11" width="18" height="10" rx="2" />
+    <circle cx="12" cy="5" r="2" />
+    <path d="M12 7v4" />
+    <circle cx="8" cy="16" r="1" fill={theme.colors.danger} />
+    <circle cx="16" cy="16" r="1" fill={theme.colors.danger} />
+  </svg>
+);
+
 interface PlayersProps {
   players: Player[];
   currentUsername?: string;
@@ -26,7 +36,10 @@ function Players({ players, currentUsername }: PlayersProps) {
               fontSize: "0.875rem",
               color: theme.colors.text,
             }}>
-              <span>{player.username}</span>
+              <span style={{ display: 'flex', alignItems: 'center' }}>
+                {player.username}
+                {player.isBot && <BotIcon />}
+              </span>
               {player.gameId ? (
                 <Link to={`/game/${player.gameId}`} style={{ color: theme.colors.link, textDecoration: "none" }}>
                   {player.status}

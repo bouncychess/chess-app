@@ -19,6 +19,7 @@ export interface Player {
   username: string;
   status: string;
   gameId?: string;
+  isBot?: boolean;
 }
 
 export interface TimeControl {
