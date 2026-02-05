@@ -13,12 +13,19 @@ const BotIcon = () => (
   </svg>
 );
 
+const PlayIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+    <polygon points="5 3 19 12 5 21 5 3" />
+  </svg>
+);
+
 interface PlayersProps {
   players: Player[];
   currentUsername?: string;
+  onPlayBot?: (botUsername: string) => void;
 }
 
-function Players({ players, currentUsername }: PlayersProps) {
+function Players({ players, currentUsername, onPlayBot }: PlayersProps) {
   return (
     <ResizableCard style={{ height: "100%", display: "flex", flexDirection: "column", width: 250 }}>
       <h3 style={{ ...theme.cardHeader, flexShrink: 0 }}>Online Players</h3>
@@ -44,6 +51,24 @@ function Players({ players, currentUsername }: PlayersProps) {
                 <Link to={`/game/${player.gameId}`} style={{ color: theme.colors.link, textDecoration: "none" }}>
                   {player.status}
                 </Link>
+              ) : player.isBot && onPlayBot ? (
+                <button
+                  onClick={() => onPlayBot(player.username)}
+                  style={{
+                    background: theme.colors.danger,
+                    border: "none",
+                    borderRadius: 4,
+                    padding: "2px 8px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    color: theme.colors.dangerText,
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  <PlayIcon /> Play
+                </button>
               ) : (
                 <span style={{ color: theme.colors.placeholder }}>{player.status}</span>
               )}
