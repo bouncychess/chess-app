@@ -201,8 +201,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const getSquareStyles = (): Record<string, React.CSSProperties> => {
     const styles: Record<string, React.CSSProperties> = {};
 
-    // Highlight last move squares
-    if (lastMove) {
+    // Highlight last move squares (only when viewing current position)
+    if (lastMove && !isViewingHistory) {
       const highlightStyle = {
         backgroundColor: theme.colors.moveHighlight,
       };
