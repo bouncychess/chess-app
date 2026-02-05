@@ -41,8 +41,14 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>(initialTurn);
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
+  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const moveSoundRef = useRef(new Audio("/sounds/move.mp3"));
   const prevSelectedRef = useRef<Square | null>(null);
+
+  const playMoveSound = () => {
+    moveSoundRef.current.currentTime = 0;
+    moveSoundRef.current.play().catch(() => {});
+  };
 
   useEffect(() => {
     if (!lastMessage) return;
@@ -50,13 +56,16 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     if (lastMessage.action === "move") {
       try {
         const moveStr = lastMessage.move;
+        const from = moveStr.slice(0, 2);
+        const to = moveStr.slice(2, 4);
         chessGame.move({
-          from: moveStr.slice(0, 2),
-          to: moveStr.slice(2, 4),
+          from,
+          to,
           promotion: moveStr.length > 4 ? moveStr[4] as PromotionPiece : undefined,
         });
         setChessPosition(chessGame.fen());
-        moveSoundRef.current.play();
+        setLastMove({ from, to });
+        playMoveSound();
         setCurrentTurn(lastMessage.turn);
         onPgnChange?.(chessGame.pgn());
       } catch (error) {
@@ -93,7 +102,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       if (!moveResult) return false;
 
       setChessPosition(chessGame.fen());
-      moveSoundRef.current.play();
+      setLastMove({ from, to });
+      playMoveSound();
 
       const move = promotion ? `${from}${to}${promotion}` : `${from}${to}`;
       sendMove(move);
@@ -187,15 +197,25 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     }
   }
 
-  // Get styles for selected square
-  const getSelectedSquareStyles = (): Record<string, React.CSSProperties> => {
+  // Get styles for selected square and last move highlight
+  const getSquareStyles = (): Record<string, React.CSSProperties> => {
     const styles: Record<string, React.CSSProperties> = {};
 
+    // Highlight last move squares
+    if (lastMove) {
+      const highlightStyle = {
+        backgroundColor: theme.colors.moveHighlight,
+      };
+      styles[lastMove.from] = highlightStyle;
+      styles[lastMove.to] = highlightStyle;
+    }
+
+    // Highlight selected square (adds to last move highlight if same square)
     if (selectedSquare) {
-      // 5% of square width (boardSize / 8)
       const borderWidth = Math.round(boardSize * 0.06 / 8);
       styles[selectedSquare] = {
-        boxShadow: `inset 0 0 0 ${borderWidth}px rgba(255, 221, 0, 0.8)`,
+        ...styles[selectedSquare],
+        boxShadow: `inset 0 0 0 ${borderWidth}px ${theme.colors.squareHighlight}`,
       };
     }
 
@@ -272,7 +292,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     onPieceDrop,
     onPieceDragBegin,
     onSquareClick,
-    squareStyles: getSelectedSquareStyles(),
+    squareStyles: getSquareStyles(),
     id: "on-piece-drop",
     darkSquareStyle: {
       backgroundColor: '#5b8fb9'
