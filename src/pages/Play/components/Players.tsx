@@ -3,12 +3,29 @@ import type { Player } from "../../../types/chess";
 import { theme } from "../../../config/theme";
 import { ResizableCard } from "../../../components/ResizableCard";
 
+const BotIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={theme.colors.danger} strokeWidth="2" style={{ marginLeft: 4, flexShrink: 0 }}>
+    <rect x="3" y="11" width="18" height="10" rx="2" />
+    <circle cx="12" cy="5" r="2" />
+    <path d="M12 7v4" />
+    <circle cx="8" cy="16" r="1" fill={theme.colors.danger} />
+    <circle cx="16" cy="16" r="1" fill={theme.colors.danger} />
+  </svg>
+);
+
+const PlayIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+    <polygon points="5 3 19 12 5 21 5 3" />
+  </svg>
+);
+
 interface PlayersProps {
   players: Player[];
   currentUsername?: string;
+  onPlayBot?: (botUsername: string) => void;
 }
 
-function Players({ players, currentUsername }: PlayersProps) {
+function Players({ players, currentUsername, onPlayBot }: PlayersProps) {
   return (
     <ResizableCard style={{ height: "100%", display: "flex", flexDirection: "column", width: 250 }}>
       <h3 style={{ ...theme.cardHeader, flexShrink: 0 }}>Online Players</h3>
@@ -26,11 +43,32 @@ function Players({ players, currentUsername }: PlayersProps) {
               fontSize: "0.875rem",
               color: theme.colors.text,
             }}>
-              <span>{player.username}</span>
+              <span style={{ display: 'flex', alignItems: 'center' }}>
+                {player.username}
+                {player.isBot && <BotIcon />}
+              </span>
               {player.gameId ? (
                 <Link to={`/game/${player.gameId}`} style={{ color: theme.colors.link, textDecoration: "none" }}>
                   {player.status}
                 </Link>
+              ) : player.isBot && onPlayBot ? (
+                <button
+                  onClick={() => onPlayBot(player.username)}
+                  style={{
+                    background: theme.colors.danger,
+                    border: "none",
+                    borderRadius: 4,
+                    padding: "2px 8px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    color: theme.colors.dangerText,
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  <PlayIcon /> Play
+                </button>
               ) : (
                 <span style={{ color: theme.colors.placeholder }}>{player.status}</span>
               )}
