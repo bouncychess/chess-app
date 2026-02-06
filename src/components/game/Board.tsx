@@ -108,7 +108,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   // Attempt to make a move (used by both drag-drop and click-to-move)
   const tryMove = (from: string, to: string): boolean => {
-    if (!gameId || isViewingHistory || gameResult !== null || playerColor !== currentTurn) {
+    // Use chess.js turn directly to avoid stale React state during pre-drag
+    const actualTurn = chessGame.turn() === 'w' ? 'white' : 'black';
+    if (!gameId || isViewingHistory || gameResult !== null || playerColor !== actualTurn) {
       return false;
     }
 
@@ -137,7 +139,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     setPendingPromotion(null);
   };
 
-  function onPieceDragBegin(): void {
+  function onPieceDrag(): void {
     setSelectedSquare(null);
   }
 
@@ -270,7 +272,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     boardOrientation: playerColor,
     animationDurationInMs: 0,
     onPieceDrop,
-    onPieceDragBegin,
+    onPieceDrag,
     onSquareClick,
     squareStyles: getSelectedSquareStyles(),
     id: "on-piece-drop",
