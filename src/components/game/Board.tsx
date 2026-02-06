@@ -310,33 +310,36 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         />
       )}
 
-      <div
-        onMouseDown={handleResizeStart}
-        style={{
-          position: "absolute",
-          bottom: 0,
-          right: 0,
-          width: 24,
-          height: 24,
-          cursor: "nwse-resize",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          opacity: 0.5,
-          transition: "opacity 0.15s ease",
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
-        onMouseLeave={(e) => e.currentTarget.style.opacity = "0.5"}
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18">
-          <path
-            d="M16 2L2 16M16 8L8 16M16 14L14 16"
-            stroke={theme.colors.text}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
+      {/* Hide resize handle during active game to avoid interfering with moves */}
+      {!(gameId && gameResult === null) && (
+        <div
+          onMouseDown={handleResizeStart}
+          style={{
+            position: "absolute",
+            bottom: 0,
+            right: 0,
+            width: 24,
+            height: 24,
+            cursor: "nwse-resize",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: 0.5,
+            transition: "opacity 0.15s ease",
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
+          onMouseLeave={(e) => e.currentTarget.style.opacity = "0.5"}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18">
+            <path
+              d="M16 2L2 16M16 8L8 16M16 14L14 16"
+              stroke={theme.colors.text}
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+      )}
     </div>
   );
 }
