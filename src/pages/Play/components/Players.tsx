@@ -13,12 +13,6 @@ const BotIcon = () => (
   </svg>
 );
 
-const PlayIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-    <polygon points="5 3 19 12 5 21 5 3" />
-  </svg>
-);
-
 interface PlayersProps {
   players: Player[];
   currentUsername?: string;
@@ -67,7 +61,7 @@ function Players({ players, currentUsername, onPlayBot }: PlayersProps) {
                     fontSize: "0.75rem",
                   }}
                 >
-                  <PlayIcon /> Play
+                  Play
                 </button>
               ) : (
                 <span style={{ color: theme.colors.placeholder }}>{player.status}</span>
