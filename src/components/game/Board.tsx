@@ -276,6 +276,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     onSquareClick,
     squareStyles: getSelectedSquareStyles(),
     id: "on-piece-drop",
+    draggingPieceGhostStyle: { opacity: 0 },
     darkSquareStyle: {
       backgroundColor: '#5b8fb9'
     },
