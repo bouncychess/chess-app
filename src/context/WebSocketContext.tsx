@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { useAuth } from "./AuthContext";
 import type { GameAction } from "../types/chess";
@@ -76,7 +77,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             if (parsed.action === "connected" && parsed.username) {
               setUsername(parsed.username);
             }
-            setLastMessage(parsed);
+            flushSync(() => setLastMessage(parsed));
           } catch (e) {
             console.error("Invalid WS message:", event.data);
           }
