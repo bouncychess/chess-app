@@ -12,7 +12,24 @@ export type GameEndReason =
   | "threefold_repetition"
   | "agreement";
 
-export type GameAction = "play" | "gameEnd" | "move" | "chat" | "connected" | "startGame" | "players" | "getPlayers" | "clockSync" | "timeout" | "getGameState" | "gameState";
+export type GameAction =
+  | "play"
+  | "gameEnd"
+  | "move"
+  | "chat"
+  | "connected"
+  | "startGame"
+  | "players"
+  | "getPlayers"
+  | "clockSync"
+  | "timeout"
+  | "getGameState"
+  | "gameState"
+  | "resign"
+  | "offerDraw"
+  | "respondDraw"
+  | "drawOffer"
+  | "drawDeclined";
 
 export interface Player {
   id: string;

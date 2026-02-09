@@ -5,6 +5,8 @@ import Board from "../../components/game/Board";
 import Chat from "./components/Chat";
 import { GameClock } from "../../components/game/GameClock";
 import { MoveNotation } from "../../components/game/MoveNotation";
+import { GameControls } from "../../components/game/GameControls";
+import { DrawOfferNotification } from "../../components/game/DrawOfferNotification";
 import { StatusBadge } from "../../components/StatusBadge";
 import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
 import type { PlayerColor, ChatMessage, GameResult, GameEndReason } from "../../types/chess";
@@ -45,6 +47,8 @@ function Game() {
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [gameEndReason, setGameEndReason] = useState<GameEndReason | null>(null);
   const [viewedMoveIndex, setViewedMoveIndex] = useState<number | null>(null);
+  const [pendingDrawOffer, setPendingDrawOffer] = useState<string | null>(null);
+  const [hasOfferedDraw, setHasOfferedDraw] = useState(false);
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
 
@@ -85,6 +89,33 @@ function Game() {
   const handleMoveClick = (moveIndex: number) => {
     setViewedMoveIndex(moveIndex);
   };
+
+  const handleResign = useCallback(() => {
+    if (gameId && gameResult === null) {
+      sendMessage({ action: "resign", gameId });
+    }
+  }, [gameId, gameResult, sendMessage]);
+
+  const handleOfferDraw = useCallback(() => {
+    if (gameId && gameResult === null && !hasOfferedDraw) {
+      sendMessage({ action: "offerDraw", gameId });
+      setHasOfferedDraw(true);
+    }
+  }, [gameId, gameResult, hasOfferedDraw, sendMessage]);
+
+  const handleAcceptDraw = useCallback(() => {
+    if (gameId && pendingDrawOffer) {
+      sendMessage({ action: "respondDraw", gameId, accept: true });
+      setPendingDrawOffer(null);
+    }
+  }, [gameId, pendingDrawOffer, sendMessage]);
+
+  const handleDeclineDraw = useCallback(() => {
+    if (gameId && pendingDrawOffer) {
+      sendMessage({ action: "respondDraw", gameId, accept: false });
+      setPendingDrawOffer(null);
+    }
+  }, [gameId, pendingDrawOffer, sendMessage]);
 
   const handleNavigate = useCallback((direction: "prev" | "next") => {
     if (direction === "prev") {
@@ -145,11 +176,24 @@ function Game() {
         setWhiteTime(lastMessage.whiteTime);
         setBlackTime(lastMessage.blackTime);
       }
+      // Clear draw offer state when a move is made
+      setHasOfferedDraw(false);
+      setPendingDrawOffer(null);
     }
 
     if (lastMessage.action === "clockSync") {
       setWhiteTime(lastMessage.whiteTime);
       setBlackTime(lastMessage.blackTime);
+    }
+
+    // Handle draw offer received from opponent
+    if (lastMessage.action === "drawOffer" && lastMessage.gameId === gameId) {
+      setPendingDrawOffer(lastMessage.offeredBy);
+    }
+
+    // Handle draw declined notification
+    if (lastMessage.action === "drawDeclined" && lastMessage.gameId === gameId) {
+      setHasOfferedDraw(false);
     }
 
     // Handle gameState response when loading game directly
@@ -255,27 +299,45 @@ function Game() {
   return (
     <div style={{ padding: 20 }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
-        <GameClock
-          whiteTime={whiteTime}
-          blackTime={blackTime}
-          whiteName={whiteUsername}
-          blackName={blackUsername}
-          activeColor={status === "playing" && gameStarted ? currentTurn : null}
-          playerColor={playerColor}
-        >
-          <Board
-            gameId={gameId}
+        <div style={{ position: "relative" }}>
+          <GameClock
+            whiteTime={whiteTime}
+            blackTime={blackTime}
+            whiteName={whiteUsername}
+            blackName={blackUsername}
+            activeColor={status === "playing" && gameStarted ? currentTurn : null}
             playerColor={playerColor}
-            initialTurn={currentTurn}
-            initialPgn={pgn}
-            onTurnChange={handleTurnChange}
-            onPgnChange={handlePgnChange}
-            onSizeChange={setBoardSize}
-            overridePosition={displayPosition}
-            isViewingHistory={isViewingHistory}
-            gameResult={gameResult}
-          />
-        </GameClock>
+          >
+            <Board
+              gameId={gameId}
+              playerColor={playerColor}
+              initialTurn={currentTurn}
+              initialPgn={pgn}
+              onTurnChange={handleTurnChange}
+              onPgnChange={handlePgnChange}
+              onSizeChange={setBoardSize}
+              overridePosition={displayPosition}
+              isViewingHistory={isViewingHistory}
+              gameResult={gameResult}
+            />
+          </GameClock>
+          <div style={{ marginTop: 12 }}>
+            <GameControls
+              onResign={handleResign}
+              onOfferDraw={handleOfferDraw}
+              isGameOver={gameResult !== null}
+              hasOfferedDraw={hasOfferedDraw}
+              hasPendingDrawOffer={pendingDrawOffer !== null}
+            />
+          </div>
+          {pendingDrawOffer && (
+            <DrawOfferNotification
+              offeredBy={pendingDrawOffer}
+              onAccept={handleAcceptDraw}
+              onDecline={handleDeclineDraw}
+            />
+          )}
+        </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, width: 200, height: boardSize + 85 }}>
           <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0 }}>
             <MoveNotation
