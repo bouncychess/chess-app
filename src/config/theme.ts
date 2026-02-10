@@ -28,6 +28,10 @@ export const theme = {
         border: '#d1d5db',
         borderFocus: '#2563eb',
         placeholder: '#9ca3af',
+
+        // Chess board
+        squareHighlight: 'rgba(255, 221, 0, 0.8)',
+        moveHighlight: 'rgba(255, 221, 0, 0.4)',
     },
     // Common card/panel styling
     card: {

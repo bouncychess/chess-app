@@ -70,6 +70,20 @@ function Play() {
     }
   };
 
+  const onPlayBot = (botUsername: string) => {
+    if (isConnected && selectedTimeControl) {
+      sendMessage({
+        action: "playBot",
+        botUsername,
+        timeControl: {
+          initialTime: selectedTimeControl.initialTime,
+          increment: selectedTimeControl.increment,
+        },
+      });
+      setStatus("waiting");
+    }
+  };
+
   return (
     <div style={{ padding: 20 }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
@@ -101,7 +115,7 @@ function Play() {
             {status === "waiting" ? "Waiting for opponent..." : "Play"}
           </Button>
           <div style={{ flex: 1, minHeight: 0 }}>
-            <Players players={players} currentUsername={username ?? undefined} />
+            <Players players={players} currentUsername={username ?? undefined} onPlayBot={onPlayBot} />
           </div>
         </div>
       </div>

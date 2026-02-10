@@ -41,8 +41,14 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>(initialTurn);
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
+  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const moveSoundRef = useRef(new Audio("/sounds/move.mp3"));
   const prevSelectedRef = useRef<Square | null>(null);
+
+  const playMoveSound = () => {
+    moveSoundRef.current.currentTime = 0;
+    moveSoundRef.current.play().catch(() => {});
+  };
 
   useEffect(() => {
     if (!lastMessage) return;
@@ -50,13 +56,16 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     if (lastMessage.action === "move") {
       try {
         const moveStr = lastMessage.move;
+        const from = moveStr.slice(0, 2);
+        const to = moveStr.slice(2, 4);
         chessGame.move({
-          from: moveStr.slice(0, 2),
-          to: moveStr.slice(2, 4),
+          from,
+          to,
           promotion: moveStr.length > 4 ? moveStr[4] as PromotionPiece : undefined,
         });
         setChessPosition(chessGame.fen());
-        moveSoundRef.current.play();
+        setLastMove({ from, to });
+        playMoveSound();
         setCurrentTurn(lastMessage.turn);
         onPgnChange?.(chessGame.pgn());
       } catch (error) {
@@ -93,7 +102,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       if (!moveResult) return false;
 
       setChessPosition(chessGame.fen());
-      moveSoundRef.current.play();
+      setLastMove({ from, to });
+      playMoveSound();
 
       const move = promotion ? `${from}${to}${promotion}` : `${from}${to}`;
       sendMove(move);
@@ -108,7 +118,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   // Attempt to make a move (used by both drag-drop and click-to-move)
   const tryMove = (from: string, to: string): boolean => {
-    if (!gameId || isViewingHistory || gameResult !== null || playerColor !== currentTurn) {
+    // Use chess.js turn directly to avoid stale React state during pre-drag
+    const actualTurn = chessGame.turn() === 'w' ? 'white' : 'black';
+    if (!gameId || isViewingHistory || gameResult !== null || playerColor !== actualTurn) {
       return false;
     }
 
@@ -137,7 +149,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     setPendingPromotion(null);
   };
 
-  function onPieceDragBegin(): void {
+  function onPieceDrag(): void {
     setSelectedSquare(null);
   }
 
@@ -187,15 +199,25 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     }
   }
 
-  // Get styles for selected square
-  const getSelectedSquareStyles = (): Record<string, React.CSSProperties> => {
+  // Get styles for selected square and last move highlight
+  const getSquareStyles = (): Record<string, React.CSSProperties> => {
     const styles: Record<string, React.CSSProperties> = {};
 
+    // Highlight last move squares (only when viewing current position)
+    if (lastMove && !isViewingHistory) {
+      const highlightStyle = {
+        backgroundColor: theme.colors.moveHighlight,
+      };
+      styles[lastMove.from] = highlightStyle;
+      styles[lastMove.to] = highlightStyle;
+    }
+
+    // Highlight selected square (adds to last move highlight if same square)
     if (selectedSquare) {
-      // 5% of square width (boardSize / 8)
       const borderWidth = Math.round(boardSize * 0.06 / 8);
       styles[selectedSquare] = {
-        boxShadow: `inset 0 0 0 ${borderWidth}px rgba(255, 221, 0, 0.8)`,
+        ...styles[selectedSquare],
+        boxShadow: `inset 0 0 0 ${borderWidth}px ${theme.colors.squareHighlight}`,
       };
     }
 
@@ -270,10 +292,11 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     boardOrientation: playerColor,
     animationDurationInMs: 0,
     onPieceDrop,
-    onPieceDragBegin,
+    onPieceDrag,
     onSquareClick,
-    squareStyles: getSelectedSquareStyles(),
+    squareStyles: getSquareStyles(),
     id: "on-piece-drop",
+    draggingPieceGhostStyle: { opacity: 0 },
     darkSquareStyle: {
       backgroundColor: '#5b8fb9'
     },
@@ -310,33 +333,36 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         />
       )}
 
-      <div
-        onMouseDown={handleResizeStart}
-        style={{
-          position: "absolute",
-          bottom: 0,
-          right: 0,
-          width: 24,
-          height: 24,
-          cursor: "nwse-resize",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          opacity: 0.5,
-          transition: "opacity 0.15s ease",
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
-        onMouseLeave={(e) => e.currentTarget.style.opacity = "0.5"}
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18">
-          <path
-            d="M16 2L2 16M16 8L8 16M16 14L14 16"
-            stroke={theme.colors.text}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
+      {/* Hide resize handle during active game to avoid interfering with moves */}
+      {!(gameId && gameResult === null) && (
+        <div
+          onMouseDown={handleResizeStart}
+          style={{
+            position: "absolute",
+            bottom: 0,
+            right: 0,
+            width: 24,
+            height: 24,
+            cursor: "nwse-resize",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: 0.5,
+            transition: "opacity 0.15s ease",
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
+          onMouseLeave={(e) => e.currentTarget.style.opacity = "0.5"}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18">
+            <path
+              d="M16 2L2 16M16 8L8 16M16 14L14 16"
+              stroke={theme.colors.text}
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+      )}
     </div>
   );
 }

@@ -37,8 +37,13 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
     useEffect(() => {
         if (!lastMessage) return;
 
-        // Skip if this is our own message (already added optimistically)
+        // Handle chat messages (skip our own - already added optimistically)
         if (lastMessage.action === "chat" && lastMessage.chat && lastMessage.chat.username !== username) {
+            setChatLog((prevLog) => [...prevLog, lastMessage.chat]);
+        }
+
+        // Handle chat that comes with move messages (e.g., from bots)
+        if (lastMessage.action === "move" && lastMessage.chat) {
             setChatLog((prevLog) => [...prevLog, lastMessage.chat]);
         }
     }, [lastMessage, username]);

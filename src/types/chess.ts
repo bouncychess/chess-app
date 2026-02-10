@@ -24,7 +24,8 @@ export type GameAction =
   | "clockSync"
   | "timeout"
   | "getGameState"
-  | "gameState"
+  | "gameState" 
+  | "playBot"
   | "resign"
   | "offerDraw"
   | "respondDraw"
@@ -36,6 +37,7 @@ export interface Player {
   username: string;
   status: string;
   gameId?: string;
+  isBot?: boolean;
 }
 
 export interface TimeControl {
