@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { theme } from "../../config/theme";
+import { Button } from "../buttons/Button";
 
 interface GameControlsProps {
   onResign: () => void;
@@ -10,15 +11,6 @@ interface GameControlsProps {
   hasOfferedDraw: boolean;
   hasPendingDrawOffer: boolean;
 }
-
-const buttonBase = {
-  padding: "4px 10px",
-  borderRadius: 4,
-  fontWeight: 600,
-  fontSize: "0.75rem",
-  cursor: "pointer",
-  border: "none",
-};
 
 export function GameControls({
   onResign,
@@ -52,103 +44,44 @@ export function GameControls({
     <div
       style={{
         display: "flex",
-        gap: 8,
+        gap: 12,
         alignItems: "center",
-        flexWrap: "wrap",
+        flexWrap: "nowrap",
       }}
     >
       {showResignConfirm ? (
         <>
-          <span
-            style={{
-              fontSize: "0.75rem",
-              color: theme.colors.text,
-            }}
-          >
+          <span style={{ fontSize: "0.75rem", color: theme.colors.text }}>
             Resign?
           </span>
-          <button
-            onClick={handleResignClick}
-            style={{
-              ...buttonBase,
-              backgroundColor: theme.colors.danger,
-              color: theme.colors.dangerText,
-            }}
-          >
+          <Button variant="danger" size="sm" onClick={handleResignClick}>
             Yes
-          </button>
-          <button
-            onClick={handleCancelResign}
-            style={{
-              ...buttonBase,
-              backgroundColor: theme.colors.secondary,
-              color: theme.colors.secondaryText,
-            }}
-          >
+          </Button>
+          <Button variant="secondary" size="sm" onClick={handleCancelResign}>
             No
-          </button>
+          </Button>
         </>
       ) : (
         <>
-          <button
-            onClick={handleResignClick}
-            style={{
-              ...buttonBase,
-              backgroundColor: theme.colors.danger,
-              color: theme.colors.dangerText,
-            }}
-          >
+          <Button variant="danger" onClick={handleResignClick}>
             Resign
-          </button>
+          </Button>
           {hasPendingDrawOffer ? (
             <>
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  color: theme.colors.text,
-                }}
-              >
+              <span style={{ fontSize: "0.75rem", color: theme.colors.text }}>
                 Draw?
               </span>
-              <button
-                onClick={onAcceptDraw}
-                style={{
-                  ...buttonBase,
-                  backgroundColor: "#22c55e",
-                  color: "#ffffff",
-                  padding: "4px 8px",
-                }}
-                title="Accept draw"
-              >
+              <Button variant="success" size="sm" onClick={onAcceptDraw} title="Accept draw">
                 ✓
-              </button>
-              <button
-                onClick={onDeclineDraw}
-                style={{
-                  ...buttonBase,
-                  backgroundColor: theme.colors.danger,
-                  color: theme.colors.dangerText,
-                  padding: "4px 8px",
-                }}
-                title="Decline draw"
-              >
+              </Button>
+              <Button variant="danger" size="sm" onClick={onDeclineDraw} title="Decline draw">
                 ✗
-              </button>
+              </Button>
             </>
           ) : (
-            <button
-              onClick={onOfferDraw}
-              disabled={hasOfferedDraw}
-              style={{
-                ...buttonBase,
-                backgroundColor: theme.colors.secondary,
-                color: theme.colors.secondaryText,
-                opacity: hasOfferedDraw ? 0.5 : 1,
-                cursor: hasOfferedDraw ? "not-allowed" : "pointer",
-              }}
-            >
+            <Button variant="secondary" onClick={onOfferDraw} disabled={hasOfferedDraw}>
               {hasOfferedDraw ? "Draw Offered" : "Offer Draw"}
-            </button>
+            </Button>
           )}
         </>
       )}
