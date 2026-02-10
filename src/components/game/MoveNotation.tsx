@@ -54,6 +54,21 @@ const reasonLabels: Record<GameEndReason, string> = {
 };
 
 function formatGameEndMessage(result: GameResult, reason: GameEndReason): { title: string; subtitle: string } {
+  // Custom format for resignation
+  if (reason === "resignation") {
+    if (result === "white") {
+      return { title: "Black resigned", subtitle: "White is victorious" };
+    } else {
+      return { title: "White resigned", subtitle: "Black is victorious" };
+    }
+  }
+
+  // Custom format for draw by agreement
+  if (reason === "agreement") {
+    return { title: "Draw", subtitle: "by agreement" };
+  }
+
+  // Default format for other reasons
   let title: string;
   if (result === "white") {
     title = "White wins";
