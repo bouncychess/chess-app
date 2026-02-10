@@ -99,41 +99,22 @@ function Game() {
     if (gameId && gameResult === null && !hasOfferedDraw) {
       sendMessage({ action: "offerDraw", gameId });
       setHasOfferedDraw(true);
-      // Add system message for the player who offered
-      const myUsername = playerColor === "white" ? whiteUsername : blackUsername;
-      setChatLog(prev => [...prev, {
-        username: "",
-        message: `${myUsername} has offered a draw`,
-        isSystem: true
-      }]);
     }
-  }, [gameId, gameResult, hasOfferedDraw, sendMessage, playerColor, whiteUsername, blackUsername]);
+  }, [gameId, gameResult, hasOfferedDraw, sendMessage]);
 
   const handleAcceptDraw = useCallback(() => {
     if (gameId && pendingDrawOffer) {
       sendMessage({ action: "respondDraw", gameId, accept: true });
-      const myUsername = playerColor === "white" ? whiteUsername : blackUsername;
-      setChatLog(prev => [...prev, {
-        username: "",
-        message: `${myUsername} accepted the draw`,
-        isSystem: true
-      }]);
       setPendingDrawOffer(null);
     }
-  }, [gameId, pendingDrawOffer, sendMessage, playerColor, whiteUsername, blackUsername]);
+  }, [gameId, pendingDrawOffer, sendMessage]);
 
   const handleDeclineDraw = useCallback(() => {
     if (gameId && pendingDrawOffer) {
       sendMessage({ action: "respondDraw", gameId, accept: false });
-      const myUsername = playerColor === "white" ? whiteUsername : blackUsername;
-      setChatLog(prev => [...prev, {
-        username: "",
-        message: `${myUsername} declined the draw`,
-        isSystem: true
-      }]);
       setPendingDrawOffer(null);
     }
-  }, [gameId, pendingDrawOffer, sendMessage, playerColor, whiteUsername, blackUsername]);
+  }, [gameId, pendingDrawOffer, sendMessage]);
 
   const handleNavigate = useCallback((direction: "prev" | "next") => {
     if (direction === "prev") {
@@ -207,24 +188,11 @@ function Game() {
     // Handle draw offer received from opponent
     if (lastMessage.action === "drawOffer" && lastMessage.gameId === gameId) {
       setPendingDrawOffer(lastMessage.offeredBy);
-      // Add system message to chat
-      setChatLog(prev => [...prev, {
-        username: "",
-        message: `${lastMessage.offeredBy} has offered a draw`,
-        isSystem: true
-      }]);
     }
 
     // Handle draw declined notification (received by the player who offered)
     if (lastMessage.action === "drawDeclined" && lastMessage.gameId === gameId) {
       setHasOfferedDraw(false);
-      // The opponent declined - show their username
-      const opponentUsername = playerColor === "white" ? blackUsername : whiteUsername;
-      setChatLog(prev => [...prev, {
-        username: "",
-        message: `${opponentUsername} declined the draw`,
-        isSystem: true
-      }]);
     }
 
     // Handle gameState response when loading game directly
@@ -253,7 +221,7 @@ function Game() {
         setGameStarted(true);
       }
     }
-  }, [lastMessage, gameId, handleTurnChange, playerColor, whiteUsername, blackUsername]);
+  }, [lastMessage, gameId, handleTurnChange]);
 
   // Client-side clock countdown using actual elapsed time
   // Only starts ticking after white makes their first move
