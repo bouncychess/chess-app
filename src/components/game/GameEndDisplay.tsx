@@ -1,4 +1,5 @@
 import { theme } from "../../config/theme";
+import { ResizableCard } from "../ResizableCard";
 import type { GameResult, GameEndReason } from "../../types/chess";
 
 interface GameEndDisplayProps {
@@ -43,18 +44,11 @@ export function GameEndDisplay({ gameResult, gameEndReason }: GameEndDisplayProp
   const { title, subtitle } = formatGameEndMessage(gameResult, gameEndReason);
 
   return (
-    <div style={{
-      padding: 12,
-      borderRadius: 8,
-      backgroundColor: theme.colors.cardBackground,
-      border: `1px solid ${theme.colors.border}`,
-      textAlign: "center",
-    }}>
+    <ResizableCard style={{ textAlign: "center" }}>
       <div style={{
         fontWeight: 600,
         fontSize: "1rem",
-        color: theme.colors.text,
-        marginBottom: 4,
+        color: theme.colors.text
       }}>
         {title}
       </div>
@@ -64,6 +58,6 @@ export function GameEndDisplay({ gameResult, gameEndReason }: GameEndDisplayProp
       }}>
         {subtitle}
       </div>
-    </div>
+    </ResizableCard>
   );
 }
