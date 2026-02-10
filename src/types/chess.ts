@@ -47,4 +47,5 @@ export interface TimeControl {
 export interface ChatMessage {
   username: string;
   message: string;
+  isSystem?: boolean;
 }

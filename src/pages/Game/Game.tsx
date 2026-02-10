@@ -6,7 +6,6 @@ import Chat from "./components/Chat";
 import { GameClock } from "../../components/game/GameClock";
 import { MoveNotation } from "../../components/game/MoveNotation";
 import { GameControls } from "../../components/game/GameControls";
-import { DrawOfferNotification } from "../../components/game/DrawOfferNotification";
 import { StatusBadge } from "../../components/StatusBadge";
 import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
 import type { PlayerColor, ChatMessage, GameResult, GameEndReason } from "../../types/chess";
@@ -189,6 +188,12 @@ function Game() {
     // Handle draw offer received from opponent
     if (lastMessage.action === "drawOffer" && lastMessage.gameId === gameId) {
       setPendingDrawOffer(lastMessage.offeredBy);
+      // Add system message to chat
+      setChatLog(prev => [...prev, {
+        username: "",
+        message: `${lastMessage.offeredBy} has offered a draw`,
+        isSystem: true
+      }]);
     }
 
     // Handle draw declined notification
@@ -321,24 +326,8 @@ function Game() {
               gameResult={gameResult}
             />
           </GameClock>
-          <div style={{ marginTop: 12 }}>
-            <GameControls
-              onResign={handleResign}
-              onOfferDraw={handleOfferDraw}
-              isGameOver={gameResult !== null}
-              hasOfferedDraw={hasOfferedDraw}
-              hasPendingDrawOffer={pendingDrawOffer !== null}
-            />
-          </div>
-          {pendingDrawOffer && (
-            <DrawOfferNotification
-              offeredBy={pendingDrawOffer}
-              onAccept={handleAcceptDraw}
-              onDecline={handleDeclineDraw}
-            />
-          )}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, width: 200, height: boardSize + 85 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + 85 }}>
           <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0 }}>
             <MoveNotation
               pgn={pgn || ""}
@@ -348,7 +337,16 @@ function Game() {
               gameEndReason={gameEndReason}
             />
           </div>
-          <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, marginTop: 34, width: 300}}>
+          <GameControls
+            onResign={handleResign}
+            onOfferDraw={handleOfferDraw}
+            onAcceptDraw={handleAcceptDraw}
+            onDeclineDraw={handleDeclineDraw}
+            isGameOver={gameResult !== null}
+            hasOfferedDraw={hasOfferedDraw}
+            hasPendingDrawOffer={pendingDrawOffer !== null}
+          />
+          <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300}}>
             <Chat gameId={gameId} initialChat={chatLog} />
           </div>
         </div>
