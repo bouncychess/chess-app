@@ -51,13 +51,13 @@ export function GameControls({
     >
       {showResignConfirm ? (
         <>
-          <span style={{ fontSize: "0.75rem", color: theme.colors.text }}>
+          <span style={{ fontSize: "1rem", color: theme.colors.text }}>
             Resign?
           </span>
-          <Button variant="danger" size="sm" onClick={handleResignClick}>
+          <Button variant="danger" onClick={handleResignClick}>
             Yes
           </Button>
-          <Button variant="secondary" size="sm" onClick={handleCancelResign}>
+          <Button variant="secondary" onClick={handleCancelResign}>
             No
           </Button>
         </>
@@ -68,13 +68,13 @@ export function GameControls({
           </Button>
           {hasPendingDrawOffer ? (
             <>
-              <span style={{ fontSize: "0.75rem", color: theme.colors.text }}>
+              <span style={{ fontSize: "1rem", color: theme.colors.text }}>
                 Draw?
               </span>
-              <Button variant="success" size="sm" onClick={onAcceptDraw} title="Accept draw">
+              <Button variant="success" onClick={onAcceptDraw} title="Accept draw">
                 ✓
               </Button>
-              <Button variant="danger" size="sm" onClick={onDeclineDraw} title="Decline draw">
+              <Button variant="danger" onClick={onDeclineDraw} title="Decline draw">
                 ✗
               </Button>
             </>
