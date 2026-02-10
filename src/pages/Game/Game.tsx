@@ -6,6 +6,7 @@ import Chat from "./components/Chat";
 import { GameClock } from "../../components/game/GameClock";
 import { MoveNotation } from "../../components/game/MoveNotation";
 import { GameControls } from "../../components/game/GameControls";
+import { GameEndDisplay } from "../../components/game/GameEndDisplay";
 import { StatusBadge } from "../../components/StatusBadge";
 import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
 import type { PlayerColor, ChatMessage, GameResult, GameEndReason } from "../../types/chess";
@@ -327,19 +328,21 @@ function Game() {
               pgn={pgn || ""}
               viewedMoveIndex={viewedMoveIndex}
               onMoveClick={handleMoveClick}
-              gameResult={gameResult}
-              gameEndReason={gameEndReason}
             />
-            <div style= {{marginTop: 12}}>
-              <GameControls
-                onResign={handleResign}
-                onOfferDraw={handleOfferDraw}
-                onAcceptDraw={handleAcceptDraw}
-                onDeclineDraw={handleDeclineDraw}
-                isGameOver={gameResult !== null}
-                hasOfferedDraw={hasOfferedDraw}
-                hasPendingDrawOffer={pendingDrawOffer !== null}
-              />
+            <div style={{ marginTop: 12 }}>
+              {gameResult !== null && gameEndReason !== null ? (
+                <GameEndDisplay gameResult={gameResult} gameEndReason={gameEndReason} />
+              ) : (
+                <GameControls
+                  onResign={handleResign}
+                  onOfferDraw={handleOfferDraw}
+                  onAcceptDraw={handleAcceptDraw}
+                  onDeclineDraw={handleDeclineDraw}
+                  isGameOver={gameResult !== null}
+                  hasOfferedDraw={hasOfferedDraw}
+                  hasPendingDrawOffer={pendingDrawOffer !== null}
+                />
+              )}
             </div>
           </div>
           <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: 78}}>
