@@ -322,7 +322,7 @@ function Game() {
           </GameClock>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + 85 }}>
-          <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0 }}>
+          <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0}}>
             <MoveNotation
               pgn={pgn || ""}
               viewedMoveIndex={viewedMoveIndex}
@@ -330,17 +330,19 @@ function Game() {
               gameResult={gameResult}
               gameEndReason={gameEndReason}
             />
+            <div style= {{marginTop: 12}}>
+              <GameControls
+                onResign={handleResign}
+                onOfferDraw={handleOfferDraw}
+                onAcceptDraw={handleAcceptDraw}
+                onDeclineDraw={handleDeclineDraw}
+                isGameOver={gameResult !== null}
+                hasOfferedDraw={hasOfferedDraw}
+                hasPendingDrawOffer={pendingDrawOffer !== null}
+              />
+            </div>
           </div>
-          <GameControls
-            onResign={handleResign}
-            onOfferDraw={handleOfferDraw}
-            onAcceptDraw={handleAcceptDraw}
-            onDeclineDraw={handleDeclineDraw}
-            isGameOver={gameResult !== null}
-            hasOfferedDraw={hasOfferedDraw}
-            hasPendingDrawOffer={pendingDrawOffer !== null}
-          />
-          <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300}}>
+          <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: 78}}>
             <Chat gameId={gameId} initialChat={chatLog} />
           </div>
         </div>
