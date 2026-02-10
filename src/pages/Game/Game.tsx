@@ -68,7 +68,7 @@ function Game() {
     }
   }, [isConnected, gameId, sendMessage]);
 
-  const handleTurnChange = (newTurn: PlayerColor) => {
+  const handleTurnChange = useCallback((newTurn: PlayerColor) => {
     setCurrentTurn(newTurn);
     setGameStarted(true);
     if (newTurn === "black") {
@@ -76,7 +76,7 @@ function Game() {
     } else {
       setBlackTime(prev => prev + increment);
     }
-  };
+  }, [increment]);
 
   const handlePgnChange = (newPgn: string) => {
     setPgn(newPgn);
@@ -99,22 +99,41 @@ function Game() {
     if (gameId && gameResult === null && !hasOfferedDraw) {
       sendMessage({ action: "offerDraw", gameId });
       setHasOfferedDraw(true);
+      // Add system message for the player who offered
+      const myUsername = playerColor === "white" ? whiteUsername : blackUsername;
+      setChatLog(prev => [...prev, {
+        username: "",
+        message: `${myUsername} has offered a draw`,
+        isSystem: true
+      }]);
     }
-  }, [gameId, gameResult, hasOfferedDraw, sendMessage]);
+  }, [gameId, gameResult, hasOfferedDraw, sendMessage, playerColor, whiteUsername, blackUsername]);
 
   const handleAcceptDraw = useCallback(() => {
     if (gameId && pendingDrawOffer) {
       sendMessage({ action: "respondDraw", gameId, accept: true });
+      const myUsername = playerColor === "white" ? whiteUsername : blackUsername;
+      setChatLog(prev => [...prev, {
+        username: "",
+        message: `${myUsername} accepted the draw`,
+        isSystem: true
+      }]);
       setPendingDrawOffer(null);
     }
-  }, [gameId, pendingDrawOffer, sendMessage]);
+  }, [gameId, pendingDrawOffer, sendMessage, playerColor, whiteUsername, blackUsername]);
 
   const handleDeclineDraw = useCallback(() => {
     if (gameId && pendingDrawOffer) {
       sendMessage({ action: "respondDraw", gameId, accept: false });
+      const myUsername = playerColor === "white" ? whiteUsername : blackUsername;
+      setChatLog(prev => [...prev, {
+        username: "",
+        message: `${myUsername} declined the draw`,
+        isSystem: true
+      }]);
       setPendingDrawOffer(null);
     }
-  }, [gameId, pendingDrawOffer, sendMessage]);
+  }, [gameId, pendingDrawOffer, sendMessage, playerColor, whiteUsername, blackUsername]);
 
   const handleNavigate = useCallback((direction: "prev" | "next") => {
     if (direction === "prev") {
@@ -196,9 +215,16 @@ function Game() {
       }]);
     }
 
-    // Handle draw declined notification
+    // Handle draw declined notification (received by the player who offered)
     if (lastMessage.action === "drawDeclined" && lastMessage.gameId === gameId) {
       setHasOfferedDraw(false);
+      // The opponent declined - show their username
+      const opponentUsername = playerColor === "white" ? blackUsername : whiteUsername;
+      setChatLog(prev => [...prev, {
+        username: "",
+        message: `${opponentUsername} declined the draw`,
+        isSystem: true
+      }]);
     }
 
     // Handle gameState response when loading game directly
@@ -227,7 +253,7 @@ function Game() {
         setGameStarted(true);
       }
     }
-  }, [lastMessage, gameId]);
+  }, [lastMessage, gameId, handleTurnChange, playerColor, whiteUsername, blackUsername]);
 
   // Client-side clock countdown using actual elapsed time
   // Only starts ticking after white makes their first move
