@@ -329,7 +329,7 @@ function Game() {
               viewedMoveIndex={viewedMoveIndex}
               onMoveClick={handleMoveClick}
             />
-            <div style={{ marginTop: 12 }}>
+            <div style={{ marginTop: 11 }}>
               {gameResult !== null && gameEndReason !== null ? (
                 <GameEndDisplay gameResult={gameResult} gameEndReason={gameEndReason} />
               ) : (
