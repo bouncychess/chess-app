@@ -1,14 +1,10 @@
 import { useEffect, useRef } from "react";
 import { theme } from "../../config/theme";
 import { ResizableCard } from "../ResizableCard";
-import type { GameResult, GameEndReason } from "../../types/chess";
-
 interface MoveNotationProps {
   pgn: string;
   viewedMoveIndex?: number | null;
   onMoveClick?: (moveIndex: number) => void;
-  gameResult: GameResult | null;
-  gameEndReason: GameEndReason | null;
 }
 
 interface ParsedMove {
@@ -42,35 +38,10 @@ function getMoveHalfIndex(moveNumber: number, isBlack: boolean): number {
   return (moveNumber - 1) * 2 + (isBlack ? 1 : 0);
 }
 
-const reasonLabels: Record<GameEndReason, string> = {
-  checkmate: "by checkmate",
-  resignation: "by resignation",
-  timeout: "on time",
-  stalemate: "by stalemate",
-  insufficient_material: "by insufficient material",
-  fifty_move_rule: "by fifty-move rule",
-  threefold_repetition: "by threefold repetition",
-  agreement: "by agreement",
-};
-
-function formatGameEndMessage(result: GameResult, reason: GameEndReason): { title: string; subtitle: string } {
-  let title: string;
-  if (result === "white") {
-    title = "White wins";
-  } else if (result === "black") {
-    title = "Black wins";
-  } else {
-    title = "Draw";
-  }
-  return { title, subtitle: reasonLabels[reason] };
-}
-
 export function MoveNotation({
   pgn,
   viewedMoveIndex = null,
   onMoveClick,
-  gameResult,
-  gameEndReason,
 }: MoveNotationProps) {
   const moves = parsePgn(pgn);
   const moveRowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -168,31 +139,6 @@ export function MoveNotation({
               </div>
             );
           })}
-        </div>
-      )}
-      {gameResult && gameEndReason && (
-        <div style={{
-          marginTop: 12,
-          padding: 12,
-          borderRadius: 8,
-          backgroundColor: theme.colors.cardBackground,
-          border: `1px solid ${theme.colors.border}`,
-          textAlign: "center",
-        }}>
-          <div style={{
-            fontWeight: 600,
-            fontSize: "1rem",
-            color: theme.colors.text,
-            marginBottom: 4,
-          }}>
-            {formatGameEndMessage(gameResult, gameEndReason).title}
-          </div>
-          <div style={{
-            fontSize: "0.875rem",
-            color: theme.colors.placeholder,
-          }}>
-            {formatGameEndMessage(gameResult, gameEndReason).subtitle}
-          </div>
         </div>
       )}
     </ResizableCard>

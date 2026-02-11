@@ -5,6 +5,8 @@ import Board from "../../components/game/Board";
 import Chat from "./components/Chat";
 import { GameClock } from "../../components/game/GameClock";
 import { MoveNotation } from "../../components/game/MoveNotation";
+import { GameControls } from "../../components/game/GameControls";
+import { GameEndDisplay } from "../../components/game/GameEndDisplay";
 import { StatusBadge } from "../../components/StatusBadge";
 import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
 import type { PlayerColor, ChatMessage, GameResult, GameEndReason } from "../../types/chess";
@@ -45,6 +47,8 @@ function Game() {
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [gameEndReason, setGameEndReason] = useState<GameEndReason | null>(null);
   const [viewedMoveIndex, setViewedMoveIndex] = useState<number | null>(null);
+  const [pendingDrawOffer, setPendingDrawOffer] = useState<string | null>(null);
+  const [hasOfferedDraw, setHasOfferedDraw] = useState(false);
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
 
@@ -65,7 +69,7 @@ function Game() {
     }
   }, [isConnected, gameId, sendMessage]);
 
-  const handleTurnChange = (newTurn: PlayerColor) => {
+  const handleTurnChange = useCallback((newTurn: PlayerColor) => {
     setCurrentTurn(newTurn);
     setGameStarted(true);
     if (newTurn === "black") {
@@ -73,7 +77,7 @@ function Game() {
     } else {
       setBlackTime(prev => prev + increment);
     }
-  };
+  }, [increment]);
 
   const handlePgnChange = (newPgn: string) => {
     setPgn(newPgn);
@@ -85,6 +89,33 @@ function Game() {
   const handleMoveClick = (moveIndex: number) => {
     setViewedMoveIndex(moveIndex);
   };
+
+  const handleResign = useCallback(() => {
+    if (gameId && gameResult === null) {
+      sendMessage({ action: "resign", gameId });
+    }
+  }, [gameId, gameResult, sendMessage]);
+
+  const handleOfferDraw = useCallback(() => {
+    if (gameId && gameResult === null && !hasOfferedDraw) {
+      sendMessage({ action: "offerDraw", gameId });
+      setHasOfferedDraw(true);
+    }
+  }, [gameId, gameResult, hasOfferedDraw, sendMessage]);
+
+  const handleAcceptDraw = useCallback(() => {
+    if (gameId && pendingDrawOffer) {
+      sendMessage({ action: "respondDraw", gameId, accept: true });
+      setPendingDrawOffer(null);
+    }
+  }, [gameId, pendingDrawOffer, sendMessage]);
+
+  const handleDeclineDraw = useCallback(() => {
+    if (gameId && pendingDrawOffer) {
+      sendMessage({ action: "respondDraw", gameId, accept: false });
+      setPendingDrawOffer(null);
+    }
+  }, [gameId, pendingDrawOffer, sendMessage]);
 
   const handleNavigate = useCallback((direction: "prev" | "next") => {
     if (direction === "prev") {
@@ -145,11 +176,24 @@ function Game() {
         setWhiteTime(lastMessage.whiteTime);
         setBlackTime(lastMessage.blackTime);
       }
+      // Clear draw offer state when a move is made
+      setHasOfferedDraw(false);
+      setPendingDrawOffer(null);
     }
 
     if (lastMessage.action === "clockSync") {
       setWhiteTime(lastMessage.whiteTime);
       setBlackTime(lastMessage.blackTime);
+    }
+
+    // Handle draw offer received from opponent
+    if (lastMessage.action === "drawOffer" && lastMessage.gameId === gameId) {
+      setPendingDrawOffer(lastMessage.offeredBy);
+    }
+
+    // Handle draw declined notification (received by the player who offered)
+    if (lastMessage.action === "drawDeclined" && lastMessage.gameId === gameId) {
+      setHasOfferedDraw(false);
     }
 
     // Handle gameState response when loading game directly
@@ -178,7 +222,7 @@ function Game() {
         setGameStarted(true);
       }
     }
-  }, [lastMessage, gameId]);
+  }, [lastMessage, gameId, handleTurnChange]);
 
   // Client-side clock countdown using actual elapsed time
   // Only starts ticking after white makes their first move
@@ -255,38 +299,53 @@ function Game() {
   return (
     <div style={{ padding: 20 }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
-        <GameClock
-          whiteTime={whiteTime}
-          blackTime={blackTime}
-          whiteName={whiteUsername}
-          blackName={blackUsername}
-          activeColor={status === "playing" && gameStarted ? currentTurn : null}
-          playerColor={playerColor}
-        >
-          <Board
-            gameId={gameId}
+        <div style={{ position: "relative" }}>
+          <GameClock
+            whiteTime={whiteTime}
+            blackTime={blackTime}
+            whiteName={whiteUsername}
+            blackName={blackUsername}
+            activeColor={status === "playing" && gameStarted ? currentTurn : null}
             playerColor={playerColor}
-            initialTurn={currentTurn}
-            initialPgn={pgn}
-            onTurnChange={handleTurnChange}
-            onPgnChange={handlePgnChange}
-            onSizeChange={setBoardSize}
-            overridePosition={displayPosition}
-            isViewingHistory={isViewingHistory}
-            gameResult={gameResult}
-          />
-        </GameClock>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, width: 200, height: boardSize + 85 }}>
-          <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0 }}>
+          >
+            <Board
+              gameId={gameId}
+              playerColor={playerColor}
+              initialTurn={currentTurn}
+              initialPgn={pgn}
+              onTurnChange={handleTurnChange}
+              onPgnChange={handlePgnChange}
+              onSizeChange={setBoardSize}
+              overridePosition={displayPosition}
+              isViewingHistory={isViewingHistory}
+              gameResult={gameResult}
+            />
+          </GameClock>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + 85 }}>
+          <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0}}>
             <MoveNotation
               pgn={pgn || ""}
               viewedMoveIndex={viewedMoveIndex}
               onMoveClick={handleMoveClick}
-              gameResult={gameResult}
-              gameEndReason={gameEndReason}
             />
+            <div style={{ marginTop: 11 }}>
+              {gameResult !== null && gameEndReason !== null ? (
+                <GameEndDisplay gameResult={gameResult} gameEndReason={gameEndReason} />
+              ) : (
+                <GameControls
+                  onResign={handleResign}
+                  onOfferDraw={handleOfferDraw}
+                  onAcceptDraw={handleAcceptDraw}
+                  onDeclineDraw={handleDeclineDraw}
+                  isGameOver={gameResult !== null}
+                  hasOfferedDraw={hasOfferedDraw}
+                  hasPendingDrawOffer={pendingDrawOffer !== null}
+                />
+              )}
+            </div>
           </div>
-          <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, marginTop: 34, width: 300}}>
+          <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: gameResult !== null ? 121 : 78}}>
             <Chat gameId={gameId} initialChat={chatLog} />
           </div>
         </div>
