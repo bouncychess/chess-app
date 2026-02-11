@@ -14,10 +14,14 @@ export const TextInput = ({ label, value, onChange, placeholder, type = 'text', 
         <input
             type={type}
             style={{
-                border: '1px solid #ccc',
-                padding: '8px 12px',
-                borderRadius: 4,
-                fontSize: '1rem',
+                border: 'none',
+                padding: '3px 4px',
+                borderRadius: 0,
+                fontSize: '12px',
+                fontFamily: 'inherit',
+                backgroundColor: '#ffffff',
+                color: '#000000',
+                boxShadow: 'inset 1px 1px 0 #000000, inset -1px -1px 0 #ffffff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf',
             }}
             value={value}
             onChange={(e) => onChange(e.target.value)}

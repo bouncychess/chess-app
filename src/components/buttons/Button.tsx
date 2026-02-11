@@ -42,9 +42,15 @@ export const Button = ({
             style={{
                 ...styles,
                 opacity: disabled ? 0.5 : 1,
-                padding: '0.5rem 1rem',
-                borderRadius: '6px',
-                fontWeight: 600,
+                padding: '4px 16px',
+                borderRadius: 0,
+                fontWeight: 400,
+                fontFamily: '"MS Sans Serif", "Microsoft Sans Serif", Tahoma, Geneva, sans-serif',
+                fontSize: '12px',
+                border: 'none',
+                boxShadow: 'inset -1px -1px 0 #000000, inset 1px 1px 0 #ffffff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf',
+                cursor: disabled ? 'default' : 'pointer',
+                minHeight: 23,
             }}
         >
             {children}
