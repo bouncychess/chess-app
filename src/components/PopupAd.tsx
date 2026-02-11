@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 const ads = [
     {
@@ -32,6 +32,19 @@ const ads = [
         installing: 'Installing EnPassant.exe...',
     },
 ];
+
+function randomAd() {
+    return ads[Math.floor(Math.random() * ads.length)];
+}
+
+type AdInstance = {
+    id: number;
+    ad: typeof ads[number];
+    top: number;
+    left: number;
+};
+
+let nextId = 0;
 
 function ProgressBar({ label, onDone }: { label: string; onDone: () => void }) {
     const [progress, setProgress] = useState(0);
@@ -79,38 +92,24 @@ function ProgressBar({ label, onDone }: { label: string; onDone: () => void }) {
     );
 }
 
-export function PopupAd() {
-    const [visible, setVisible] = useState(false);
+function SingleAd({ instance, onClose, onInstallDone }: {
+    instance: AdInstance;
+    onClose: (inst: AdInstance) => void;
+    onInstallDone: (inst: AdInstance) => void;
+}) {
     const [installing, setInstalling] = useState(false);
-    const [ad, setAd] = useState(ads[0]);
-    const [position, setPosition] = useState({ top: 100, left: 100 });
-
-    useEffect(() => {
-        const delay = 5000 + Math.random() * 15000; // 5-20s after load
-        const timer = setTimeout(() => {
-            setAd(ads[Math.floor(Math.random() * ads.length)]);
-            setPosition({
-                top: 50 + Math.random() * (window.innerHeight - 300),
-                left: 50 + Math.random() * (window.innerWidth - 350),
-            });
-            setVisible(true);
-        }, delay);
-        return () => clearTimeout(timer);
-    }, []);
-
-    if (!visible) return null;
+    const { ad } = instance;
 
     return (
         <div style={{
             position: 'fixed',
-            top: position.top,
-            left: position.left,
+            top: instance.top,
+            left: instance.left,
             width: 300,
             zIndex: 9999,
             backgroundColor: '#c0c0c0',
             boxShadow: 'inset -1px -1px 0 #000000, inset 1px 1px 0 #ffffff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf, 4px 4px 0 rgba(0,0,0,0.3)',
         }}>
-            {/* Title bar */}
             <div style={{
                 background: 'linear-gradient(90deg, #000080, #1084d0)',
                 color: '#ffffff',
@@ -123,7 +122,7 @@ export function PopupAd() {
             }}>
                 <span>{installing ? 'Installing...' : ad.title}</span>
                 <button
-                    onClick={() => { setVisible(false); setInstalling(false); }}
+                    onClick={() => onClose(instance)}
                     style={{
                         background: '#c0c0c0',
                         border: 'none',
@@ -145,9 +144,8 @@ export function PopupAd() {
                     X
                 </button>
             </div>
-            {/* Body */}
             {installing ? (
-                <ProgressBar label={ad.installing} onDone={() => { setVisible(false); setInstalling(false); }} />
+                <ProgressBar label={ad.installing} onDone={() => onInstallDone(instance)} />
             ) : (
                 <div style={{ padding: 12, textAlign: 'center' }}>
                     <div style={{
@@ -177,5 +175,58 @@ export function PopupAd() {
                 </div>
             )}
         </div>
+    );
+}
+
+function clampPosition(top: number, left: number) {
+    return {
+        top: Math.max(10, Math.min(top, window.innerHeight - 200)),
+        left: Math.max(10, Math.min(left, window.innerWidth - 320)),
+    };
+}
+
+export function PopupAd() {
+    const [instances, setInstances] = useState<AdInstance[]>([]);
+
+    useEffect(() => {
+        const delay = 5000 + Math.random() * 15000;
+        const timer = setTimeout(() => {
+            const inst: AdInstance = {
+                id: nextId++,
+                ad: randomAd(),
+                top: 50 + Math.random() * (window.innerHeight - 300),
+                left: 50 + Math.random() * (window.innerWidth - 350),
+            };
+            setInstances([inst]);
+        }, delay);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const handleClose = useCallback((inst: AdInstance) => {
+        setInstances(prev => {
+            const without = prev.filter(i => i.id !== inst.id);
+            const offset1 = clampPosition(inst.top - 30, inst.left + 40);
+            const offset2 = clampPosition(inst.top + 30, inst.left - 40);
+            const spawn1: AdInstance = { id: nextId++, ad: randomAd(), ...offset1 };
+            const spawn2: AdInstance = { id: nextId++, ad: randomAd(), ...offset2 };
+            return [...without, spawn1, spawn2];
+        });
+    }, []);
+
+    const handleInstallDone = useCallback((inst: AdInstance) => {
+        setInstances(prev => prev.filter(i => i.id !== inst.id));
+    }, []);
+
+    return (
+        <>
+            {instances.map(inst => (
+                <SingleAd
+                    key={inst.id}
+                    instance={inst}
+                    onClose={handleClose}
+                    onInstallDone={handleInstallDone}
+                />
+            ))}
+        </>
     );
 }

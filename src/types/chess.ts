@@ -12,20 +12,25 @@ export type GameEndReason =
   | "threefold_repetition"
   | "agreement";
 
-export type GameAction = 
-  | "play" 
-  | "gameEnd" 
-  | "move" 
-  | "chat" 
-  | "connected" 
-  | "startGame" 
-  | "players" 
-  | "getPlayers" 
-  | "clockSync" 
-  | "timeout" 
-  | "getGameState" 
+export type GameAction =
+  | "play"
+  | "gameEnd"
+  | "move"
+  | "chat"
+  | "connected"
+  | "startGame"
+  | "players"
+  | "getPlayers"
+  | "clockSync"
+  | "timeout"
+  | "getGameState"
   | "gameState" 
-  | "playBot";
+  | "playBot"
+  | "resign"
+  | "offerDraw"
+  | "respondDraw"
+  | "drawOffer"
+  | "drawDeclined";
 
 export interface Player {
   id: string;
@@ -44,4 +49,5 @@ export interface TimeControl {
 export interface ChatMessage {
   username: string;
   message: string;
+  isSystem?: boolean;
 }

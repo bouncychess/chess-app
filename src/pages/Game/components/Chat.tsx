@@ -113,10 +113,17 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
                                 borderRadius: 4,
                                 wordBreak: 'break-word',
                                 animation: idx >= lastSeenLength ? 'fadeHighlight 2s ease-out' : undefined,
+                                fontStyle: msg.isSystem ? 'italic' : 'normal',
                             }}
                         >
-                            <span style={{ fontWeight: 600, color: theme.colors.text }}>{msg.username}: </span>
-                            <span style={{ color: theme.colors.text }}>{msg.message}</span>
+                            {msg.isSystem ? (
+                                <span style={{ color: theme.colors.placeholder }}>{msg.message}</span>
+                            ) : (
+                                <>
+                                    <span style={{ fontWeight: 600, color: theme.colors.text }}>{msg.username}: </span>
+                                    <span style={{ color: theme.colors.text }}>{msg.message}</span>
+                                </>
+                            )}
                         </div>
                     ))
                 )}
