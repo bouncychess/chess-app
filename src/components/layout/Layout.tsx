@@ -3,6 +3,7 @@ import type {ReactNode} from 'react';
 import { theme } from '../../config/theme';
 import { ConnectingOverlay } from '../ConnectingOverlay';
 import { useWebSocket } from '../../context/WebSocketContext';
+import { PopupAd } from '../PopupAd';
 
 export default function Layout({ children }: { children: ReactNode }) {
     const { isConnected } = useWebSocket();
@@ -17,6 +18,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                     <span style={{ fontSize: '18px', color: theme.colors.placeholder }}>Powered by Windows</span>
                 </div>
                 {children}
+                <PopupAd />
             </main>
         </div>
     );
