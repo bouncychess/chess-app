@@ -8,7 +8,7 @@ import { TimeControlSelector } from "./components/TimeControlSelector";
 import { DEFAULT_TIME_CONTROL, TIME_CONTROLS } from "../../constants/timeControls";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { Button } from "../../components/buttons/Button";
-import type { Player, TimeControl } from "../../types/chess";
+import type { Player } from "../../types/chess";
 
 function Play() {
   const navigate = useNavigate();
@@ -16,12 +16,12 @@ function Play() {
 
   const [status, setStatus] = useState<'online' | 'disconnected' | 'waiting'>('online');
   const [players, setPlayers] = useState<Player[]>([]);
-  const [selectedTimeControl, setSelectedTimeControl] = useLocalStorage<TimeControl>(
-    "selectedTimeControl",
-    DEFAULT_TIME_CONTROL,
-    tc => tc.label,
-    s => TIME_CONTROLS.find(tc => tc.label === s),
-  );
+  const [selectedTimeControl, setSelectedTimeControl] = useLocalStorage({
+    key: "selectedTimeControl",
+    defaultValue: DEFAULT_TIME_CONTROL,
+    serialize: (tc) => tc.label,
+    deserialize: (s) => TIME_CONTROLS.find(tc => tc.label === s),
+  });
   const [previewTime, setPreviewTime] = useState<number>(selectedTimeControl.initialTime);
   const [boardSize, setBoardSize] = useState(400);
   const hasRequestedPlayers = useRef(false);
