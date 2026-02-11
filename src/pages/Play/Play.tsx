@@ -5,7 +5,8 @@ import Board from "../../components/game/Board";
 import Players from "./components/Players";
 import { GameClock } from "../../components/game/GameClock";
 import { TimeControlSelector } from "./components/TimeControlSelector";
-import { DEFAULT_TIME_CONTROL } from "../../constants/timeControls";
+import { DEFAULT_TIME_CONTROL, TIME_CONTROLS } from "../../constants/timeControls";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { Button } from "../../components/buttons/Button";
 import type { Player, TimeControl } from "../../types/chess";
 
@@ -15,8 +16,13 @@ function Play() {
 
   const [status, setStatus] = useState<'online' | 'disconnected' | 'waiting'>('online');
   const [players, setPlayers] = useState<Player[]>([]);
-  const [selectedTimeControl, setSelectedTimeControl] = useState<TimeControl>(DEFAULT_TIME_CONTROL);
-  const [previewTime, setPreviewTime] = useState<number>(DEFAULT_TIME_CONTROL.initialTime);
+  const [selectedTimeControl, setSelectedTimeControl] = useLocalStorage<TimeControl>(
+    "selectedTimeControl",
+    DEFAULT_TIME_CONTROL,
+    tc => tc.label,
+    s => TIME_CONTROLS.find(tc => tc.label === s),
+  );
+  const [previewTime, setPreviewTime] = useState<number>(selectedTimeControl.initialTime);
   const [boardSize, setBoardSize] = useState(400);
   const hasRequestedPlayers = useRef(false);
 
