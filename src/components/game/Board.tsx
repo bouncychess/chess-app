@@ -107,8 +107,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
       const move = promotion ? `${from}${to}${promotion}` : `${from}${to}`;
       sendMove(move);
-      setCurrentTurn((prev) => (prev === "white" ? "black" : "white"));
-      onTurnChange?.(currentTurn === "white" ? "black" : "white");
+      const newTurn: PlayerColor = chessGame.turn() === 'w' ? 'white' : 'black';
+      setCurrentTurn(newTurn);
+      onTurnChange?.(newTurn);
       onPgnChange?.(chessGame.pgn());
       return true;
     } catch {
