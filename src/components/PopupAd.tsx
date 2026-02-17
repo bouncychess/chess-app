@@ -10,7 +10,7 @@ const ads = [
     {
         title: 'WARNING: Low Wanchobi!!!',
         body: 'Your wanchobi skills are DANGEROUSLY low.',
-        button: 'Download Now',
+        button: 'Install Malware',
         installing: 'Installing Magurkin.exe...',
     },
     {
@@ -27,8 +27,8 @@ const ads = [
     },
     {
         title: 'You Won\'t BELIEVE This',
-        body: 'Grandmasters HATE this one weird trick. En passant discovered in 1561!',
-        button: 'Learn More',
+        body: 'Grandmasters HATE this one weird trick!',
+        button: 'Install Malware',
         installing: 'Installing EnPassant.exe...',
     },
 ];
