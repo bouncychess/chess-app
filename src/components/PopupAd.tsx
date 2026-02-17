@@ -28,7 +28,7 @@ const ads = [
     {
         title: 'You Won\'t BELIEVE This',
         body: 'Grandmasters HATE this one weird trick!',
-        button: 'Install Malware',
+        button: 'Install Key Logger',
         installing: 'Installing EnPassant.exe...',
     },
 ];
