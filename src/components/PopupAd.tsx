@@ -8,10 +8,10 @@ const ads = [
         installing: 'Installing FreeChessSet.exe...',
     },
     {
-        title: 'WARNING: Chess Detected',
-        body: 'Your chess skills are DANGEROUSLY low. Download ChessMaster Pro to fix this issue.',
+        title: 'WARNING: Low Wanchobi!!!',
+        body: 'Your wanchobi skills are DANGEROUSLY low.',
         button: 'Download Now',
-        installing: 'Installing ChessMasterPro.exe...',
+        installing: 'Installing Magurkin.exe...',
     },
     {
         title: 'Hot Singles In Your Area',
