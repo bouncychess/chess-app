@@ -76,6 +76,13 @@ function Play() {
     }
   };
 
+  const onCancelPlay = () => {
+    if (isConnected) {
+      sendMessage({ action: "play", cancel: true });
+      setStatus("online");
+    }
+  };
+
   const onPlayBot = (botUsername: string) => {
     if (isConnected && selectedTimeControl) {
       sendMessage({
@@ -115,9 +122,18 @@ function Play() {
             onSelect={(tc) => {
               setSelectedTimeControl(tc);
               setPreviewTime(tc.initialTime);
+              if (status === "waiting") {
+                sendMessage({
+                  action: "play",
+                  timeControl: {
+                    initialTime: tc.initialTime,
+                    increment: tc.increment,
+                  },
+                });
+              }
             }}
           />
-          <Button variant="danger" onClick={onPlay} disabled={!selectedTimeControl || status === "waiting"}>
+          <Button variant="danger" onClick={status === "waiting" ? onCancelPlay : onPlay} disabled={!selectedTimeControl}>
             {status === "waiting" ? "Waiting for opponent..." : "Play"}
           </Button>
           <div style={{ flex: 1, minHeight: 0 }}>
