@@ -87,16 +87,22 @@ export default function Clive() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchNewGames()
-      .then(newGames => {
-        setStats({
-          cliveWins: BASELINE.cliveWins + newGames.cliveWins,
-          ratWins: BASELINE.ratWins + newGames.ratWins,
-          draws: BASELINE.draws + newGames.draws,
-        });
-      })
-      .catch(err => console.error('Failed to fetch chess.com data:', err))
-      .finally(() => setLoading(false));
+    const poll = () => {
+      fetchNewGames()
+        .then(newGames => {
+          setStats({
+            cliveWins: BASELINE.cliveWins + newGames.cliveWins,
+            ratWins: BASELINE.ratWins + newGames.ratWins,
+            draws: BASELINE.draws + newGames.draws,
+          });
+        })
+        .catch(err => console.error('Failed to fetch chess.com data:', err))
+        .finally(() => setLoading(false));
+    };
+
+    poll();
+    const interval = setInterval(poll, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const debt = stats ? stats.ratWins - stats.cliveWins : 0;
