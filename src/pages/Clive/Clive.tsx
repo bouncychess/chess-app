@@ -32,41 +32,40 @@ const keyframes = `
 const PLAYER = 'eric_clive';
 const OPPONENT = 'dominantrat';
 
+// Baseline as of March 4, 2026
+const BASELINE = { cliveWins: 66, ratWins: 369, draws: 4 };
+const CUTOFF_EPOCH = 1772838706; // March 4, 2026 ~7:31pm ET
+
 interface ChessComGame {
   white: { username: string; result: string };
   black: { username: string; result: string };
+  end_time: number;
 }
 
-async function fetchHeadToHead(): Promise<{ cliveWins: number; ratWins: number; draws: number; total: number }> {
+async function fetchNewGames(): Promise<{ cliveWins: number; ratWins: number; draws: number }> {
   const archivesRes = await fetch(`https://api.chess.com/pub/player/${PLAYER}/games/archives`);
   const { archives } = await archivesRes.json() as { archives: string[] };
 
-  // Get the most recent archive URLs, working backwards until we have 100 games
-  const recentArchives = archives.slice().reverse();
+  // Only need to check recent archives (last 2 months max)
+  const recentArchives = archives.slice(-2);
 
   let cliveWins = 0;
   let ratWins = 0;
   let draws = 0;
-  let total = 0;
 
   for (const archiveUrl of recentArchives) {
-    if (total >= 100) break;
-
     const res = await fetch(archiveUrl);
     const { games } = await res.json() as { games: ChessComGame[] };
 
-    // Filter games between the two players
     const headToHead = games.filter(g => {
+      if (g.end_time <= CUTOFF_EPOCH) return false;
       const whiteLC = g.white.username.toLowerCase();
       const blackLC = g.black.username.toLowerCase();
       return (whiteLC === PLAYER && blackLC === OPPONENT) ||
              (whiteLC === OPPONENT && blackLC === PLAYER);
     });
 
-    for (const game of headToHead.reverse()) {
-      if (total >= 100) break;
-      total++;
-
+    for (const game of headToHead) {
       const cliveIsWhite = game.white.username.toLowerCase() === PLAYER;
       const cliveResult = cliveIsWhite ? game.white.result : game.black.result;
 
@@ -80,16 +79,22 @@ async function fetchHeadToHead(): Promise<{ cliveWins: number; ratWins: number; 
     }
   }
 
-  return { cliveWins, ratWins, draws, total };
+  return { cliveWins, ratWins, draws };
 }
 
 export default function Clive() {
-  const [stats, setStats] = useState<{ cliveWins: number; ratWins: number; draws: number; total: number } | null>(null);
+  const [stats, setStats] = useState<{ cliveWins: number; ratWins: number; draws: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchHeadToHead()
-      .then(setStats)
+    fetchNewGames()
+      .then(newGames => {
+        setStats({
+          cliveWins: BASELINE.cliveWins + newGames.cliveWins,
+          ratWins: BASELINE.ratWins + newGames.ratWins,
+          draws: BASELINE.draws + newGames.draws,
+        });
+      })
       .catch(err => console.error('Failed to fetch chess.com data:', err))
       .finally(() => setLoading(false));
   }, []);
