@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { theme } from '../../config/theme';
 
 const keyframes = `
@@ -28,7 +29,78 @@ const keyframes = `
 }
 `;
 
+const PLAYER = 'eric_clive';
+const OPPONENT = 'dominantrat';
+
+interface ChessComGame {
+  white: { username: string; result: string };
+  black: { username: string; result: string };
+}
+
+async function fetchHeadToHead(): Promise<{ cliveWins: number; ratWins: number; draws: number; total: number }> {
+  const archivesRes = await fetch(`https://api.chess.com/pub/player/${PLAYER}/games/archives`);
+  const { archives } = await archivesRes.json() as { archives: string[] };
+
+  // Get the most recent archive URLs, working backwards until we have 100 games
+  const recentArchives = archives.slice().reverse();
+
+  let cliveWins = 0;
+  let ratWins = 0;
+  let draws = 0;
+  let total = 0;
+
+  for (const archiveUrl of recentArchives) {
+    if (total >= 100) break;
+
+    const res = await fetch(archiveUrl);
+    const { games } = await res.json() as { games: ChessComGame[] };
+
+    // Filter games between the two players
+    const headToHead = games.filter(g => {
+      const whiteLC = g.white.username.toLowerCase();
+      const blackLC = g.black.username.toLowerCase();
+      return (whiteLC === PLAYER && blackLC === OPPONENT) ||
+             (whiteLC === OPPONENT && blackLC === PLAYER);
+    });
+
+    for (const game of headToHead.reverse()) {
+      if (total >= 100) break;
+      total++;
+
+      const cliveIsWhite = game.white.username.toLowerCase() === PLAYER;
+      const cliveResult = cliveIsWhite ? game.white.result : game.black.result;
+
+      if (cliveResult === 'win') {
+        cliveWins++;
+      } else if (['checkmated', 'timeout', 'resigned', 'lose', 'abandoned'].includes(cliveResult)) {
+        ratWins++;
+      } else {
+        draws++;
+      }
+    }
+  }
+
+  return { cliveWins, ratWins, draws, total };
+}
+
 export default function Clive() {
+  const [stats, setStats] = useState<{ cliveWins: number; ratWins: number; draws: number; total: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchHeadToHead()
+      .then(setStats)
+      .catch(err => console.error('Failed to fetch chess.com data:', err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const debt = stats ? stats.ratWins - stats.cliveWins : 0;
+  const debtDisplay = debt > 0
+    ? `${debt} buck`
+    : debt < 0
+      ? `dominantrat owes ${Math.abs(debt)} buck`
+      : '0 buck (even)';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', gap: 24 }}>
       <style>{keyframes}</style>
@@ -57,14 +129,40 @@ export default function Clive() {
           Live Debt Tracker
         </div>
         <div style={{
-          fontSize: '3rem',
-          fontWeight: 700,
-          fontFamily: 'monospace',
-          animation: 'pulseText 3s ease-in-out infinite, rainbow 2s linear infinite',
-          display: 'inline-block',
+          fontSize: '0.875rem',
+          color: theme.colors.placeholder,
+          marginBottom: 12,
         }}>
-          34 buck
+          eric_clive vs dominantrat &middot; $1/game
         </div>
+        {loading ? (
+          <div style={{ fontSize: '1.5rem', color: theme.colors.placeholder }}>
+            Loading from chess.com...
+          </div>
+        ) : stats ? (
+          <>
+            <div style={{
+              fontSize: '3rem',
+              fontWeight: 700,
+              fontFamily: 'monospace',
+              animation: 'pulseText 3s ease-in-out infinite, rainbow 2s linear infinite',
+              display: 'inline-block',
+            }}>
+              {debtDisplay}
+            </div>
+            <div style={{
+              fontSize: '0.875rem',
+              color: theme.colors.placeholder,
+              marginTop: 12,
+            }}>
+              W {stats.cliveWins} &ndash; L {stats.ratWins} &ndash; D {stats.draws} (last {stats.total} games)
+            </div>
+          </>
+        ) : (
+          <div style={{ fontSize: '1.5rem', color: '#ff0000' }}>
+            Failed to load data
+          </div>
+        )}
       </div>
     </div>
   );
