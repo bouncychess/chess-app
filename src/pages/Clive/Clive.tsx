@@ -155,7 +155,7 @@ export default function Clive() {
               color: theme.colors.placeholder,
               marginTop: 12,
             }}>
-              W {stats.cliveWins} &ndash; L {stats.ratWins} &ndash; D {stats.draws} (last {stats.total} games)
+              W {stats.cliveWins} &ndash; L {stats.ratWins} &ndash; D {stats.draws}
             </div>
           </>
         ) : (
