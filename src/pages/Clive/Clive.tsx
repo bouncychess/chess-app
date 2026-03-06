@@ -138,7 +138,7 @@ export default function Clive() {
           color: theme.colors.placeholder,
           marginBottom: 12,
         }}>
-          eric_clive vs dominantrat &middot; $1/game
+          eric_clive vs dominantrat &middot; 1 buck a pop
         </div>
         {loading ? (
           <div style={{ fontSize: '1.5rem', color: theme.colors.placeholder }}>
