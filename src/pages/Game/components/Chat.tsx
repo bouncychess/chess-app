@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChatMessage } from "../../../types/chess";
 import { useWebSocket } from "../../../context/WebSocketContext";
+import { formatGameEndMessage } from "../../../components/game/GameEndDisplay";
 import { theme } from "../../../config/theme";
 import { ResizableCard } from "../../../components/ResizableCard";
 
@@ -45,6 +46,12 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
         // Handle chat that comes with move messages (e.g., from bots)
         if (lastMessage.action === "move" && lastMessage.chat) {
             setChatLog((prevLog) => [...prevLog, lastMessage.chat]);
+        }
+
+        // Handle game end — show result as system chat
+        if (lastMessage.action === "gameEnd") {
+            const { title, subtitle } = formatGameEndMessage(lastMessage.result, lastMessage.reason);
+            setChatLog((prevLog) => [...prevLog, { username: "", message: `${title} — ${subtitle}`, isSystem: true }]);
         }
     }, [lastMessage, username]);
 

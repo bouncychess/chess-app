@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useWebSocket } from "../../context/WebSocketContext";
 import Board from "../../components/game/Board";
 import Chat from "./components/Chat";
@@ -28,7 +28,8 @@ const MOVE_NOTATION_RATIO = 0.6;
 function Game() {
   const { gameId } = useParams<{ gameId: string }>();
   const location = useLocation();
-  const { sendMessage, lastMessage, isConnected } = useWebSocket();
+  const { sendMessage, lastMessage, isConnected, username } = useWebSocket();
+  const navigate = useNavigate();
   const [boardSize, setBoardSize] = useState(400);
 
   // Initialize from navigation state
@@ -49,8 +50,17 @@ function Game() {
   const [viewedMoveIndex, setViewedMoveIndex] = useState<number | null>(null);
   const [pendingDrawOffer, setPendingDrawOffer] = useState<string | null>(null);
   const [hasOfferedDraw, setHasOfferedDraw] = useState(false);
+  const [initialTime, setInitialTime] = useState<number | null>(null);
+  const [rematchOfferedBy, setRematchOfferedBy] = useState<string | null>(null);
+  const [isWaitingNewGame, setIsWaitingNewGame] = useState(false);
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
+
+  // Derived values for rematch/new game
+  const isPlayer = username !== null && (username === whiteUsername || username === blackUsername);
+  const opponentUsername = username === whiteUsername ? blackUsername : whiteUsername;
+  const hasOfferedRematch = rematchOfferedBy === username;
+  const opponentOfferedRematch = rematchOfferedBy !== null && rematchOfferedBy !== username;
 
   // Derived values for move navigation
   const totalMoveCount = getMoveCount(pgn || "");
@@ -117,6 +127,35 @@ function Game() {
     }
   }, [gameId, pendingDrawOffer, sendMessage]);
 
+  const handleRematch = useCallback(() => {
+    if (!gameId) return;
+    if (hasOfferedRematch) {
+      // Cancel own rematch offer
+      sendMessage({ action: "offerRematch", gameId });
+      setRematchOfferedBy(null);
+    } else {
+      // Offer or accept rematch
+      sendMessage({ action: "offerRematch", gameId });
+      if (opponentOfferedRematch) {
+        // Accepting — server will create new game, we'll navigate on startGame message
+      } else {
+        setRematchOfferedBy(username);
+      }
+    }
+  }, [gameId, hasOfferedRematch, opponentOfferedRematch, username, sendMessage]);
+
+  const handleNewGame = useCallback(() => {
+    if (initialTime === null) return;
+    if (isWaitingNewGame) {
+      // Cancel queue
+      sendMessage({ action: "play", cancel: true });
+      setIsWaitingNewGame(false);
+    } else {
+      sendMessage({ action: "play", timeControl: { initialTime, increment } });
+      setIsWaitingNewGame(true);
+    }
+  }, [initialTime, increment, isWaitingNewGame, sendMessage]);
+
   const handleNavigate = useCallback((direction: "prev" | "next") => {
     if (direction === "prev") {
       if (viewedMoveIndex === null) {
@@ -152,16 +191,32 @@ function Game() {
   useEffect(() => {
     if (!lastMessage) return;
 
-    // Handle startGame in case user navigates directly to game URL
-    if (lastMessage.action === "startGame" && lastMessage.gameId === gameId) {
-      setPlayerColor(lastMessage.color);
-      setCurrentTurn(lastMessage.turn || "white");
-      setWhiteUsername(lastMessage.whiteUsername);
-      setBlackUsername(lastMessage.blackUsername);
-      setStatus("playing");
-      if (lastMessage.whiteTime !== undefined) {
-        setWhiteTime(lastMessage.whiteTime);
-        setBlackTime(lastMessage.blackTime);
+    // Handle startGame — either for this game or a new game (rematch/new game match)
+    if (lastMessage.action === "startGame") {
+      if (lastMessage.gameId === gameId) {
+        setPlayerColor(lastMessage.color);
+        setCurrentTurn(lastMessage.turn || "white");
+        setWhiteUsername(lastMessage.whiteUsername);
+        setBlackUsername(lastMessage.blackUsername);
+        setStatus("playing");
+        if (lastMessage.whiteTime !== undefined) {
+          setWhiteTime(lastMessage.whiteTime);
+          setBlackTime(lastMessage.blackTime);
+          setInitialTime(lastMessage.whiteTime);
+        }
+      } else if (lastMessage.gameId) {
+        // New game started (rematch or new game match) — navigate to it
+        navigate(`/game/${lastMessage.gameId}`, {
+          state: {
+            playerColor: lastMessage.color,
+            currentTurn: lastMessage.turn || "white",
+            whiteTime: lastMessage.whiteTime,
+            blackTime: lastMessage.blackTime,
+            whiteUsername: lastMessage.whiteUsername,
+            blackUsername: lastMessage.blackUsername,
+            increment: lastMessage.increment ?? 0,
+          },
+        });
       }
     }
     if (lastMessage.action === "gameEnd" && lastMessage.gameId === gameId) {
@@ -186,6 +241,14 @@ function Game() {
       setBlackTime(lastMessage.blackTime);
     }
 
+    // Handle rematch offer/cancel from opponent
+    if (lastMessage.action === "rematchOffer" && lastMessage.gameId === gameId) {
+      setRematchOfferedBy(opponentUsername);
+    }
+    if (lastMessage.action === "rematchCanceled" && lastMessage.gameId === gameId) {
+      setRematchOfferedBy(null);
+    }
+
     // Handle draw offer received from opponent
     if (lastMessage.action === "drawOffer" && lastMessage.gameId === gameId) {
       setPendingDrawOffer(lastMessage.offeredBy);
@@ -205,6 +268,7 @@ function Game() {
       setWhiteUsername(lastMessage.whiteUsername);
       setBlackUsername(lastMessage.blackUsername);
       setIncrement(lastMessage.increment ?? 0);
+      setInitialTime(lastMessage.initialTime ?? null);
       setPgn(lastMessage.pgn ?? null);
       setChatLog(lastMessage.chat ?? []);
       setStatus("playing");
@@ -222,7 +286,7 @@ function Game() {
         setGameStarted(true);
       }
     }
-  }, [lastMessage, gameId, handleTurnChange]);
+  }, [lastMessage, gameId, handleTurnChange, navigate, opponentUsername]);
 
   // Client-side clock countdown using actual elapsed time
   // Only starts ticking after white makes their first move
@@ -331,7 +395,16 @@ function Game() {
             />
             <div style={{ marginTop: 11 }}>
               {gameResult !== null && gameEndReason !== null ? (
-                <GameEndDisplay gameResult={gameResult} gameEndReason={gameEndReason} />
+                <GameEndDisplay
+                  gameResult={gameResult}
+                  gameEndReason={gameEndReason}
+                  onRematch={handleRematch}
+                  onNewGame={handleNewGame}
+                  isPlayer={isPlayer}
+                  hasOfferedRematch={hasOfferedRematch}
+                  opponentOfferedRematch={opponentOfferedRematch}
+                  isWaitingNewGame={isWaitingNewGame}
+                />
               ) : (
                 <GameControls
                   onResign={handleResign}
@@ -345,7 +418,7 @@ function Game() {
               )}
             </div>
           </div>
-          <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: gameResult !== null ? 121 : 78}}>
+          <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: 78}}>
             <Chat gameId={gameId} initialChat={chatLog} />
           </div>
         </div>
