@@ -14,12 +14,27 @@ const keyframes = `
   70% { transform: rotate(0deg); }
   100% { transform: rotate(0deg); }
 }
-@keyframes hit {
-  0% { transform: rotate(-60deg) translateX(-160px); }
-  15% { transform: rotate(10deg) translateX(20px); }
-  22% { transform: rotate(10deg) translateX(20px); }
-  40% { transform: rotate(-60deg) translateX(-160px); }
-  100% { transform: rotate(-60deg) translateX(-160px); }
+@keyframes crabHop {
+  0% { top: 25%; left: -25%; transform: scaleX(1) rotate(-30deg); }
+  5% { top: 25%; left: -5%; transform: scaleX(1) rotate(10deg); }
+  10% { top: 25%; left: -5%; transform: scaleX(1) rotate(10deg); }
+  15% { top: 25%; left: -25%; transform: scaleX(1) rotate(-30deg); }
+
+  25% { top: 25%; right: auto; left: 85%; transform: scaleX(-1) rotate(-30deg); }
+  30% { top: 25%; left: 65%; transform: scaleX(-1) rotate(10deg); }
+  35% { top: 25%; left: 65%; transform: scaleX(-1) rotate(10deg); }
+  40% { top: 25%; left: 85%; transform: scaleX(-1) rotate(-30deg); }
+
+  50% { top: 85%; left: -25%; transform: scaleX(1) rotate(-70deg); }
+  55% { top: 65%; left: -5%; transform: scaleX(1) rotate(-40deg); }
+  60% { top: 65%; left: -5%; transform: scaleX(1) rotate(-40deg); }
+  65% { top: 85%; left: -25%; transform: scaleX(1) rotate(-70deg); }
+
+  75% { top: -10%; left: 20%; transform: scaleX(1) rotate(60deg); }
+  80% { top: 5%; left: 20%; transform: scaleX(1) rotate(100deg); }
+  85% { top: 5%; left: 20%; transform: scaleX(1) rotate(100deg); }
+  90% { top: -10%; left: 20%; transform: scaleX(1) rotate(60deg); }
+  100% { top: 25%; left: -25%; transform: scaleX(1) rotate(-30deg); }
 }
 @keyframes dollarFly0 {
   0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
@@ -258,8 +273,7 @@ export default function Clive() {
           position: 'absolute',
           top: '25%',
           left: '-25%',
-          animation: 'hit 2s ease-in-out infinite',
-          transformOrigin: 'right center',
+          animation: 'crabHop 8s ease-in-out infinite',
           display: 'flex',
           alignItems: 'center',
         }}>
