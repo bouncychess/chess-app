@@ -2,16 +2,61 @@ import { useState, useEffect } from 'react';
 import { theme } from '../../config/theme';
 
 const keyframes = `
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes swing {
+  0% { transform: rotate(0deg); }
+  14% { transform: rotate(0deg); }
+  18% { transform: rotate(35deg) scale(0.9); }
+  25% { transform: rotate(-25deg); }
+  32% { transform: rotate(18deg); }
+  40% { transform: rotate(-12deg); }
+  50% { transform: rotate(6deg); }
+  60% { transform: rotate(-3deg); }
+  70% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
 }
-@keyframes hueShift {
-  0% { filter: hue-rotate(0deg) drop-shadow(0 0 12px #ff0000); }
-  25% { filter: hue-rotate(90deg) drop-shadow(0 0 12px #00ff00); }
-  50% { filter: hue-rotate(180deg) drop-shadow(0 0 12px #0000ff); }
-  75% { filter: hue-rotate(270deg) drop-shadow(0 0 12px #ff00ff); }
-  100% { filter: hue-rotate(360deg) drop-shadow(0 0 12px #ff0000); }
+@keyframes hit {
+  0% { transform: rotate(-80deg) translateX(-150px); opacity: 0; }
+  5% { transform: rotate(-80deg) translateX(-150px); opacity: 1; }
+  15% { transform: rotate(10deg) translateX(20px); opacity: 1; }
+  22% { transform: rotate(10deg) translateX(20px); opacity: 1; }
+  30% { transform: rotate(-80deg) translateX(-150px); opacity: 0; }
+  100% { transform: rotate(-80deg) translateX(-150px); opacity: 0; }
+}
+@keyframes dollarFly0 {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  15% { opacity: 0; }
+  20% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(100px, -180px) rotate(45deg); opacity: 0; }
+}
+@keyframes dollarFly1 {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  15% { opacity: 0; }
+  20% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-90px, -190px) rotate(-30deg); opacity: 0; }
+}
+@keyframes dollarFly2 {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  15% { opacity: 0; }
+  22% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(130px, -130px) rotate(60deg); opacity: 0; }
+}
+@keyframes dollarFly3 {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  15% { opacity: 0; }
+  22% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-120px, -160px) rotate(-50deg); opacity: 0; }
+}
+@keyframes dollarFly4 {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  18% { opacity: 0; }
+  24% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(50px, -200px) rotate(20deg); opacity: 0; }
+}
+@keyframes dollarFly5 {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  18% { opacity: 0; }
+  24% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-80px, -120px) rotate(-70deg); opacity: 0; }
 }
 @keyframes pulseText {
   0% { transform: scale(1); }
@@ -28,6 +73,15 @@ const keyframes = `
   100% { color: #ff0000; }
 }
 `;
+
+const dollars = [
+  { animation: 'dollarFly0 2s ease-out infinite', top: '40%', left: '60%' },
+  { animation: 'dollarFly1 2s ease-out infinite', top: '35%', left: '40%' },
+  { animation: 'dollarFly2 2s ease-out infinite', top: '50%', left: '65%' },
+  { animation: 'dollarFly3 2s ease-out infinite', top: '45%', left: '30%' },
+  { animation: 'dollarFly4 2s ease-out infinite', top: '30%', left: '50%' },
+  { animation: 'dollarFly5 2s ease-out infinite', top: '55%', left: '45%' },
+];
 
 const PLAYER = 'eric_clive';
 const OPPONENT = 'dominantrat';
@@ -46,7 +100,6 @@ async function fetchNewGames(): Promise<{ cliveWins: number; ratWins: number; dr
   const archivesRes = await fetch(`https://api.chess.com/pub/player/${PLAYER}/games/archives`);
   const { archives } = await archivesRes.json() as { archives: string[] };
 
-  // Only need to check recent archives (last 2 months max)
   const recentArchives = archives.slice(-2);
 
   let cliveWins = 0;
@@ -87,6 +140,16 @@ export default function Clive() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const audio = new Audio('/sounds/mexican_music.mp3');
+    audio.loop = true;
+    audio.play().catch(() => {});
+    return () => {
+      audio.pause();
+      audio.src = '';
+    };
+  }, []);
+
+  useEffect(() => {
     const poll = () => {
       fetchNewGames()
         .then(newGames => {
@@ -116,18 +179,81 @@ export default function Clive() {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', gap: 24 }}>
       <style>{keyframes}</style>
 
-      <div style={{
-        animation: 'spin 4s linear infinite, hueShift 3s linear infinite',
-        borderRadius: '50%',
-        overflow: 'hidden',
-        width: 200,
-        height: 200,
-      }}>
-        <img
-          src="/images/articles/bloated_mess.png"
-          alt="Clive"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        />
+      {/* Pinata area */}
+      <div style={{ position: 'relative', width: 420, height: 450 }}>
+        {/* String */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: '50%',
+          width: 3,
+          height: 60,
+          backgroundColor: '#888',
+          transformOrigin: 'top center',
+          animation: 'swing 2s ease-in-out infinite',
+        }} />
+        {/* Pinata body with image */}
+        <div style={{
+          position: 'absolute',
+          top: 30,
+          left: '50%',
+          marginLeft: -160,
+          width: 320,
+          height: 360,
+          transformOrigin: 'top center',
+          animation: 'swing 2s ease-in-out infinite',
+        }}>
+          <img
+            src="/images/articles/pinata.svg"
+            alt="Pinata"
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          />
+          {/* Face in center of pinata */}
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 100,
+            height: 100,
+            borderRadius: '50%',
+            overflow: 'hidden',
+            border: '4px solid #cc9900',
+          }}>
+            <img
+              src="/images/articles/bloated_mess.png"
+              alt="Clive"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          </div>
+        </div>
+        {/* Bat */}
+        <div style={{
+          position: 'absolute',
+          top: '35%',
+          left: '0%',
+          fontSize: '8rem',
+          animation: 'hit 2s ease-in-out infinite',
+          transformOrigin: 'right center',
+        }}>
+          🏏
+        </div>
+        {/* Flying dollars */}
+        {dollars.map((d, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              top: d.top,
+              left: d.left,
+              fontSize: '2.5rem',
+              animation: d.animation,
+              pointerEvents: 'none',
+            }}
+          >
+            💵
+          </div>
+        ))}
       </div>
 
       <div style={{ textAlign: 'center' }}>
