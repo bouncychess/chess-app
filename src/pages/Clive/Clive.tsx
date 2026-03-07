@@ -195,9 +195,9 @@ export default function Clive() {
         return;
       }
     } else {
-      // 60-100%: finish up (~4s)
-      delay = 50 + Math.random() * 200;
-      change = Math.random() * 3 + 0.5;
+      // 60-100%: slow grind back up (~10s)
+      delay = 150 + Math.random() * 400;
+      change = Math.random() * 1.2 + 0.2;
     }
 
     const timer = setTimeout(() => setPayProgress(p => Math.min(100, p + change)), delay);
