@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { theme } from '../../config/theme';
 
 const keyframes = `
@@ -139,15 +139,37 @@ export default function Clive() {
   const [stats, setStats] = useState<{ cliveWins: number; ratWins: number; draws: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [musicPlaying, setMusicPlaying] = useState(false);
+
   useEffect(() => {
     const audio = new Audio('/sounds/mexican_music.mp3');
     audio.loop = true;
-    audio.play().catch(() => {});
+    audioRef.current = audio;
+
+    const startMusic = () => {
+      audio.play().then(() => setMusicPlaying(true)).catch(() => {});
+      document.removeEventListener('click', startMusic);
+    };
+    document.addEventListener('click', startMusic);
+
     return () => {
+      document.removeEventListener('click', startMusic);
       audio.pause();
       audio.src = '';
     };
   }, []);
+
+  const toggleMusic = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (musicPlaying) {
+      audio.pause();
+      setMusicPlaying(false);
+    } else {
+      audio.play().then(() => setMusicPlaying(true)).catch(() => {});
+    }
+  };
 
   useEffect(() => {
     const poll = () => {
@@ -176,8 +198,24 @@ export default function Clive() {
       : '0 buck (even)';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', gap: 24 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', gap: 24, position: 'relative' }}>
       <style>{keyframes}</style>
+      <button
+        onClick={toggleMusic}
+        style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          background: 'none',
+          border: 'none',
+          fontSize: '3rem',
+          cursor: 'pointer',
+          opacity: 0.7,
+        }}
+        title={musicPlaying ? 'Mute' : 'Play music'}
+      >
+        {musicPlaying ? '\u{1F50A}' : '\u{1F507}'}
+      </button>
 
       {/* Pinata area */}
       <div style={{ position: 'relative', width: 420, height: 450 }}>
