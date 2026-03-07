@@ -15,11 +15,11 @@ const keyframes = `
   100% { transform: rotate(0deg); }
 }
 @keyframes hit {
-  0% { transform: rotate(-40deg) translateX(-80px); }
+  0% { transform: rotate(-60deg) translateX(-160px); }
   15% { transform: rotate(10deg) translateX(20px); }
   22% { transform: rotate(10deg) translateX(20px); }
-  40% { transform: rotate(-40deg) translateX(-80px); }
-  100% { transform: rotate(-40deg) translateX(-80px); }
+  40% { transform: rotate(-60deg) translateX(-160px); }
+  100% { transform: rotate(-60deg) translateX(-160px); }
 }
 @keyframes dollarFly0 {
   0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
@@ -257,7 +257,7 @@ export default function Clive() {
         <div style={{
           position: 'absolute',
           top: '25%',
-          left: '-5%',
+          left: '-25%',
           animation: 'hit 2s ease-in-out infinite',
           transformOrigin: 'right center',
           display: 'flex',
