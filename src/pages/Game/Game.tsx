@@ -418,7 +418,7 @@ function Game() {
               )}
             </div>
           </div>
-          <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: gameResult !== null ? 121 : 78}}>
+          <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: 78}}>
             <Chat gameId={gameId} initialChat={chatLog} />
           </div>
         </div>
