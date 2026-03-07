@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { theme } from '../../config/theme';
 
 const keyframes = `
@@ -155,6 +156,7 @@ export default function Clive() {
   const [paying, setPaying] = useState(false);
   const [payProgress, setPayProgress] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
+  const [payAttempts, setPayAttempts] = useState(0);
 
   useEffect(() => {
     if (!paying || showWarning) return;
@@ -162,8 +164,10 @@ export default function Clive() {
       setShowWarning(true);
       return;
     }
-    // ~10 seconds total
-    const timer = setTimeout(() => setPayProgress(p => Math.min(100, p + 0.5)), 50);
+    // Random increment and delay for jittery progress, ~10s total
+    const delay = 50 + Math.random() * 300;
+    const increment = Math.random() * 2.5 + 0.1;
+    const timer = setTimeout(() => setPayProgress(p => Math.min(100, p + increment)), delay);
     return () => clearTimeout(timer);
   }, [paying, payProgress, showWarning]);
 
@@ -242,7 +246,7 @@ export default function Clive() {
   }, [principal, stats]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', gap: 24, position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', gap: 16, position: 'relative' }}>
       <style>{keyframes}</style>
       <button
         onClick={toggleMusic}
@@ -407,6 +411,7 @@ export default function Clive() {
                   setPaying(true);
                   setPayProgress(0);
                   setShowWarning(false);
+                  setPayAttempts(a => a + 1);
                 }}
                 style={{
                   marginTop: 16,
@@ -423,113 +428,120 @@ export default function Clive() {
                 PAY NOW
               </button>
             ) : !showWarning ? (
-              <div style={{ marginTop: 16, width: 280 }}>
+              <div style={{ marginTop: 16, width: 280, margin: '16px auto 0' }}>
                 <div style={{
                   fontSize: '0.8rem',
                   color: theme.colors.placeholder,
                   marginBottom: 4,
+                  textAlign: 'center',
                 }}>
-                  Processing payment... {payProgress.toFixed(1)}%
+                  {payProgress < 33 ? 'Preparing for payment' : payProgress < 66 ? 'Connecting to payment system' : 'Scanning'}... {payProgress.toFixed(1)}%
                 </div>
                 <div style={{
                   width: '100%',
                   height: 20,
-                  backgroundColor: '#333',
+                  backgroundColor: '#000',
                   borderRadius: 4,
                   overflow: 'hidden',
                 }}>
                   <div style={{
                     width: `${payProgress}%`,
                     height: '100%',
-                    backgroundColor: '#00aa00',
+                    backgroundColor: '#cc0000',
                     transition: 'width 0.05s linear',
                   }} />
                 </div>
               </div>
             ) : (
-              <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(0,0,0,0.7)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 9999,
-              }}>
+              <>{createPortal(
                 <div style={{
-                  backgroundColor: '#fff',
-                  border: '4px solid #cc0000',
-                  borderRadius: 0,
-                  width: 420,
-                  overflow: 'hidden',
-                  boxShadow: '0 0 40px rgba(255,0,0,0.5)',
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  paddingLeft: 175,
+                  backgroundColor: 'rgba(0,0,0,0.7)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 9999,
                 }}>
-                  {/* Warning stripes header */}
                   <div style={{
-                    background: 'repeating-linear-gradient(45deg, #ffcc00, #ffcc00 10px, #000 10px, #000 20px)',
-                    height: 20,
-                  }} />
-                  <div style={{
-                    background: '#cc0000',
-                    padding: '8px 12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    backgroundColor: '#fff',
+                    border: '4px solid #cc0000',
+                    borderRadius: 0,
+                    width: 420,
+                    overflow: 'hidden',
+                    boxShadow: '0 0 40px rgba(255,0,0,0.5)',
                   }}>
-                    <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem' }}>
-                      SECURITY ALERT
-                    </span>
-                    <span style={{ color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }}
-                      onClick={() => { setShowWarning(false); setPaying(false); }}>
-                      X
-                    </span>
-                  </div>
-                  <div style={{ padding: 24, textAlign: 'center' }}>
-                    <div style={{ fontSize: '4rem', marginBottom: 12 }}>
-                      {'\u26A0\uFE0F'}
-                    </div>
+                    {/* Warning stripes header */}
                     <div style={{
-                      fontSize: '2rem',
-                      fontWeight: 900,
-                      color: '#cc0000',
-                      marginBottom: 8,
-                      textTransform: 'uppercase',
-                    }}>
-                      YOU ARE NOT CLIVE!
-                    </div>
+                      background: 'repeating-linear-gradient(45deg, #ffcc00, #ffcc00 10px, #000 10px, #000 20px)',
+                      height: 20,
+                    }} />
                     <div style={{
-                      fontSize: '0.9rem',
-                      color: '#333',
-                      marginBottom: 16,
+                      background: '#cc0000',
+                      padding: '8px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
                     }}>
-                      Unauthorized payment attempt detected. Your IP address has been logged and reported to the authorities.
+                      <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem' }}>
+                        {payAttempts >= 2 ? 'SECURITY ALERT' : 'SECURITY ALERT'}
+                      </span>
+                      <span style={{ color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }}
+                        onClick={() => { setShowWarning(false); setPaying(false); }}>
+                        X
+                      </span>
                     </div>
-                    <button
-                      onClick={() => { setShowWarning(false); setPaying(false); }}
-                      style={{
-                        padding: '8px 24px',
-                        fontSize: '1rem',
-                        fontWeight: 700,
-                        backgroundColor: '#cc0000',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      I understand
-                    </button>
+                    <div style={{ padding: 24, textAlign: 'center' }}>
+                      <div style={{ fontSize: '4rem', marginBottom: 12 }}>
+                        {payAttempts >= 2 ? '\u{1F6A8}' : '\u26A0\uFE0F'}
+                      </div>
+                      <div style={{
+                        fontSize: payAttempts >= 2 ? '2.5rem' : '2rem',
+                        fontWeight: 900,
+                        color: '#cc0000',
+                        marginBottom: 8,
+                        textTransform: 'uppercase',
+                      }}>
+                        {payAttempts >= 2 ? 'FUCK YOU! WE KNOW YOU ARE NOT CLIVE!' : 'YOU ARE NOT CLIVE!'}
+                      </div>
+                      <div style={{
+                        fontSize: '0.9rem',
+                        color: '#333',
+                        marginBottom: 16,
+                      }}>
+                        {payAttempts >= 2
+                          ? 'Unauthorized payment attempt detected.'
+                          : 'Unauthorized payment attempt detected.'}
+                      </div>
+                      <button
+                        onClick={() => { setShowWarning(false); setPaying(false); }}
+                        style={{
+                          padding: '8px 24px',
+                          fontSize: '1rem',
+                          fontWeight: 700,
+                          backgroundColor: '#cc0000',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 4,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {payAttempts >= 2 ? 'I apologize' : 'I apologize'}
+                      </button>
+                    </div>
+                    {/* Warning stripes footer */}
+                    <div style={{
+                      background: 'repeating-linear-gradient(45deg, #ffcc00, #ffcc00 10px, #000 10px, #000 20px)',
+                      height: 20,
+                    }} />
                   </div>
-                  {/* Warning stripes footer */}
-                  <div style={{
-                    background: 'repeating-linear-gradient(45deg, #ffcc00, #ffcc00 10px, #000 10px, #000 20px)',
-                    height: 20,
-                  }} />
-                </div>
-              </div>
+                </div>,
+                document.body
+              )}</>
             )}
           </>
         ) : (
