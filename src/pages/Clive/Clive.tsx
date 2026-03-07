@@ -158,18 +158,51 @@ export default function Clive() {
   const [showWarning, setShowWarning] = useState(false);
   const [payAttempts, setPayAttempts] = useState(0);
 
+  const [payPhase, setPayPhase] = useState<'forward1' | 'slowing' | 'backward' | 'forward2'>('forward1');
+
   useEffect(() => {
     if (!paying || showWarning) return;
     if (payProgress >= 100) {
       setShowWarning(true);
       return;
     }
-    // Random increment and delay for jittery progress, ~10s total
-    const delay = 50 + Math.random() * 300;
-    const increment = Math.random() * 2.5 + 0.1;
-    const timer = setTimeout(() => setPayProgress(p => Math.min(100, p + increment)), delay);
+
+    let delay: number;
+    let change: number;
+
+    if (payPhase === 'forward1') {
+      // 0-70%: normal jittery progress (~10s)
+      delay = 50 + Math.random() * 300;
+      change = Math.random() * 2.5 + 0.1;
+      if (payProgress >= 70) {
+        setPayPhase('slowing');
+        return;
+      }
+    } else if (payPhase === 'slowing') {
+      // 70-75%: slow crawl to a stop (~3s)
+      delay = 200 + Math.random() * 400;
+      change = Math.random() * 0.3 + 0.05;
+      if (payProgress >= 75) {
+        setPayPhase('backward');
+        return;
+      }
+    } else if (payPhase === 'backward') {
+      // 75% -> ~60%: go backwards (~3s)
+      delay = 100 + Math.random() * 200;
+      change = -(Math.random() * 1.5 + 0.5);
+      if (payProgress <= 60) {
+        setPayPhase('forward2');
+        return;
+      }
+    } else {
+      // 60-100%: finish up (~4s)
+      delay = 50 + Math.random() * 200;
+      change = Math.random() * 3 + 0.5;
+    }
+
+    const timer = setTimeout(() => setPayProgress(p => Math.min(100, p + change)), delay);
     return () => clearTimeout(timer);
-  }, [paying, payProgress, showWarning]);
+  }, [paying, payProgress, showWarning, payPhase]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [musicPlaying, setMusicPlaying] = useState(false);
@@ -410,6 +443,7 @@ export default function Clive() {
                 onClick={() => {
                   setPaying(true);
                   setPayProgress(0);
+                  setPayPhase('forward1');
                   setShowWarning(false);
                   setPayAttempts(a => a + 1);
                 }}
