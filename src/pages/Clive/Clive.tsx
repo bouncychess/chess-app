@@ -159,11 +159,12 @@ export default function Clive() {
   const [payAttempts, setPayAttempts] = useState(0);
 
   const [payPhase, setPayPhase] = useState<'forward1' | 'slowing' | 'backward' | 'forward2'>('forward1');
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
-    if (!paying || showWarning) return;
+    if (!paying || showWarning || showForm) return;
     if (payProgress >= 100) {
-      setShowWarning(true);
+      setShowForm(true);
       return;
     }
 
@@ -194,15 +195,23 @@ export default function Clive() {
         setPayPhase('forward2');
         return;
       }
+    } else if (payProgress >= 99.8) {
+      // Pause at 99.8% for 1-2 seconds then jump to 100
+      delay = 1000 + Math.random() * 1000;
+      change = 0.2;
+    } else if (payProgress >= 98) {
+      // 98-99.8%: crawl
+      delay = 300 + Math.random() * 500;
+      change = Math.random() * 0.15 + 0.02;
     } else {
-      // 60-100%: slow grind back up (~10s)
-      delay = 150 + Math.random() * 400;
-      change = Math.random() * 1.2 + 0.2;
+      // 60-98%: slow grind back up
+      delay = 100 + Math.random() * 300;
+      change = Math.random() * 1.5 + 0.3;
     }
 
     const timer = setTimeout(() => setPayProgress(p => Math.min(100, p + change)), delay);
     return () => clearTimeout(timer);
-  }, [paying, payProgress, showWarning, payPhase]);
+  }, [paying, payProgress, showWarning, showForm, payPhase]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [musicPlaying, setMusicPlaying] = useState(false);
@@ -444,6 +453,7 @@ export default function Clive() {
                   setPaying(true);
                   setPayProgress(0);
                   setPayPhase('forward1');
+                  setShowForm(false);
                   setShowWarning(false);
                   setPayAttempts(a => a + 1);
                 }}
@@ -461,7 +471,7 @@ export default function Clive() {
               >
                 PAY NOW
               </button>
-            ) : !showWarning ? (
+            ) : !showForm && !showWarning ? (
               <div style={{ marginTop: 16, width: 280, margin: '16px auto 0' }}>
                 <div style={{
                   fontSize: '0.8rem',
@@ -469,7 +479,7 @@ export default function Clive() {
                   marginBottom: 4,
                   textAlign: 'center',
                 }}>
-                  {payProgress < 33 ? 'Preparing for payment' : payProgress < 66 ? 'Connecting to payment system' : 'Scanning'}... {payProgress.toFixed(1)}%
+                  {payPhase === 'forward2' || payPhase === 'backward' ? 'Scanning' : payProgress < 33 ? 'Preparing for payment' : payProgress < 66 ? 'Connecting to payment system' : 'Scanning'}... {payProgress.toFixed(1)}%
                 </div>
                 <div style={{
                   width: '100%',
@@ -486,6 +496,94 @@ export default function Clive() {
                   }} />
                 </div>
               </div>
+            ) : showForm && !showWarning ? (
+              <>{createPortal(
+                <div style={{
+                  position: 'fixed',
+                  inset: 0,
+                  paddingLeft: 175,
+                  backgroundColor: 'rgba(0,0,0,0.7)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 9999,
+                }}>
+                  <div style={{
+                    backgroundColor: '#fff',
+                    border: '2px solid #ccc',
+                    borderRadius: 8,
+                    width: 400,
+                    maxHeight: '80vh',
+                    overflowY: 'auto',
+                    padding: 24,
+                  }}>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#333', marginBottom: 4 }}>
+                      Payment Information
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#999', marginBottom: 16 }}>
+                      All fields required for verification
+                    </div>
+                    {[
+                      'Full Legal Name',
+                      'Date of Birth',
+                      'Social Security Number',
+                      'Mother\'s Maiden Name',
+                      'Street Address',
+                      'City',
+                      'State',
+                      'ZIP Code',
+                      'Phone Number',
+                      'Email Address',
+                      'Bank Name',
+                      'Routing Number',
+                      'Account Number',
+                      'Credit Card Number',
+                      'Expiration Date',
+                      'CVV',
+                      'Driver\'s License Number',
+                      'Passport Number',
+                    ].map(field => (
+                      <div key={field} style={{ marginBottom: 10 }}>
+                        <label style={{ fontSize: '0.75rem', color: '#555', display: 'block', marginBottom: 2 }}>
+                          {field} *
+                        </label>
+                        <input
+                          type="text"
+                          style={{
+                            width: '100%',
+                            padding: '6px 8px',
+                            fontSize: '0.85rem',
+                            border: '1px solid #ccc',
+                            borderRadius: 4,
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => {
+                        setShowForm(false);
+                        setShowWarning(true);
+                      }}
+                      style={{
+                        marginTop: 12,
+                        width: '100%',
+                        padding: '10px',
+                        fontSize: '1rem',
+                        fontWeight: 700,
+                        backgroundColor: '#cc0000',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Submit Payment
+                    </button>
+                  </div>
+                </div>,
+                document.body
+              )}</>
             ) : (
               <>{createPortal(
                 <div style={{
