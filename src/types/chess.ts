@@ -30,7 +30,10 @@ export type GameAction =
   | "offerDraw"
   | "respondDraw"
   | "drawOffer"
-  | "drawDeclined";
+  | "drawDeclined"
+  | "offerRematch"
+  | "rematchOffer"
+  | "rematchCanceled";
 
 export interface Player {
   id: string;
