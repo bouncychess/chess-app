@@ -152,6 +152,20 @@ async function fetchNewGames(): Promise<{ cliveWins: number; ratWins: number; dr
 export default function Clive() {
   const [stats, setStats] = useState<{ cliveWins: number; ratWins: number; draws: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
+  const [payProgress, setPayProgress] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
+
+  useEffect(() => {
+    if (!paying || showWarning) return;
+    if (payProgress >= 100) {
+      setShowWarning(true);
+      return;
+    }
+    // ~10 seconds total
+    const timer = setTimeout(() => setPayProgress(p => Math.min(100, p + 0.5)), 50);
+    return () => clearTimeout(timer);
+  }, [paying, payProgress, showWarning]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [musicPlaying, setMusicPlaying] = useState(false);
@@ -204,12 +218,28 @@ export default function Clive() {
     return () => clearInterval(interval);
   }, []);
 
-  const debt = stats ? stats.ratWins - stats.cliveWins : 0;
-  const debtDisplay = debt > 0
-    ? `${debt} buck`
-    : debt < 0
-      ? `dominantrat owes ${Math.abs(debt)} buck`
-      : '0 buck (even)';
+  const principal = stats ? stats.ratWins - stats.cliveWins : 0;
+
+  // 15% annual interest, continuously compounding, backdated 3 months before cutoff
+  const INTEREST_START = CUTOFF_EPOCH - (90 * 24 * 3600); // 3 months before cutoff
+  const [accruedInterest, setAccruedInterest] = useState(0);
+
+  useEffect(() => {
+    if (!stats) return;
+    const RATE = 0.15;
+    const SECONDS_PER_YEAR = 365.25 * 24 * 3600;
+
+    const tick = () => {
+      const now = Date.now() / 1000;
+      const elapsed = now - INTEREST_START;
+      const factor = Math.exp(RATE * elapsed / SECONDS_PER_YEAR);
+      setAccruedInterest(principal * factor - principal);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    const rafRef = { current: requestAnimationFrame(tick) };
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [principal, stats]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', gap: 24, position: 'relative' }}>
@@ -347,7 +377,22 @@ export default function Clive() {
               animation: 'pulseText 3s ease-in-out infinite, rainbow 2s linear infinite',
               display: 'inline-block',
             }}>
-              {debtDisplay}
+              ${(principal + accruedInterest).toFixed(6)}
+            </div>
+            <div style={{
+              fontSize: '1rem',
+              color: theme.colors.placeholder,
+              marginTop: 8,
+              fontFamily: 'monospace',
+            }}>
+              Principal: ${principal.toFixed(2)} &middot; Interest: ${accruedInterest.toFixed(6)}
+            </div>
+            <div style={{
+              fontSize: '0.75rem',
+              color: theme.colors.placeholder,
+              marginTop: 4,
+            }}>
+              15% APR &middot; continuously compounding
             </div>
             <div style={{
               fontSize: '0.875rem',
@@ -356,6 +401,136 @@ export default function Clive() {
             }}>
               W {stats.cliveWins} &ndash; L {stats.ratWins} &ndash; D {stats.draws}
             </div>
+            {!paying ? (
+              <button
+                onClick={() => {
+                  setPaying(true);
+                  setPayProgress(0);
+                  setShowWarning(false);
+                }}
+                style={{
+                  marginTop: 16,
+                  padding: '10px 32px',
+                  fontSize: '1.1rem',
+                  fontWeight: 700,
+                  backgroundColor: '#cc0000',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                }}
+              >
+                PAY NOW
+              </button>
+            ) : !showWarning ? (
+              <div style={{ marginTop: 16, width: 280 }}>
+                <div style={{
+                  fontSize: '0.8rem',
+                  color: theme.colors.placeholder,
+                  marginBottom: 4,
+                }}>
+                  Processing payment... {payProgress.toFixed(1)}%
+                </div>
+                <div style={{
+                  width: '100%',
+                  height: 20,
+                  backgroundColor: '#333',
+                  borderRadius: 4,
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    width: `${payProgress}%`,
+                    height: '100%',
+                    backgroundColor: '#00aa00',
+                    transition: 'width 0.05s linear',
+                  }} />
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9999,
+              }}>
+                <div style={{
+                  backgroundColor: '#fff',
+                  border: '4px solid #cc0000',
+                  borderRadius: 0,
+                  width: 420,
+                  overflow: 'hidden',
+                  boxShadow: '0 0 40px rgba(255,0,0,0.5)',
+                }}>
+                  {/* Warning stripes header */}
+                  <div style={{
+                    background: 'repeating-linear-gradient(45deg, #ffcc00, #ffcc00 10px, #000 10px, #000 20px)',
+                    height: 20,
+                  }} />
+                  <div style={{
+                    background: '#cc0000',
+                    padding: '8px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
+                    <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem' }}>
+                      SECURITY ALERT
+                    </span>
+                    <span style={{ color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }}
+                      onClick={() => { setShowWarning(false); setPaying(false); }}>
+                      X
+                    </span>
+                  </div>
+                  <div style={{ padding: 24, textAlign: 'center' }}>
+                    <div style={{ fontSize: '4rem', marginBottom: 12 }}>
+                      {'\u26A0\uFE0F'}
+                    </div>
+                    <div style={{
+                      fontSize: '2rem',
+                      fontWeight: 900,
+                      color: '#cc0000',
+                      marginBottom: 8,
+                      textTransform: 'uppercase',
+                    }}>
+                      YOU ARE NOT CLIVE!
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#333',
+                      marginBottom: 16,
+                    }}>
+                      Unauthorized payment attempt detected. Your IP address has been logged and reported to the authorities.
+                    </div>
+                    <button
+                      onClick={() => { setShowWarning(false); setPaying(false); }}
+                      style={{
+                        padding: '8px 24px',
+                        fontSize: '1rem',
+                        fontWeight: 700,
+                        backgroundColor: '#cc0000',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      I understand
+                    </button>
+                  </div>
+                  {/* Warning stripes footer */}
+                  <div style={{
+                    background: 'repeating-linear-gradient(45deg, #ffcc00, #ffcc00 10px, #000 10px, #000 20px)',
+                    height: 20,
+                  }} />
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <div style={{ fontSize: '1.5rem', color: '#ff0000' }}>
