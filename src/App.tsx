@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import News from './pages/News/News';
 import Play from './pages/Play/Play';
 import Game from './pages/Game/Game';
@@ -10,6 +10,11 @@ import Layout from './components/layout/Layout';
 import { WebSocketProvider } from './context/WebSocketContext';
 import { AuthProvider } from './context/AuthContext';
 
+function GameWrapper() {
+    const { gameId } = useParams<{ gameId: string }>();
+    return <Game key={gameId} />;
+}
+
 export default function App() {
     return (
         <AuthProvider>
@@ -18,7 +23,7 @@ export default function App() {
                     <Routes>
                         <Route path="/" element={<Navigate to="/play" replace />} />
                         <Route path="/play" element={<Layout><Play /></Layout>} />
-                        <Route path="/game/:gameId" element={<Layout><Game /></Layout>} />
+                        <Route path="/game/:gameId" element={<Layout><GameWrapper /></Layout>} />
                         <Route path="/news" element={<Layout><News /></Layout>} />
                         <Route path="/user/:username" element={<Layout><Profile /></Layout>} />
                         <Route path="/signin" element={<Layout><SignIn /></Layout>} />
