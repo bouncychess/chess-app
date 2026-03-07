@@ -195,14 +195,14 @@ export default function Clive() {
         setPayPhase('forward2');
         return;
       }
-    } else if (payProgress >= 99.8) {
-      // Pause at 99.8% for 1-2 seconds then jump to 100
-      delay = 1000 + Math.random() * 1000;
-      change = 0.2;
+    } else if (payProgress >= 99.9) {
+      // Pause at 99.9% for 5 seconds then jump to 100
+      delay = 5000;
+      change = 0.1;
     } else if (payProgress >= 98) {
-      // 98-99.8%: crawl
+      // 98-99.9%: crawl
       delay = 300 + Math.random() * 500;
-      change = Math.random() * 0.15 + 0.02;
+      change = Math.random() * 0.1 + 0.02;
     } else {
       // 60-98%: slow grind back up
       delay = 100 + Math.random() * 300;
@@ -408,7 +408,7 @@ export default function Clive() {
           color: theme.colors.placeholder,
           marginBottom: 12,
         }}>
-          eric_clive vs dominantrat &middot; 1 buck a pop
+          <a href="https://www.chess.com/member/eric_clive" target="_blank" rel="noopener noreferrer" style={{ color: theme.colors.placeholder }}>eric_clive</a> vs <a href="https://www.chess.com/member/dominantrat" target="_blank" rel="noopener noreferrer" style={{ color: theme.colors.placeholder }}>dominantrat</a> &middot; 1 buck a pop
         </div>
         {loading ? (
           <div style={{ fontSize: '1.5rem', color: theme.colors.placeholder }}>
