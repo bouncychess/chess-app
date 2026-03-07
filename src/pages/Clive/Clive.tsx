@@ -15,12 +15,11 @@ const keyframes = `
   100% { transform: rotate(0deg); }
 }
 @keyframes hit {
-  0% { transform: rotate(-80deg) translateX(-150px); opacity: 0; }
-  5% { transform: rotate(-80deg) translateX(-150px); opacity: 1; }
-  15% { transform: rotate(10deg) translateX(20px); opacity: 1; }
-  22% { transform: rotate(10deg) translateX(20px); opacity: 1; }
-  30% { transform: rotate(-80deg) translateX(-150px); opacity: 0; }
-  100% { transform: rotate(-80deg) translateX(-150px); opacity: 0; }
+  0% { transform: rotate(-40deg) translateX(-80px); }
+  15% { transform: rotate(10deg) translateX(20px); }
+  22% { transform: rotate(10deg) translateX(20px); }
+  40% { transform: rotate(-40deg) translateX(-80px); }
+  100% { transform: rotate(-40deg) translateX(-80px); }
 }
 @keyframes dollarFly0 {
   0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
@@ -219,17 +218,6 @@ export default function Clive() {
 
       {/* Pinata area */}
       <div style={{ position: 'relative', width: 420, height: 450 }}>
-        {/* String */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: '50%',
-          width: 3,
-          height: 60,
-          backgroundColor: '#888',
-          transformOrigin: 'top center',
-          animation: 'swing 2s ease-in-out infinite',
-        }} />
         {/* Pinata body with image */}
         <div style={{
           position: 'absolute',
@@ -265,16 +253,38 @@ export default function Clive() {
             />
           </div>
         </div>
-        {/* Bat */}
+        {/* Crab with cattle prod */}
         <div style={{
           position: 'absolute',
-          top: '35%',
-          left: '0%',
-          fontSize: '8rem',
+          top: '25%',
+          left: '-5%',
           animation: 'hit 2s ease-in-out infinite',
           transformOrigin: 'right center',
+          display: 'flex',
+          alignItems: 'center',
         }}>
-          🏏
+          <img
+            src="/images/articles/crab.jpeg"
+            alt="Crab"
+            style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: '50%', zIndex: 1 }}
+          />
+          <svg width="140" height="80" viewBox="0 0 140 80" style={{ marginLeft: -20 }}>
+            {/* Handle */}
+            <rect x="0" y="34" width="40" height="12" rx="5" fill="#222" />
+            {/* Grip rings */}
+            <rect x="6" y="32" width="4" height="16" rx="1" fill="#555" />
+            <rect x="16" y="32" width="4" height="16" rx="1" fill="#555" />
+            {/* Shaft */}
+            <rect x="40" y="36" width="70" height="8" rx="3" fill="#888" />
+            {/* Prongs */}
+            <line x1="110" y1="30" x2="135" y2="20" stroke="#aaa" strokeWidth="3" strokeLinecap="round" />
+            <line x1="110" y1="40" x2="135" y2="40" stroke="#aaa" strokeWidth="3" strokeLinecap="round" />
+            <line x1="110" y1="50" x2="135" y2="60" stroke="#aaa" strokeWidth="3" strokeLinecap="round" />
+            {/* Electric spark */}
+            <circle cx="135" cy="20" r="4" fill="#ffff00" opacity="0.9" />
+            <circle cx="135" cy="40" r="4" fill="#ffff00" opacity="0.9" />
+            <circle cx="135" cy="60" r="4" fill="#ffff00" opacity="0.9" />
+          </svg>
         </div>
         {/* Flying dollars */}
         {dollars.map((d, i) => (
