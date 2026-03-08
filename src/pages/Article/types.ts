@@ -11,5 +11,7 @@ export type ArticleSection = {
 
 export type ArticleData = {
     title: string;
+    author?: string;
+    authorImage?: string;
     sections: ArticleSection[];
 };

@@ -2,6 +2,8 @@ import type { ArticleData } from '../types';
 
 const article: ArticleData = {
     title: 'The "Elf Incident"',
+    author: 'Don Mahogey',
+    authorImage: '/images/mahogey_0.png',
     sections: [
         {
             images: [

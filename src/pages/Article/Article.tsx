@@ -73,6 +73,37 @@ export default function Article() {
                     )}
                 </div>
             ))}
+            {article.author && (
+                <div style={{
+                    marginTop: 40,
+                    paddingTop: 16,
+                    borderTop: '1px solid rgba(128,128,128,0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                    gap: 12,
+                }}>
+                    {article.authorImage && (
+                        <img
+                            src={article.authorImage}
+                            alt={article.author}
+                            style={{
+                                width: 48,
+                                height: 48,
+                                borderRadius: '50%',
+                                objectFit: 'cover',
+                            }}
+                        />
+                    )}
+                    <span style={{
+                        fontFamily: '"Playfair Display", "Georgia", "Times New Roman", serif',
+                        fontStyle: 'italic',
+                        fontSize: '1.1rem',
+                    }}>
+                        — {article.author}
+                    </span>
+                </div>
+            )}
         </div>
     );
 }
