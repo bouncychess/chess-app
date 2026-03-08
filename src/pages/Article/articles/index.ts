@@ -14,7 +14,7 @@ const articles: Record<string, ArticleData> = {
     '4': headSize,
     '5': tacticalPatterns,
     '6': analyzeGames,
-    '7': elfIncident,
+    'elf_incident': elfIncident,
 };
 
 export default articles;

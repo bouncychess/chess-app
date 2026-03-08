@@ -2,7 +2,7 @@ import ArticleCard, { type Article } from '../../components/ArticleCard';
 
 
 const featuredArticle: Article = {
-    id: '7', title: 'The "Elf Incident"', thumbnail: '/images/articles/clive_elf.png',
+    id: 'elf_incident', title: 'The "Elf Incident"', thumbnail: '/images/articles/clive_elf.png',
 };
 
 // Sample articles - replace with real data later
