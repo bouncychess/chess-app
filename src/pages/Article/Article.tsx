@@ -19,7 +19,17 @@ export default function Article() {
             <Link to="/news" style={{ color: '#007bff', textDecoration: 'none', marginBottom: 16, display: 'inline-block' }}>
                 ← Back to News
             </Link>
-            <h1 style={{ marginTop: 16, marginBottom: 24 }}>{article.title}</h1>
+            <h1 style={{
+                marginTop: 16,
+                marginBottom: 24,
+                fontFamily: '"Playfair Display", "Georgia", "Times New Roman", serif',
+                fontWeight: 900,
+            }}>{article.title}</h1>
+            <hr style={{
+                border: 'none',
+                borderTop: '2px solid currentColor',
+                marginBottom: 24,
+            }} />
             {article.sections.map((section, i) => (
                 <div key={i} style={{ marginBottom: 24 }}>
                     {section.images && (
