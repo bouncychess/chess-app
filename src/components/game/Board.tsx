@@ -33,15 +33,15 @@ function createChessInstance(pgn?: string | null): Chess {
   return chess;
 }
 
-function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null }: BoardProps) {
+function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null }: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
 
   const [chessPosition, setChessPosition] = useState(() => chessGame.fen());
-  const [currentTurn, setCurrentTurn] = useState<PlayerColor>(initialTurn);
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
+  const [premove, setPremove] = useState<{ from: string; to: string } | null>(null);
   const moveSoundRef = useRef(new Audio("/sounds/move.mp3"));
   const prevSelectedRef = useRef<Square | null>(null);
 
@@ -66,8 +66,24 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         setChessPosition(chessGame.fen());
         setLastMove({ from, to });
         playMoveSound();
-        setCurrentTurn(lastMessage.turn);
         onPgnChange?.(chessGame.pgn());
+
+        // Execute premove if one is set and it's now our turn
+        const newTurn = lastMessage.turn as PlayerColor;
+        if (premove && newTurn === playerColor) {
+          // Use setTimeout so the opponent's move renders first
+          setTimeout(() => {
+            setPremove(null);
+            const premoveFrom = premove.from;
+            const premoveTo = premove.to;
+            // Check if it's a valid promotion
+            if (isPromotionMove(premoveFrom, premoveTo)) {
+              executeMove(premoveFrom, premoveTo, "q");
+            } else {
+              executeMove(premoveFrom, premoveTo);
+            }
+          }, 50);
+        }
       } catch (error) {
         console.log("Failed to make move", error);
       }
@@ -108,7 +124,6 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       const move = promotion ? `${from}${to}${promotion}` : `${from}${to}`;
       sendMove(move);
       const newTurn: PlayerColor = chessGame.turn() === 'w' ? 'white' : 'black';
-      setCurrentTurn(newTurn);
       onTurnChange?.(newTurn);
       onPgnChange?.(chessGame.pgn());
       return true;
@@ -117,12 +132,29 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     }
   };
 
+  // Set a premove (validated loosely — just check it's our own piece moving to a different square)
+  const tryPremove = (from: string, to: string): boolean => {
+    const piece = chessGame.get(from as Square);
+    if (!piece) return false;
+    const ourColor = playerColor === "white" ? "w" : "b";
+    if (piece.color !== ourColor) return false;
+    if (from === to) return false;
+    setPremove({ from, to });
+    setSelectedSquare(null);
+    return true;
+  };
+
   // Attempt to make a move (used by both drag-drop and click-to-move)
   const tryMove = (from: string, to: string): boolean => {
     // Use chess.js turn directly to avoid stale React state during pre-drag
     const actualTurn = chessGame.turn() === 'w' ? 'white' : 'black';
-    if (!gameId || isViewingHistory || gameResult !== null || playerColor !== actualTurn) {
+    if (!gameId || isViewingHistory || gameResult !== null) {
       return false;
+    }
+
+    // If it's not our turn, set a premove
+    if (playerColor !== actualTurn) {
+      return tryPremove(from, to);
     }
 
     // Check if this is a promotion
@@ -157,6 +189,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   function onPieceDrop({ sourceSquare, targetSquare }: PieceDropHandlerArgs): boolean {
     if (!targetSquare) return false;
     setSelectedSquare(null);
+    setPremove(null);
     tryMove(sourceSquare, targetSquare);
     return false;
   }
@@ -166,6 +199,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     const piece = chessGame.get(sq);
     const prevSelected = prevSelectedRef.current;
     prevSelectedRef.current = null;
+    const ourColor = playerColor === "white" ? "w" : "b";
 
     // If viewing history, don't allow selection
     if (isViewingHistory) {
@@ -176,11 +210,12 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     if (prevSelected) {
       // If clicking the same square, stay deselected
       if (prevSelected === sq) {
+        setPremove(null);
         return;
       }
 
-      // If it's our turn, try to move there
-      if (gameId && playerColor === currentTurn) {
+      // Try to move (or premove if not our turn)
+      if (gameId) {
         const moved = tryMove(prevSelected, sq);
         if (moved) {
           return;
@@ -188,15 +223,21 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       }
 
       // If clicked on own piece, switch selection to it
-      if (piece && piece.color === (playerColor === "white" ? "w" : "b")) {
+      if (piece && piece.color === ourColor) {
+        setPremove(null);
         setSelectedSquare(sq);
+      } else {
+        setPremove(null);
       }
       return;
     }
 
-    // No piece selected - select own piece if clicked
-    if (piece && piece.color === (playerColor === "white" ? "w" : "b")) {
+    // No piece selected — clear premove if clicking empty/opponent square
+    if (piece && piece.color === ourColor) {
+      // Select own piece (for both normal moves and premoves)
       setSelectedSquare(sq);
+    } else {
+      setPremove(null);
     }
   }
 
@@ -211,6 +252,15 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       };
       styles[lastMove.from] = highlightStyle;
       styles[lastMove.to] = highlightStyle;
+    }
+
+    // Highlight premove squares
+    if (premove) {
+      const premoveStyle = {
+        backgroundColor: 'rgba(0, 150, 200, 0.45)',
+      };
+      styles[premove.from] = { ...styles[premove.from], ...premoveStyle };
+      styles[premove.to] = { ...styles[premove.to], ...premoveStyle };
     }
 
     // Highlight selected square (adds to last move highlight if same square)
