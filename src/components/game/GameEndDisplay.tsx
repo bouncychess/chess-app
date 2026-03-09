@@ -70,9 +70,8 @@ export function GameEndDisplay({
       <Button
         variant="secondary"
         onClick={onRematch}
-        disabled={hasOfferedRematch}
       >
-        {hasOfferedRematch ? "Rematch Offered" : "Rematch"}
+        {hasOfferedRematch ? "Cancel Rematch" : "Rematch"}
       </Button>
     );
   };
