@@ -1,5 +1,5 @@
 import type { ReactNode, CSSProperties } from "react";
-import { theme } from "../config/theme";
+import { useTheme } from "../context/ThemeContext";
 
 interface CardProps {
   children: ReactNode;
@@ -7,6 +7,7 @@ interface CardProps {
 }
 
 export function ResizableCard({ children, style }: CardProps) {
+  const { theme } = useTheme();
   return (
     <div style={{
       ...theme.card,
