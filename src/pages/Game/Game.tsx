@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useWebSocket } from "../../context/WebSocketContext";
+import { useTheme } from "../../context/ThemeContext";
 import Board from "../../components/game/Board";
 import Chat from "./components/Chat";
 import { GameClock } from "../../components/game/GameClock";
@@ -29,8 +30,10 @@ function Game() {
   const { gameId } = useParams<{ gameId: string }>();
   const location = useLocation();
   const { sendMessage, lastMessage, isConnected, username } = useWebSocket();
+  const { mode } = useTheme();
   const navigate = useNavigate();
   const [boardSize, setBoardSize] = useState(400);
+  const panelOffset = mode === 'windows' ? 67 : 85;
 
   // Initialize from navigation state
   const initialState = location.state as GameState | null;
@@ -386,7 +389,7 @@ function Game() {
             />
           </GameClock>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + 85 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + panelOffset }}>
           <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0}}>
             <MoveNotation
               pgn={pgn || ""}

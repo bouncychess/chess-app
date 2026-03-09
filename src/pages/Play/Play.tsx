@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWebSocket } from "../../context/WebSocketContext";
+import { useTheme } from "../../context/ThemeContext";
 import Board from "../../components/game/Board";
 import Players from "./components/Players";
 import { GameClock } from "../../components/game/GameClock";
@@ -13,6 +14,8 @@ import type { Player } from "../../types/chess";
 function Play() {
   const navigate = useNavigate();
   const { sendMessage, lastMessage, isConnected, username } = useWebSocket();
+  const { mode } = useTheme();
+  const panelOffset = mode === 'windows' ? 67 : 85;
 
   const [status, setStatus] = useState<'online' | 'disconnected' | 'waiting'>('online');
   const [players, setPlayers] = useState<Player[]>([]);
@@ -116,7 +119,7 @@ function Play() {
             onSizeChange={setBoardSize}
           />
         </GameClock>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + 85 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + panelOffset }}>
           <TimeControlSelector
             selected={selectedTimeControl}
             onSelect={(tc) => {
