@@ -105,7 +105,7 @@ export default function Sidebar() {
             {!collapsed && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <Link to="/play" style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <h2 style={{ margin: 0, cursor: 'pointer' }}>Chess</h2>
+                        <h2 style={{ margin: 0, cursor: 'pointer' }}>Chesstard</h2>
                     </Link>
                     <button
                         onClick={() => setCollapsed(true)}
