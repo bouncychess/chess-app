@@ -431,7 +431,7 @@ export default function Clive() {
               marginTop: 8,
               fontFamily: 'monospace',
             }}>
-              Principal: ${principal.toFixed(2)} &middot; Interest: ${accruedInterest.toFixed(6)}
+              Principal: {principal.toFixed(2)} Buck &middot; Interest: {accruedInterest.toFixed(6)} Buck
             </div>
             <div style={{
               fontSize: '0.75rem',
