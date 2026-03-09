@@ -50,6 +50,13 @@ function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onT
     moveSoundRef.current.play().catch(() => {});
   };
 
+  // Clear premove on any click anywhere on the page
+  useEffect(() => {
+    const handleGlobalClick = () => setPremove(null);
+    window.addEventListener('pointerdown', handleGlobalClick);
+    return () => window.removeEventListener('pointerdown', handleGlobalClick);
+  }, []);
+
   useEffect(() => {
     if (!lastMessage) return;
 
@@ -210,7 +217,6 @@ function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onT
     if (prevSelected) {
       // If clicking the same square, stay deselected
       if (prevSelected === sq) {
-        setPremove(null);
         return;
       }
 
@@ -224,20 +230,14 @@ function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onT
 
       // If clicked on own piece, switch selection to it
       if (piece && piece.color === ourColor) {
-        setPremove(null);
         setSelectedSquare(sq);
-      } else {
-        setPremove(null);
       }
       return;
     }
 
-    // No piece selected — clear premove if clicking empty/opponent square
+    // No piece selected — select own piece if clicked
     if (piece && piece.color === ourColor) {
-      // Select own piece (for both normal moves and premoves)
       setSelectedSquare(sq);
-    } else {
-      setPremove(null);
     }
   }
 
@@ -257,7 +257,7 @@ function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onT
     // Highlight premove squares
     if (premove) {
       const premoveStyle = {
-        backgroundColor: 'rgba(0, 150, 200, 0.45)',
+        backgroundColor: 'rgba(220, 50, 50, 0.45)',
       };
       styles[premove.from] = { ...styles[premove.from], ...premoveStyle };
       styles[premove.to] = { ...styles[premove.to], ...premoveStyle };
