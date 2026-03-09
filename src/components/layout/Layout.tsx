@@ -3,7 +3,7 @@ import type {ReactNode} from 'react';
 import { ConnectingOverlay } from '../ConnectingOverlay';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { useTheme } from '../../context/ThemeContext';
-import { PopupAd } from '../PopupAd';
+
 
 export default function Layout({ children }: { children: ReactNode }) {
     const { isConnected } = useWebSocket();
@@ -21,7 +21,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                     </div>
                 )}
                 {children}
-                {/* {mode === 'windows' && <PopupAd />} */}
+
             </main>
         </div>
     );
