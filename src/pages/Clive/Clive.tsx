@@ -423,7 +423,7 @@ export default function Clive() {
               animation: 'pulseText 3s ease-in-out infinite, rainbow 2s linear infinite',
               display: 'inline-block',
             }}>
-              ${(principal + accruedInterest).toFixed(6)}
+              {(principal + accruedInterest).toFixed(6)} Buck
             </div>
             <div style={{
               fontSize: '1rem',
