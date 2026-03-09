@@ -1,21 +1,14 @@
-export const theme = {
+export type ThemeMode = 'normal' | 'windows';
+
+const normalTheme = {
     colors: {
-        // Main content area
         background: '#e8e8e8',
         text: '#1a1a1a',
-
-        // Sidebar
         sidebarBackground: '#1f2937',
         sidebarText: 'white',
-
-        // Links
         link: '#007bff',
-
-        // Cards
         cardBackground: '#ffffff',
         cardText: '#1a1a1a',
-
-        // Buttons
         primary: 'grey',
         primaryText: '#ffffff',
         secondary: 'grey',
@@ -23,28 +16,145 @@ export const theme = {
         danger: '#991b1b',
         dangerText: '#ffffff',
         buttonHoverBorder: '#ffffff',
-
-        // Form elements
         border: '#d1d5db',
         borderFocus: '#2563eb',
         placeholder: '#9ca3af',
-
-        // Chess board
         squareHighlight: 'rgba(255, 221, 0, 0.8)',
         moveHighlight: 'rgba(255, 221, 0, 0.4)',
     },
-    // Common card/panel styling
     card: {
         backgroundColor: '#ffffff',
         borderRadius: 8,
         padding: 16,
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        overflow: 'hidden',
-    } as const,
-    // Common card header styling
+        overflow: 'hidden' as const,
+    },
     cardHeader: {
         margin: '0 0 12px 0',
         fontSize: '1rem',
         color: '#1a1a1a',
-    } as const,
+    },
+    button: {
+        fontFamily: 'inherit',
+        fontWeight: 600,
+        fontSize: undefined as string | undefined,
+        padding: undefined as string | undefined,
+        borderRadius: undefined as string | undefined,
+        boxShadow: undefined as string | undefined,
+        minHeight: undefined as number | undefined,
+    },
+    input: {
+        border: '1px solid #ccc',
+        padding: '8px 12px',
+        borderRadius: 4,
+        fontSize: '1rem',
+        fontFamily: 'inherit',
+        backgroundColor: undefined as string | undefined,
+        color: undefined as string | undefined,
+        boxShadow: undefined as string | undefined,
+    },
+    css: {
+        fontFamily: 'system-ui, Avenir, Helvetica, Arial, sans-serif',
+        fontSize: undefined as string | undefined,
+        lineHeight: '1.5',
+        fontSmoothingWebkit: 'antialiased',
+        fontSmoothingMoz: 'grayscale',
+        colorText: 'var(--color-text)',
+        colorBackground: 'var(--color-background)',
+        btnBorderRadius: '8px',
+        btnBorder: '1px solid transparent',
+        btnPadding: '0.6em 1.2em',
+        btnFontSize: '1em',
+        btnFontWeight: '500',
+        btnBgColor: '#1a1a1a',
+        btnBoxShadow: 'none',
+        btnActiveBoxShadow: 'none',
+        btnFocusOutline: '4px auto -webkit-focus-ring-color',
+        btnFocusOutlineOffset: '0px',
+    },
 };
+
+const windowsTheme = {
+    colors: {
+        background: '#c0c0c0',
+        text: '#000000',
+        sidebarBackground: '#000080',
+        sidebarText: '#ffffff',
+        link: '#0000ff',
+        cardBackground: '#c0c0c0',
+        cardText: '#000000',
+        primary: '#c0c0c0',
+        primaryText: '#000000',
+        secondary: '#c0c0c0',
+        secondaryText: '#000000',
+        danger: '#c0c0c0',
+        dangerText: '#000000',
+        buttonHoverBorder: '#ffffff',
+        border: '#808080',
+        borderFocus: '#000080',
+        placeholder: '#808080',
+        squareHighlight: 'rgba(255, 221, 0, 0.8)',
+        moveHighlight: 'rgba(255, 221, 0, 0.4)',
+    },
+    card: {
+        backgroundColor: '#c0c0c0',
+        borderRadius: 0,
+        padding: 16,
+        boxShadow: 'inset -1px -1px 0 #000000, inset 1px 1px 0 #ffffff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf',
+        overflow: 'hidden' as const,
+    },
+    cardHeader: {
+        margin: '0 0 12px 0',
+        fontSize: '1rem',
+        color: '#000000',
+    },
+    button: {
+        fontFamily: '"MS Sans Serif", "Microsoft Sans Serif", Tahoma, Geneva, sans-serif',
+        fontWeight: 400,
+        fontSize: '12px',
+        padding: '4px 16px',
+        borderRadius: '0',
+        boxShadow: 'inset -1px -1px 0 #000000, inset 1px 1px 0 #ffffff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf',
+        minHeight: 23,
+    },
+    input: {
+        border: 'none',
+        padding: '3px 4px',
+        borderRadius: 0,
+        fontSize: '12px',
+        fontFamily: 'inherit',
+        backgroundColor: '#ffffff',
+        color: '#000000',
+        boxShadow: 'inset 1px 1px 0 #000000, inset -1px -1px 0 #ffffff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf',
+    },
+    css: {
+        fontFamily: '"MS Sans Serif", "Microsoft Sans Serif", Tahoma, Geneva, sans-serif',
+        fontSize: '12px',
+        lineHeight: '1.3',
+        fontSmoothingWebkit: 'none',
+        fontSmoothingMoz: 'unset',
+        colorText: '#000000',
+        colorBackground: '#c0c0c0',
+        btnBorderRadius: '0',
+        btnBorder: 'none',
+        btnPadding: '4px 16px',
+        btnFontSize: '12px',
+        btnFontWeight: '400',
+        btnBgColor: '#c0c0c0',
+        btnBoxShadow: 'inset -1px -1px 0 #000000, inset 1px 1px 0 #ffffff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf',
+        btnActiveBoxShadow: 'inset 1px 1px 0 #000000, inset -1px -1px 0 #ffffff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf',
+        btnFocusOutline: '1px dotted #000000',
+        btnFocusOutlineOffset: '-4px',
+    },
+};
+
+export type Theme = typeof normalTheme;
+
+export const themes = { normal: normalTheme, windows: windowsTheme };
+
+// Default export for backwards compatibility — will be overridden by context
+export let theme = normalTheme;
+
+export function setActiveTheme(mode: ThemeMode) {
+    theme = themes[mode];
+}
