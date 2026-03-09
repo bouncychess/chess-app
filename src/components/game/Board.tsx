@@ -139,13 +139,55 @@ function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onT
     }
   };
 
-  // Set a premove (validated loosely — just check it's our own piece moving to a different square)
+  // Validate premove by piece movement pattern only (no check/pin validation,
+  // since the board will change before the premove executes)
   const tryPremove = (from: string, to: string): boolean => {
     const piece = chessGame.get(from as Square);
     if (!piece) return false;
     const ourColor = playerColor === "white" ? "w" : "b";
     if (piece.color !== ourColor) return false;
     if (from === to) return false;
+
+    const fc = from.charCodeAt(0) - 97; // file 0-7
+    const fr = parseInt(from[1]) - 1;    // rank 0-7
+    const tc = to.charCodeAt(0) - 97;
+    const tr = parseInt(to[1]) - 1;
+    const dc = Math.abs(tc - fc);
+    const dr = Math.abs(tr - fr);
+
+    let valid = false;
+    switch (piece.type) {
+      case 'p': {
+        const dir = piece.color === 'w' ? 1 : -1;
+        const startRank = piece.color === 'w' ? 1 : 6;
+        // Forward 1
+        if (dc === 0 && tr - fr === dir) valid = true;
+        // Forward 2 from start
+        if (dc === 0 && tr - fr === 2 * dir && fr === startRank) valid = true;
+        // Diagonal capture (1 square)
+        if (dc === 1 && tr - fr === dir) valid = true;
+        break;
+      }
+      case 'n':
+        valid = (dc === 1 && dr === 2) || (dc === 2 && dr === 1);
+        break;
+      case 'b':
+        valid = dc === dr && dc > 0;
+        break;
+      case 'r':
+        valid = (dc === 0 || dr === 0) && (dc + dr > 0);
+        break;
+      case 'q':
+        valid = (dc === dr && dc > 0) || ((dc === 0 || dr === 0) && (dc + dr > 0));
+        break;
+      case 'k':
+        // Normal king move or castling
+        valid = (dc <= 1 && dr <= 1 && (dc + dr > 0)) || (dr === 0 && dc === 2);
+        break;
+    }
+
+    if (!valid) return false;
+
     setPremove({ from, to });
     setSelectedSquare(null);
     return true;
