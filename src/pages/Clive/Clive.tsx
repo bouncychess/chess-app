@@ -408,7 +408,7 @@ export default function Clive() {
           color: theme.colors.placeholder,
           marginBottom: 12,
         }}>
-          <a href="https://www.chess.com/member/eric_clive" target="_blank" rel="noopener noreferrer" style={{ color: theme.colors.placeholder }}>eric_clive</a> vs <a href="https://www.chess.com/member/dominantrat" target="_blank" rel="noopener noreferrer" style={{ color: theme.colors.placeholder }}>dominantrat</a> &middot; 1 buck a pop
+          <a href="https://www.chess.com/member/eric_clive" target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6', textDecoration: 'underline' }}>eric_clive</a> vs <a href="https://www.chess.com/member/dominantrat" target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6', textDecoration: 'underline' }}>dominantrat</a> &middot; 1 buck a pop
         </div>
         {loading ? (
           <div style={{ fontSize: '1.5rem', color: theme.colors.placeholder }}>
