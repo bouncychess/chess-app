@@ -20,6 +20,17 @@ const WebSocketContext = createContext<WebSocketContextType | null>(null);
 
 const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL;
 
+const GUEST_SESSION_KEY = "guest_session_id";
+
+function getGuestSessionId(): string {
+  let sessionId = sessionStorage.getItem(GUEST_SESSION_KEY);
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    sessionStorage.setItem(GUEST_SESSION_KEY, sessionId);
+  }
+  return sessionId;
+}
+
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -56,9 +67,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         // Check if cancelled during async operation (React Strict Mode cleanup)
         if (cancelled) return;
 
-        // Connect with or without token
+        // Connect with token (authenticated) or session ID (guest)
         console.log("Connecting to Websocket");
-        const url = token ? `${WEBSOCKET_URL}?token=${token}` : WEBSOCKET_URL;
+        const url = token
+          ? `${WEBSOCKET_URL}?token=${token}`
+          : `${WEBSOCKET_URL}?sessionId=${getGuestSessionId()}`;
         const socket = new WebSocket(url);
         socketRef.current = socket;
 
