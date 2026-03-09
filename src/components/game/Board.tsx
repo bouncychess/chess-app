@@ -3,6 +3,7 @@ import { Chess, type Square } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import type { PieceDropHandlerArgs, SquareHandlerArgs } from "react-chessboard";
 import { useWebSocket } from "../../context/WebSocketContext";
+import { useSettings } from "../../context/SettingsContext";
 import type { PlayerColor, GameResult } from "../../types/chess";
 import { theme } from "../../config/theme";
 import PromotionPicker, { type PromotionPiece } from "./PromotionPicker";
@@ -35,6 +36,7 @@ function createChessInstance(pgn?: string | null): Chess {
 
 function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null }: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
+  const { premovesEnabled } = useSettings();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
 
   const [chessPosition, setChessPosition] = useState(() => chessGame.fen());
@@ -201,9 +203,9 @@ function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onT
       return false;
     }
 
-    // If it's not our turn, set a premove
+    // If it's not our turn, set a premove (if enabled)
     if (playerColor !== actualTurn) {
-      return tryPremove(from, to);
+      return premovesEnabled ? tryPremove(from, to) : false;
     }
 
     // Check if this is a promotion
