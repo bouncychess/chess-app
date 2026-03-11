@@ -6,6 +6,7 @@ import headSize from './head-size';
 import tacticalPatterns from './tactical-patterns';
 import analyzeGames from './analyze-games';
 import elfIncident from './elf-incident';
+import crabIncident from './crab-incident';
 
 const articles: Record<string, ArticleData> = {
     '1': bloatedMess,
@@ -15,6 +16,7 @@ const articles: Record<string, ArticleData> = {
     '5': tacticalPatterns,
     '6': analyzeGames,
     'elf_incident': elfIncident,
+    'crab_incident': crabIncident,
 };
 
 export default articles;
