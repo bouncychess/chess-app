@@ -157,8 +157,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   function onPieceDrop({ sourceSquare, targetSquare }: PieceDropHandlerArgs): boolean {
     if (!targetSquare) return false;
     setSelectedSquare(null);
-    tryMove(sourceSquare, targetSquare);
-    return false;
+    return tryMove(sourceSquare, targetSquare);
   }
 
   function onSquareClick({ square }: SquareHandlerArgs): void {
