@@ -241,8 +241,7 @@ function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onT
     if (!targetSquare) return false;
     setSelectedSquare(null);
     setPremove(null);
-    tryMove(sourceSquare, targetSquare);
-    return false;
+    return tryMove(sourceSquare, targetSquare);
   }
 
   function onSquareClick({ square }: SquareHandlerArgs): void {
