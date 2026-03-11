@@ -1,6 +1,6 @@
 // components/buttons/Button.tsx
 import React from 'react';
-import { theme } from '../../config/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 type ButtonProps = {
     children: React.ReactNode;
@@ -21,6 +21,8 @@ export const Button = ({
                            size = 'md',
                            title,
                        }: ButtonProps) => {
+    const { theme, mode } = useTheme();
+
     const variantStyles = {
         primary: {
             backgroundColor: theme.colors.primary,
@@ -40,10 +42,12 @@ export const Button = ({
         },
     };
 
-    const sizeStyles = {
-        sm: { padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem' },
-        md: { padding: '0.5rem 1rem', borderRadius: '6px', fontSize: undefined as string | undefined },
-    };
+    const sizeStyles = mode === 'windows'
+        ? { sm: {}, md: {} }
+        : {
+            sm: { padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem' },
+            md: { padding: '0.5rem 1rem', borderRadius: '6px', fontSize: undefined as string | undefined },
+        };
 
     return (
         <button
@@ -55,10 +59,16 @@ export const Button = ({
                 ...variantStyles[variant],
                 ...sizeStyles[size],
                 opacity: disabled ? 0.5 : 1,
-                cursor: disabled ? 'not-allowed' : 'pointer',
-                fontWeight: 600,
+                cursor: disabled ? (mode === 'windows' ? 'default' : 'not-allowed') : 'pointer',
                 border: 'none',
                 whiteSpace: 'nowrap',
+                ...(theme.button.fontFamily ? { fontFamily: theme.button.fontFamily } : {}),
+                ...(theme.button.fontWeight ? { fontWeight: theme.button.fontWeight } : {}),
+                ...(theme.button.fontSize ? { fontSize: theme.button.fontSize } : {}),
+                ...(theme.button.padding ? { padding: theme.button.padding } : {}),
+                ...(theme.button.borderRadius ? { borderRadius: theme.button.borderRadius } : {}),
+                ...(theme.button.boxShadow ? { boxShadow: theme.button.boxShadow } : {}),
+                ...(theme.button.minHeight ? { minHeight: theme.button.minHeight } : {}),
             }}
         >
             {children}
