@@ -1,9 +1,10 @@
 import ArticleCard, { type Article } from '../../components/ArticleCard';
 
 
-const featuredArticle: Article = {
-    id: 'elf_incident', title: 'The "Elf Incident"', thumbnail: '/images/articles/clive_elf.png',
-};
+const featuredArticles: Article[] = [
+    { id: 'elf_incident', title: 'The "Elf Incident"', thumbnail: '/images/articles/clive_elf.png' },
+    { id: 'crab_incident', title: 'The "Crab Incident"', thumbnail: '/images/articles/crab_incident.png' },
+];
 
 // Sample articles - replace with real data later
 const articles: Article[] = [
@@ -42,10 +43,12 @@ export default function News() {
                     All the news that&apos;s fit to print
                 </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-                <div style={{ width: 'calc((100% - 40px) / 3)' }}>
-                    <ArticleCard article={featuredArticle} />
-                </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 24 }}>
+                {featuredArticles.map((article) => (
+                    <div key={article.id} style={{ width: 'calc((100% - 40px) / 3)' }}>
+                        <ArticleCard article={article} />
+                    </div>
+                ))}
             </div>
             <hr style={{
                 border: 'none',

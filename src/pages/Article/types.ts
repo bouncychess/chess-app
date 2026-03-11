@@ -5,6 +5,7 @@ export type ArticleImage = {
 
 export type ArticleSection = {
     text?: string;
+    html?: string;
     image?: ArticleImage;
     images?: ArticleImage[];
 };

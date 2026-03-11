@@ -81,6 +81,12 @@ export default function Article() {
                             {section.text}
                         </p>
                     )}
+                    {section.html && (
+                        <p
+                            style={{ fontSize: '1.1rem', lineHeight: 1.6, margin: 0 }}
+                            dangerouslySetInnerHTML={{ __html: section.html }}
+                        />
+                    )}
                 </div>
             ))}
             {article.author && (
