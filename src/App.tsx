@@ -7,9 +7,11 @@ import Article from './pages/Article/Article';
 import Profile from './pages/Profile/Profile';
 import SignIn from './pages/SignIn/SignIn';
 import Clive from './pages/Clive/Clive';
+import Settings from './pages/Settings/Settings';
 import Layout from './components/layout/Layout';
 import { WebSocketProvider } from './context/WebSocketContext';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 function GameWrapper() {
     const { gameId } = useParams<{ gameId: string }>();
@@ -18,6 +20,7 @@ function GameWrapper() {
 
 export default function App() {
     return (
+        <ThemeProvider>
         <AuthProvider>
             <WebSocketProvider>
                 <Router>
@@ -30,10 +33,12 @@ export default function App() {
                         <Route path="/signin" element={<Layout><SignIn /></Layout>} />
                         <Route path="/articles/:id" element={<Layout><Article /></Layout>} />
                         <Route path="/clive" element={<Layout><Clive /></Layout>} />
+                        <Route path="/settings" element={<Layout><Settings /></Layout>} />
                         <Route path="/logout" element={<Layout><Logout /></Layout>} />
                     </Routes>
                 </Router>
             </WebSocketProvider>
         </AuthProvider>
+        </ThemeProvider>
     );
 }
