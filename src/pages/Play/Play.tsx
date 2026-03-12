@@ -29,7 +29,7 @@ function Play() {
   const [previewTime, setPreviewTime] = useState<number>(selectedTimeControl.initialTime);
   const [dots, setDots] = useState(1);
   const [pendingChallenge, setPendingChallenge] = useState<{ username: string; timeControl: string } | null>(null);
-  const [challengeSent, setChallengeSent] = useState<string | null>(null);
+  const [challengesSent, setChallengesSent] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (status !== "waiting") return;
@@ -59,7 +59,11 @@ function Play() {
     if (!lastMessage) return;
 
     if (lastMessage.action === "startGame") {
-      setChallengeSent(null);
+      // Cancel all outstanding challenges before navigating to game
+      challengesSent.forEach((target) => {
+        sendMessage({ action: "cancelChallenge", targetUsername: target });
+      });
+      setChallengesSent(new Set());
       setPendingChallenge(null);
       navigate(`/game/${lastMessage.gameId}`, {
         state: {
@@ -86,13 +90,17 @@ function Play() {
     }
 
     if (lastMessage.action === "challengeDeclined") {
-      setChallengeSent(null);
+      setChallengesSent((prev) => {
+        const next = new Set(prev);
+        next.delete(lastMessage.declinedBy);
+        return next;
+      });
     }
 
     if (lastMessage.action === "challengeCanceled") {
       setPendingChallenge(null);
     }
-  }, [lastMessage, navigate, selectedTimeControl.increment]);
+  }, [lastMessage, navigate, selectedTimeControl.increment, challengesSent, sendMessage]);
 
   const onPlay = () => {
     if (isConnected && selectedTimeControl) {
@@ -129,7 +137,17 @@ function Play() {
   };
 
   const onChallenge = (targetUsername: string) => {
-    if (isConnected && selectedTimeControl) {
+    if (!isConnected) return;
+    if (challengesSent.has(targetUsername)) {
+      // Cancel existing challenge
+      sendMessage({ action: "cancelChallenge", targetUsername });
+      setChallengesSent((prev) => {
+        const next = new Set(prev);
+        next.delete(targetUsername);
+        return next;
+      });
+    } else if (selectedTimeControl) {
+      // Send new challenge
       sendMessage({
         action: "challenge",
         targetUsername,
@@ -138,7 +156,7 @@ function Play() {
           increment: selectedTimeControl.increment,
         },
       });
-      setChallengeSent(targetUsername);
+      setChallengesSent((prev) => new Set(prev).add(targetUsername));
     }
   };
 
@@ -219,7 +237,7 @@ function Play() {
               currentUsername={username ?? undefined}
               onPlayBot={onPlayBot}
               onChallenge={onChallenge}
-              challengeSent={challengeSent}
+              challengesSent={challengesSent}
             />
           </div>
         </div>
