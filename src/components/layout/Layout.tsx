@@ -23,7 +23,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 )}
                 {children}
             </main>
-            <TwitchOverlay />
+            {/* <TwitchOverlay /> */}
         </div>
     );
 }
