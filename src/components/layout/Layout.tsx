@@ -1,6 +1,7 @@
 import Sidebar from './Sidebar';
 import type {ReactNode} from 'react';
 import { ConnectingOverlay } from '../ConnectingOverlay';
+// import TwitchOverlay from '../TwitchOverlay';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -21,8 +22,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                     </div>
                 )}
                 {children}
-
             </main>
+            {/* <TwitchOverlay /> */}
         </div>
     );
 }

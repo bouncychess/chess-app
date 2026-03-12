@@ -1,7 +1,42 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import type { Player } from "../../../types/chess";
 import { theme } from "../../../config/theme";
 import { ResizableCard } from "../../../components/ResizableCard";
+
+function ChallengeSentButton({ username, onChallenge }: { username: string; onChallenge: (u: string) => void }) {
+  const [dots, setDots] = useState(1);
+  useEffect(() => {
+    const interval = setInterval(() => setDots(d => (d % 3) + 1), 500);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <button
+      onClick={() => onChallenge(username)}
+      style={{
+        background: theme.colors.placeholder,
+        border: "none",
+        borderRadius: 4,
+        padding: "2px 8px",
+        cursor: "pointer",
+        color: theme.colors.primaryText,
+        fontSize: "0.75rem",
+        display: "flex",
+        alignItems: "center",
+        gap: 0,
+        position: "relative",
+        minWidth: 68,
+      }}
+    >
+      <span style={{ flex: 1, textAlign: "center" }}>
+        Sent{".".repeat(dots)}
+        <span style={{ visibility: "hidden" }}>{".".repeat(3 - dots)}</span>
+      </span>
+      <span style={{ fontWeight: 900, fontSize: "0.75em", position: "absolute", right: 4 }}>✕</span>
+    </button>
+  );
+}
 
 const BotIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={theme.colors.danger} strokeWidth="2" style={{ marginLeft: 4, flexShrink: 0 }}>
@@ -18,10 +53,10 @@ interface PlayersProps {
   currentUsername?: string;
   onPlayBot?: (botUsername: string) => void;
   onChallenge?: (username: string) => void;
-  challengeSent?: string | null;
+  challengesSent?: Set<string>;
 }
 
-function Players({ players, currentUsername, onPlayBot, onChallenge, challengeSent }: PlayersProps) {
+function Players({ players, currentUsername, onPlayBot, onChallenge, challengesSent = new Set() }: PlayersProps) {
   return (
     <ResizableCard style={{ height: "100%", display: "flex", flexDirection: "column", width: 250 }}>
       <h3 style={{ ...theme.cardHeader, flexShrink: 0 }}>Online Players</h3>
@@ -66,22 +101,24 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengeSe
                   Play
                 </button>
               ) : !player.isBot && player.username !== currentUsername && player.status === "online" && onChallenge ? (
-                <button
-                  onClick={() => onChallenge(player.username)}
-                  disabled={challengeSent != null}
-                  style={{
-                    background: challengeSent === player.username ? theme.colors.placeholder : theme.colors.primary,
-                    border: "none",
-                    borderRadius: 4,
-                    padding: "2px 8px",
-                    cursor: challengeSent != null ? "default" : "pointer",
-                    opacity: challengeSent != null && challengeSent !== player.username ? 0.5 : 1,
-                    color: theme.colors.primaryText,
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  {challengeSent === player.username ? "Sent" : "Challenge"}
-                </button>
+                challengesSent.has(player.username) ? (
+                  <ChallengeSentButton username={player.username} onChallenge={onChallenge} />
+                ) : (
+                  <button
+                    onClick={() => onChallenge(player.username)}
+                    style={{
+                      background: theme.colors.primary,
+                      border: "none",
+                      borderRadius: 4,
+                      padding: "2px 8px",
+                      cursor: "pointer",
+                      color: theme.colors.primaryText,
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    Challenge
+                  </button>
+                )
               ) : (
                 <span style={{ color: theme.colors.placeholder }}>
                   {player.status === "waiting" && player.timeControl

@@ -29,7 +29,7 @@ function Play() {
   const [previewTime, setPreviewTime] = useState<number>(selectedTimeControl.initialTime);
   const [dots, setDots] = useState(1);
   const [pendingChallenge, setPendingChallenge] = useState<{ username: string; timeControl: string } | null>(null);
-  const [challengeSent, setChallengeSent] = useState<string | null>(null);
+  const [challengesSent, setChallengesSent] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (status !== "waiting") return;
@@ -39,7 +39,24 @@ function Play() {
   }, [status]);
 
   const [boardSize, setBoardSize] = useState(400);
+  const [flipped, setFlipped] = useState(false);
   const hasRequestedPlayers = useRef(false);
+  const gameStartSoundRef = useRef(new Audio("/sounds/bouncy_ping.mp3"));
+
+  // Keyboard shortcut to flip board
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement ||
+          event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (event.key === "f") {
+        setFlipped(f => !f);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Request players list on mount and when connection changes
   useEffect(() => {
@@ -59,8 +76,16 @@ function Play() {
     if (!lastMessage) return;
 
     if (lastMessage.action === "startGame") {
-      setChallengeSent(null);
+      // Cancel all outstanding challenges before navigating to game
+      setChallengesSent((prev) => {
+        prev.forEach((target) => {
+          sendMessage({ action: "cancelChallenge", targetUsername: target });
+        });
+        return new Set();
+      });
       setPendingChallenge(null);
+      gameStartSoundRef.current.currentTime = 0;
+      gameStartSoundRef.current.play().catch(() => {});
       navigate(`/game/${lastMessage.gameId}`, {
         state: {
           playerColor: lastMessage.color,
@@ -86,13 +111,17 @@ function Play() {
     }
 
     if (lastMessage.action === "challengeDeclined") {
-      setChallengeSent(null);
+      setChallengesSent((prev) => {
+        const next = new Set(prev);
+        next.delete(lastMessage.declinedBy);
+        return next;
+      });
     }
 
     if (lastMessage.action === "challengeCanceled") {
       setPendingChallenge(null);
     }
-  }, [lastMessage, navigate, selectedTimeControl.increment]);
+  }, [lastMessage, navigate, selectedTimeControl.increment, sendMessage]);
 
   const onPlay = () => {
     if (isConnected && selectedTimeControl) {
@@ -129,7 +158,17 @@ function Play() {
   };
 
   const onChallenge = (targetUsername: string) => {
-    if (isConnected && selectedTimeControl) {
+    if (!isConnected) return;
+    if (challengesSent.has(targetUsername)) {
+      // Cancel existing challenge
+      sendMessage({ action: "cancelChallenge", targetUsername });
+      setChallengesSent((prev) => {
+        const next = new Set(prev);
+        next.delete(targetUsername);
+        return next;
+      });
+    } else if (selectedTimeControl) {
+      // Send new challenge
       sendMessage({
         action: "challenge",
         targetUsername,
@@ -138,7 +177,7 @@ function Play() {
           increment: selectedTimeControl.increment,
         },
       });
-      setChallengeSent(targetUsername);
+      setChallengesSent((prev) => new Set(prev).add(targetUsername));
     }
   };
 
@@ -174,6 +213,8 @@ function Play() {
           blackName={null}
           activeColor={null}
           playerColor="white"
+          onFlip={() => setFlipped(f => !f)}
+          flipped={flipped}
         >
           <Board
             gameId={null}
@@ -181,6 +222,7 @@ function Play() {
             initialTurn="white"
             onTurnChange={() => {}}
             onSizeChange={setBoardSize}
+            flipped={flipped}
           />
         </GameClock>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + panelOffset }}>
@@ -219,7 +261,7 @@ function Play() {
               currentUsername={username ?? undefined}
               onPlayBot={onPlayBot}
               onChallenge={onChallenge}
-              challengeSent={challengeSent}
+              challengesSent={challengesSent}
             />
           </div>
         </div>
