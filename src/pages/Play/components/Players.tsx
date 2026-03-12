@@ -64,7 +64,11 @@ function Players({ players, currentUsername, onPlayBot }: PlayersProps) {
                   Play
                 </button>
               ) : (
-                <span style={{ color: theme.colors.placeholder }}>{player.status}</span>
+                <span style={{ color: theme.colors.placeholder }}>
+                  {player.status === "waiting" && player.timeControl
+                    ? `waiting ${player.timeControl}`
+                    : player.status}
+                </span>
               )}
             </li>
           ))}
