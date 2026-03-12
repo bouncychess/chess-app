@@ -42,6 +42,21 @@ function Play() {
   const [flipped, setFlipped] = useState(false);
   const hasRequestedPlayers = useRef(false);
 
+  // Keyboard shortcut to flip board
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement ||
+          event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (event.key === "f") {
+        setFlipped(f => !f);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   // Request players list on mount and when connection changes
   useEffect(() => {
     if (isConnected) {
@@ -196,6 +211,7 @@ function Play() {
           activeColor={null}
           playerColor="white"
           onFlip={() => setFlipped(f => !f)}
+          flipped={flipped}
         >
           <Board
             gameId={null}

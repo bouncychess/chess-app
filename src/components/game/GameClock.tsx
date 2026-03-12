@@ -13,6 +13,7 @@ interface GameClockProps {
   blackName: string | null;
   children?: ReactNode;
   onFlip?: () => void;
+  flipped?: boolean;
 }
 
 function PlayerRow({ name, time, isActive, trailing }: { name: string | null; time: number; isActive: boolean; trailing?: ReactNode }) {
@@ -27,8 +28,9 @@ function PlayerRow({ name, time, isActive, trailing }: { name: string | null; ti
   );
 }
 
-export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whiteName, blackName, children, onFlip }: GameClockProps) {
-  const isPlayerWhite = playerColor === "white";
+export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whiteName, blackName, children, onFlip, flipped = false }: GameClockProps) {
+  // When flipped, swap which color appears on top/bottom
+  const isPlayerWhite = flipped ? playerColor !== "white" : playerColor === "white";
 
   const topRow = isPlayerWhite ? (
     <PlayerRow
