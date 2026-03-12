@@ -39,6 +39,7 @@ function Play() {
   }, [status]);
 
   const [boardSize, setBoardSize] = useState(400);
+  const [flipped, setFlipped] = useState(false);
   const hasRequestedPlayers = useRef(false);
 
   // Request players list on mount and when connection changes
@@ -192,6 +193,7 @@ function Play() {
           blackName={null}
           activeColor={null}
           playerColor="white"
+          onFlip={() => setFlipped(f => !f)}
         >
           <Board
             gameId={null}
@@ -199,6 +201,7 @@ function Play() {
             initialTurn="white"
             onTurnChange={() => {}}
             onSizeChange={setBoardSize}
+            flipped={flipped}
           />
         </GameClock>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + panelOffset }}>
