@@ -61,10 +61,12 @@ function Play() {
 
     if (lastMessage.action === "startGame") {
       // Cancel all outstanding challenges before navigating to game
-      challengesSent.forEach((target) => {
-        sendMessage({ action: "cancelChallenge", targetUsername: target });
+      setChallengesSent((prev) => {
+        prev.forEach((target) => {
+          sendMessage({ action: "cancelChallenge", targetUsername: target });
+        });
+        return new Set();
       });
-      setChallengesSent(new Set());
       setPendingChallenge(null);
       navigate(`/game/${lastMessage.gameId}`, {
         state: {
@@ -101,7 +103,7 @@ function Play() {
     if (lastMessage.action === "challengeCanceled") {
       setPendingChallenge(null);
     }
-  }, [lastMessage, navigate, selectedTimeControl.increment, challengesSent, sendMessage]);
+  }, [lastMessage, navigate, selectedTimeControl.increment, sendMessage]);
 
   const onPlay = () => {
     if (isConnected && selectedTimeControl) {
