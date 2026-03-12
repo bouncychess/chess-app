@@ -352,6 +352,8 @@ function Game() {
       } else if (event.key === "ArrowRight") {
         event.preventDefault();
         handleNavigate("next");
+      } else if (event.key === "f") {
+        setFlipped(f => !f);
       }
     };
 
