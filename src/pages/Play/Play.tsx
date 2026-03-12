@@ -41,6 +41,7 @@ function Play() {
   const [boardSize, setBoardSize] = useState(400);
   const [flipped, setFlipped] = useState(false);
   const hasRequestedPlayers = useRef(false);
+  const gameStartSoundRef = useRef(new Audio("/sounds/bouncy_ping.mp3"));
 
   // Keyboard shortcut to flip board
   useEffect(() => {
@@ -83,6 +84,8 @@ function Play() {
         return new Set();
       });
       setPendingChallenge(null);
+      gameStartSoundRef.current.currentTime = 0;
+      gameStartSoundRef.current.play().catch(() => {});
       navigate(`/game/${lastMessage.gameId}`, {
         state: {
           playerColor: lastMessage.color,
