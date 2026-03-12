@@ -41,6 +41,7 @@ export interface Player {
   status: string;
   gameId?: string;
   isBot?: boolean;
+  timeControl?: string;
 }
 
 export interface TimeControl {
