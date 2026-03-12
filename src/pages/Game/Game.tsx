@@ -33,6 +33,7 @@ function Game() {
   const { mode } = useTheme();
   const navigate = useNavigate();
   const [boardSize, setBoardSize] = useState(400);
+  const [flipped, setFlipped] = useState(false);
   const panelOffset = mode === 'windows' ? 67 : 85;
 
   // Initialize from navigation state
@@ -374,6 +375,7 @@ function Game() {
             blackName={blackUsername}
             activeColor={status === "playing" && gameStarted ? currentTurn : null}
             playerColor={playerColor}
+            onFlip={() => setFlipped(f => !f)}
           >
             <Board
               gameId={gameId}
@@ -386,6 +388,7 @@ function Game() {
               overridePosition={displayPosition}
               isViewingHistory={isViewingHistory}
               gameResult={gameResult}
+              flipped={flipped}
             />
           </GameClock>
         </div>

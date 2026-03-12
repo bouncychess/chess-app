@@ -19,6 +19,7 @@ interface BoardProps {
   isViewingHistory?: boolean;
   autoPromoteToQueen?: boolean;
   gameResult?: GameResult | null;
+  flipped?: boolean;
 }
 
 function createChessInstance(pgn?: string | null): Chess {
@@ -33,7 +34,7 @@ function createChessInstance(pgn?: string | null): Chess {
   return chess;
 }
 
-function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null }: BoardProps) {
+function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null, flipped: flippedProp = false }: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
 
@@ -289,7 +290,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   const chessboardOptions = {
     position: overridePosition ?? chessPosition,
-    boardOrientation: playerColor,
+    boardOrientation: flippedProp ? (playerColor === 'white' ? 'black' : 'white') : playerColor,
     animationDurationInMs: 0,
     onPieceDrop,
     onPieceDrag,
