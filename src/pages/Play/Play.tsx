@@ -9,6 +9,7 @@ import { TimeControlSelector } from "./components/TimeControlSelector";
 import { DEFAULT_TIME_CONTROL, TIME_CONTROLS } from "../../constants/timeControls";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { Button } from "../../components/buttons/Button";
+import ChallengeNotification from "./components/ChallengeNotification";
 import type { Player } from "../../types/chess";
 
 function Play() {
@@ -27,6 +28,8 @@ function Play() {
   });
   const [previewTime, setPreviewTime] = useState<number>(selectedTimeControl.initialTime);
   const [dots, setDots] = useState(1);
+  const [pendingChallenge, setPendingChallenge] = useState<{ username: string; timeControl: string } | null>(null);
+  const [challengeSent, setChallengeSent] = useState<string | null>(null);
 
   useEffect(() => {
     if (status !== "waiting") return;
@@ -56,7 +59,8 @@ function Play() {
     if (!lastMessage) return;
 
     if (lastMessage.action === "startGame") {
-      console.log("startGame received, navigating to game:", lastMessage);
+      setChallengeSent(null);
+      setPendingChallenge(null);
       navigate(`/game/${lastMessage.gameId}`, {
         state: {
           playerColor: lastMessage.color,
@@ -72,6 +76,21 @@ function Play() {
 
     if (lastMessage.action === "players") {
       setPlayers(lastMessage.players);
+    }
+
+    if (lastMessage.action === "challenge") {
+      setPendingChallenge({
+        username: lastMessage.challengerUsername,
+        timeControl: lastMessage.timeControl,
+      });
+    }
+
+    if (lastMessage.action === "challengeDeclined") {
+      setChallengeSent(null);
+    }
+
+    if (lastMessage.action === "challengeCanceled") {
+      setPendingChallenge(null);
     }
   }, [lastMessage, navigate, selectedTimeControl.increment]);
 
@@ -106,6 +125,42 @@ function Play() {
         },
       });
       setStatus("waiting");
+    }
+  };
+
+  const onChallenge = (targetUsername: string) => {
+    if (isConnected && selectedTimeControl) {
+      sendMessage({
+        action: "challenge",
+        targetUsername,
+        timeControl: {
+          initialTime: selectedTimeControl.initialTime,
+          increment: selectedTimeControl.increment,
+        },
+      });
+      setChallengeSent(targetUsername);
+    }
+  };
+
+  const onAcceptChallenge = () => {
+    if (isConnected && pendingChallenge) {
+      sendMessage({
+        action: "respondChallenge",
+        challengerUsername: pendingChallenge.username,
+        accept: true,
+      });
+      setPendingChallenge(null);
+    }
+  };
+
+  const onDeclineChallenge = () => {
+    if (isConnected && pendingChallenge) {
+      sendMessage({
+        action: "respondChallenge",
+        challengerUsername: pendingChallenge.username,
+        accept: false,
+      });
+      setPendingChallenge(null);
     }
   };
 
@@ -150,8 +205,22 @@ function Play() {
               ? <span style={{ display: "flex", alignItems: "center", width: "100%", position: "relative" }}><span style={{ flex: 1, textAlign: "center" }}>Waiting{".".repeat(dots)}<span style={{ visibility: "hidden" }}>{".".repeat(3 - dots)}</span></span><span style={{ fontWeight: 900, fontSize: "1.0em", position: "absolute", right: 0 }}>✕</span></span>
               : "Play"}
           </Button>
+          {pendingChallenge && (
+            <ChallengeNotification
+              challengerUsername={pendingChallenge.username}
+              timeControl={pendingChallenge.timeControl}
+              onAccept={onAcceptChallenge}
+              onDecline={onDeclineChallenge}
+            />
+          )}
           <div style={{ flex: 1, minHeight: 0 }}>
-            <Players players={players} currentUsername={username ?? undefined} onPlayBot={onPlayBot} />
+            <Players
+              players={players}
+              currentUsername={username ?? undefined}
+              onPlayBot={onPlayBot}
+              onChallenge={onChallenge}
+              challengeSent={challengeSent}
+            />
           </div>
         </div>
       </div>
