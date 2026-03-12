@@ -17,9 +17,11 @@ interface PlayersProps {
   players: Player[];
   currentUsername?: string;
   onPlayBot?: (botUsername: string) => void;
+  onChallenge?: (username: string) => void;
+  challengeSent?: string | null;
 }
 
-function Players({ players, currentUsername, onPlayBot }: PlayersProps) {
+function Players({ players, currentUsername, onPlayBot, onChallenge, challengeSent }: PlayersProps) {
   return (
     <ResizableCard style={{ height: "100%", display: "flex", flexDirection: "column", width: 250 }}>
       <h3 style={{ ...theme.cardHeader, flexShrink: 0 }}>Online Players</h3>
@@ -62,6 +64,23 @@ function Players({ players, currentUsername, onPlayBot }: PlayersProps) {
                   }}
                 >
                   Play
+                </button>
+              ) : !player.isBot && player.username !== currentUsername && player.status === "online" && onChallenge ? (
+                <button
+                  onClick={() => onChallenge(player.username)}
+                  disabled={challengeSent != null}
+                  style={{
+                    background: challengeSent === player.username ? theme.colors.placeholder : theme.colors.primary,
+                    border: "none",
+                    borderRadius: 4,
+                    padding: "2px 8px",
+                    cursor: challengeSent != null ? "default" : "pointer",
+                    opacity: challengeSent != null && challengeSent !== player.username ? 0.5 : 1,
+                    color: theme.colors.primaryText,
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  {challengeSent === player.username ? "Sent" : "Challenge"}
                 </button>
               ) : (
                 <span style={{ color: theme.colors.placeholder }}>
