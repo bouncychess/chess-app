@@ -376,6 +376,7 @@ function Game() {
             activeColor={status === "playing" && gameStarted ? currentTurn : null}
             playerColor={playerColor}
             onFlip={() => setFlipped(f => !f)}
+            flipped={flipped}
           >
             <Board
               gameId={gameId}
