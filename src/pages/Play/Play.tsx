@@ -196,6 +196,7 @@ function Play() {
           activeColor={null}
           playerColor="white"
           onFlip={() => setFlipped(f => !f)}
+          flipped={flipped}
         >
           <Board
             gameId={null}
