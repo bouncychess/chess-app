@@ -78,7 +78,9 @@ export default function GameHistory({ username }: { username: string }) {
 
     return (
         <div style={{ marginTop: 24, maxWidth: 850 }}>
-            <h3 style={{ color: theme.colors.text, marginBottom: 12 }}>Games</h3>
+            <h3 style={{ color: theme.colors.text, marginBottom: 12 }}>
+                Games <span style={{ color: theme.colors.placeholder, fontSize: '1rem', fontWeight: 400 }}>({games.length})</span>
+            </h3>
 
             <div style={{ marginBottom: 12, maxWidth: 250 }}>
                 <TextInput
