@@ -5,7 +5,7 @@ import type { Api } from "@lichess-org/chessground/api";
 import type { Key } from "@lichess-org/chessground/types";
 import { useWebSocket } from "../../context/WebSocketContext";
 import { useSettings } from "../../context/SettingsContext";
-import type { PlayerColor, GameResult } from "../../types/chess";
+import type { PlayerColor, GameResult, PremoveEntry } from "../../types/chess";
 import { theme } from "../../config/theme";
 import PromotionPicker, { type PromotionPiece } from "./PromotionPicker";
 
@@ -63,6 +63,41 @@ function getLegalDests(chess: Chess): Map<Key, Key[]> {
   return dests;
 }
 
+const MAX_PREMOVE_QUEUE = 20;
+
+/** Check if a move is plausible on the given FEN by forcing the turn to the piece's color. */
+function isPlausiblePremove(fen: string, from: string, to: string, promotion?: string): boolean {
+  try {
+    const chess = new Chess(fen);
+    const piece = chess.get(from as Square);
+    if (!piece) return false;
+    // Force turn to the piece's color so we can test the move
+    const parts = fen.split(' ');
+    parts[1] = piece.color;
+    const testChess = new Chess(parts.join(' '));
+    const result = testChess.move({ from, to, promotion: (promotion || 'q') as any });
+    return result !== null;
+  } catch {
+    return false;
+  }
+}
+
+/** Apply a premove on a shadow Chess instance by forcing the turn. Returns the new FEN or null if invalid. */
+function applyPremoveOnShadow(shadow: Chess, move: PremoveEntry): string | null {
+  try {
+    const fen = shadow.fen();
+    const piece = shadow.get(move.from as Square);
+    if (!piece) return null;
+    const parts = fen.split(' ');
+    parts[1] = piece.color;
+    shadow.load(parts.join(' '));
+    shadow.move({ from: move.from, to: move.to, promotion: (move.promotion || 'q') as any });
+    return shadow.fen();
+  } catch {
+    return null;
+  }
+}
+
 function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null, flipped: flippedProp = false }: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
   const { premovesEnabled } = useSettings();
@@ -104,7 +139,67 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   const premoveRef = useRef(premove);
   const isPremoveExecution = useRef(false);
+  const premoveQueueRef = useRef<PremoveEntry[]>([]);
+  const shadowChessRef = useRef<Chess | null>(null);
+  const isRestoringPremoveRef = useRef(false);
   useEffect(() => { premoveRef.current = premove; }, [premove]);
+
+  const clearPremoveQueue = useCallback(() => {
+    premoveQueueRef.current = [];
+    shadowChessRef.current = null;
+    cgApiRef.current?.set({ drawable: { autoShapes: [] } });
+  }, []);
+
+  const updateQueueHighlights = useCallback(() => {
+    const shapes = premoveQueueRef.current.flatMap((move) => [
+      { orig: move.from as Key, brush: 'premoveQueue' },
+      { orig: move.to as Key, brush: 'premoveQueue' },
+    ]);
+    cgApiRef.current?.set({ drawable: { autoShapes: shapes } });
+  }, []);
+
+  const initShadowChess = useCallback((firstFrom: string, firstTo: string, promotion?: string) => {
+    const shadow = new Chess(chessGameRef.current.fen());
+    shadowChessRef.current = shadow;
+    applyPremoveOnShadow(shadow, { from: firstFrom, to: firstTo, promotion });
+  }, []);
+
+  const rebuildShadowChess = useCallback(() => {
+    const shadow = new Chess(chessGameRef.current.fen());
+    shadowChessRef.current = shadow;
+    const current = premoveRef.current;
+    if (current) {
+      applyPremoveOnShadow(shadow, current);
+    }
+    for (const move of premoveQueueRef.current) {
+      applyPremoveOnShadow(shadow, move);
+    }
+  }, []);
+
+  const promoteNextPremove = useCallback(() => {
+    const queue = premoveQueueRef.current;
+    if (queue.length === 0) {
+      setPremove(null);
+      shadowChessRef.current = null;
+      cgApiRef.current?.set({ drawable: { autoShapes: [] } });
+      return;
+    }
+
+    const next = queue.shift()!;
+    setPremove(next);
+
+    // Set the next premove in chessground
+    isRestoringPremoveRef.current = true;
+    cgApiRef.current?.set({
+      premovable: {
+        current: [next.from as Key, next.to as Key],
+      },
+    });
+    isRestoringPremoveRef.current = false;
+
+    rebuildShadowChess();
+    updateQueueHighlights();
+  }, [rebuildShadowChess, updateQueueHighlights]);
 
   const sendMove = useCallback((moveStr: string) => {
     sendMessage({
@@ -254,8 +349,35 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         enabled: premovesEnabled,
         showDests: false,
         events: {
-          set: (orig: Key, dest: Key) => setPremove({ from: orig, to: dest }),
-          unset: () => setPremove(null),
+          set: (orig: Key, dest: Key) => {
+            const existing = premoveRef.current;
+            if (existing && premoveQueueRef.current.length < MAX_PREMOVE_QUEUE) {
+              // Already have a premove — queue the new one instead of replacing
+              const shadow = shadowChessRef.current;
+              if (shadow && isPlausiblePremove(shadow.fen(), orig, dest)) {
+                premoveQueueRef.current.push({ from: orig, to: dest });
+                applyPremoveOnShadow(shadow, { from: orig, to: dest });
+                updateQueueHighlights();
+              }
+              // Restore the original first premove in chessground
+              isRestoringPremoveRef.current = true;
+              setTimeout(() => {
+                cgApiRef.current?.set({
+                  premovable: { current: [existing.from as Key, existing.to as Key] },
+                });
+                isRestoringPremoveRef.current = false;
+              }, 0);
+            } else {
+              // First premove — normal flow
+              setPremove({ from: orig, to: dest });
+              initShadowChess(orig, dest);
+            }
+          },
+          unset: () => {
+            if (isRestoringPremoveRef.current) return; // Ignore programmatic restores
+            setPremove(null);
+            clearPremoveQueue();
+          },
         },
       },
       drawable: {
@@ -266,6 +388,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
           red: { key: 'red', color: '#e74c3c', opacity: 0.5, lineWidth: 10 },
           blue: { key: 'blue', color: '#3498db', opacity: 0.5, lineWidth: 10 },
           yellow: { key: 'yellow', color: '#f1c40f', opacity: 0.5, lineWidth: 10 },
+          premoveQueue: { key: 'premoveQueue', color: '#ff6600', opacity: 0.4, lineWidth: 10 },
         },
       },
     });
@@ -325,16 +448,67 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   // Sync premovesEnabled setting to chessground
   useEffect(() => {
+    if (!premovesEnabled) {
+      setPremove(null);
+      clearPremoveQueue();
+      cgApiRef.current?.cancelPremove();
+    }
     cgApiRef.current?.set({
       premovable: {
         enabled: premovesEnabled,
         events: {
-          set: (orig: Key, dest: Key) => setPremove({ from: orig, to: dest }),
-          unset: () => setPremove(null),
+          set: (orig: Key, dest: Key) => {
+            const existing = premoveRef.current;
+            if (existing && premoveQueueRef.current.length < MAX_PREMOVE_QUEUE) {
+              const shadow = shadowChessRef.current;
+              if (shadow && isPlausiblePremove(shadow.fen(), orig, dest)) {
+                premoveQueueRef.current.push({ from: orig, to: dest });
+                applyPremoveOnShadow(shadow, { from: orig, to: dest });
+                updateQueueHighlights();
+              }
+              isRestoringPremoveRef.current = true;
+              setTimeout(() => {
+                cgApiRef.current?.set({
+                  premovable: { current: [existing.from as Key, existing.to as Key] },
+                });
+                isRestoringPremoveRef.current = false;
+              }, 0);
+            } else {
+              setPremove({ from: orig, to: dest });
+              initShadowChess(orig, dest);
+            }
+          },
+          unset: () => {
+            if (isRestoringPremoveRef.current) return;
+            setPremove(null);
+            clearPremoveQueue();
+          },
         },
       },
     });
-  }, [premovesEnabled]);
+  }, [premovesEnabled, clearPremoveQueue, initShadowChess, updateQueueHighlights]);
+
+  // Clear premove queue when game ends
+  useEffect(() => {
+    if (gameResult !== null) {
+      setPremove(null);
+      clearPremoveQueue();
+      cgApiRef.current?.cancelPremove();
+    }
+  }, [gameResult, clearPremoveQueue]);
+
+  // Escape key clears premove queue
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && premoveRef.current) {
+        setPremove(null);
+        clearPremoveQueue();
+        cgApiRef.current?.cancelPremove();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [clearPremoveQueue]);
 
   // Handle opponent moves via WebSocket
   useEffect(() => {
@@ -383,9 +557,13 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
             isPremoveExecution.current = true;
             const played = cgApiRef.current?.playPremove();
             if (!played) {
-              // Premove was invalid in the new position, clear it
+              // Premove was invalid — clear entire queue
               isPremoveExecution.current = false;
               setPremove(null);
+              clearPremoveQueue();
+            } else {
+              // Premove executed — promote next queued premove
+              promoteNextPremove();
             }
           }, 50);
         }

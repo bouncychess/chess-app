@@ -55,3 +55,9 @@ export interface ChatMessage {
   message: string;
   isSystem?: boolean;
 }
+
+export interface PremoveEntry {
+  from: string;
+  to: string;
+  promotion?: string;
+}
