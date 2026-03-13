@@ -49,7 +49,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const playMoveSound = () => {
     moveSoundRef.current.currentTime = 0;
     moveSoundRef.current.volume = 1;
-    moveSoundRef.current.playbackRate = 2;
+    moveSoundRef.current.playbackRate = 1;
     moveSoundRef.current.play().catch(() => {});
   };
 
