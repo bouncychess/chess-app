@@ -1,0 +1,22 @@
+/* Custom board colors */
+cg-board square.dark {
+  background-color: #5b8fb9;
+}
+cg-board square.light {
+  background-color: #f0f4f8;
+}
+
+/* Last move highlight */
+cg-board square.last-move {
+  background-color: rgba(255, 221, 0, 0.4);
+}
+
+/* Selected square highlight */
+cg-board square.selected {
+  background-color: rgba(255, 221, 0, 0.8);
+}
+
+/* No animation */
+cg-board piece {
+  transition: none;
+}
