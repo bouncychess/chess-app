@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Chess, type Square } from "chess.js";
-import { Chessboard } from "react-chessboard";
-import type { PieceDropHandlerArgs, SquareHandlerArgs } from "react-chessboard";
+import { Chessground } from "@lichess-org/chessground";
+import type { Api } from "@lichess-org/chessground/api";
+import type { Key } from "@lichess-org/chessground/types";
 import { useWebSocket } from "../../context/WebSocketContext";
 import { useSettings } from "../../context/SettingsContext";
 import type { PlayerColor, GameResult } from "../../types/chess";
@@ -35,33 +36,277 @@ function createChessInstance(pgn?: string | null): Chess {
   return chess;
 }
 
-function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null, flipped: flippedProp = false }: BoardProps) {
+function getLegalDests(chess: Chess): Map<Key, Key[]> {
+  const dests = new Map<Key, Key[]>();
+  for (const move of chess.moves({ verbose: true })) {
+    const from = move.from as Key;
+    if (!dests.has(from)) dests.set(from, []);
+    dests.get(from)!.push(move.to as Key);
+  }
+  return dests;
+}
+
+function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null, flipped: flippedProp = false }: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
   const { premovesEnabled } = useSettings();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
 
   const [chessPosition, setChessPosition] = useState(() => chessGame.fen());
-  const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
+  const [currentTurn, setCurrentTurn] = useState<PlayerColor>(initialTurn);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [premove, setPremove] = useState<{ from: string; to: string } | null>(null);
   const moveSoundRef = useRef(new Audio("/sounds/move.mp3"));
-  const prevSelectedRef = useRef<Square | null>(null);
+
+  const boardRef = useRef<HTMLDivElement>(null);
+  const cgApiRef = useRef<Api | null>(null);
+
+  // Store callbacks in refs so chessground event handler always has latest values
+  const gameIdRef = useRef(gameId);
+  const playerColorRef = useRef(playerColor);
+  const currentTurnRef = useRef(currentTurn);
+  const isViewingHistoryRef = useRef(isViewingHistory);
+  const autoPromoteToQueenRef = useRef(autoPromoteToQueen);
+  const gameResultRef = useRef(gameResult);
+  const chessGameRef = useRef(chessGame);
+
+  useEffect(() => { gameIdRef.current = gameId; }, [gameId]);
+  useEffect(() => { playerColorRef.current = playerColor; }, [playerColor]);
+  useEffect(() => { currentTurnRef.current = currentTurn; }, [currentTurn]);
+  useEffect(() => { isViewingHistoryRef.current = isViewingHistory; }, [isViewingHistory]);
+  useEffect(() => { autoPromoteToQueenRef.current = autoPromoteToQueen; }, [autoPromoteToQueen]);
+  useEffect(() => { gameResultRef.current = gameResult; }, [gameResult]);
+  useEffect(() => { chessGameRef.current = chessGame; }, [chessGame]);
 
   const playMoveSound = () => {
     moveSoundRef.current.currentTime = 0;
-    moveSoundRef.current.volume = .5;
+    moveSoundRef.current.volume = 0.8;
     moveSoundRef.current.playbackRate = 1;
     moveSoundRef.current.play().catch(() => {});
   };
 
-  // Clear premove on any click anywhere on the page
+  const premoveRef = useRef(premove);
+  useEffect(() => { premoveRef.current = premove; }, [premove]);
+
+  const sendMove = useCallback((moveStr: string) => {
+    sendMessage({
+      action: "move",
+      gameId: gameIdRef.current,
+      move: moveStr,
+      time: new Date().toISOString(),
+    });
+  }, [sendMessage]);
+
+  // Check if a move is a pawn promotion
+  const isPromotionMove = (from: string, to: string): boolean => {
+    const piece = chessGame.get(from as Square);
+    if (!piece || piece.type !== "p") return false;
+    return (piece.color === "w" && to[1] === "8") || (piece.color === "b" && to[1] === "1");
+  };
+
+  // Execute a move with optional promotion piece
+  const executeMove = useCallback((from: string, to: string, promotion?: PromotionPiece): boolean => {
+    const chess = chessGameRef.current;
+    try {
+      const moveResult = chess.move({
+        from,
+        to,
+        promotion: promotion || "q",
+      });
+
+      if (!moveResult) return false;
+
+      const newFen = chess.fen();
+      setChessPosition(newFen);
+      setLastMove({ from, to });
+      playMoveSound();
+
+      const move = promotion ? `${from}${to}${promotion}` : `${from}${to}`;
+      sendMove(move);
+      const newTurn: PlayerColor = chess.turn() === 'w' ? 'white' : 'black';
+      setCurrentTurn(newTurn);
+      onTurnChange?.(newTurn);
+      onPgnChange?.(chess.pgn());
+
+      // Update chessground with new position and legal moves
+      cgApiRef.current?.set({
+        fen: newFen,
+        lastMove: [from as Key, to as Key],
+        turnColor: newTurn,
+        movable: {
+          color: playerColorRef.current,
+          dests: newTurn === playerColorRef.current ? getLegalDests(chess) : new Map(),
+        },
+
+      });
+
+      return true;
+    } catch {
+      return false;
+    }
+  }, [sendMove, onTurnChange, onPgnChange]);
+
+  // Handle chessground move event (unified for drag and click-to-move)
+  const handleCgMove = useCallback((orig: Key, dest: Key) => {
+    const chess = chessGameRef.current;
+
+    // Check if this is a promotion
+    if (isPromotionMove(orig, dest)) {
+      if (autoPromoteToQueenRef.current) {
+        executeMove(orig, dest, "q");
+      } else {
+        // Revert the visual move chessground already made
+        cgApiRef.current?.set({ fen: chess.fen() });
+        setPendingPromotion({ from: orig, to: dest });
+      }
+      return;
+    }
+
+    executeMove(orig, dest);
+  }, [executeMove]);
+
+  // Handle promotion piece selection
+  const handlePromotionSelect = (piece: PromotionPiece) => {
+    if (pendingPromotion) {
+      executeMove(pendingPromotion.from, pendingPromotion.to, piece);
+      setPendingPromotion(null);
+    }
+  };
+
+  const cancelPromotion = () => {
+    setPendingPromotion(null);
+    // Restore position after canceling
+    cgApiRef.current?.set({ fen: chessGame.fen() });
+  };
+
+  // Determine if the player can move
+  const getMovableColor = (): PlayerColor | undefined => {
+    if (!gameId || isViewingHistory || gameResult !== null) return undefined;
+    return playerColor;
+  };
+
+  const getOrientation = (): 'white' | 'black' => {
+    if (flippedProp) {
+      return playerColor === 'white' ? 'black' : 'white';
+    }
+    return playerColor;
+  };
+
+  // Initialize chessground
   useEffect(() => {
-    const handleGlobalClick = () => setPremove(null);
-    window.addEventListener('pointerdown', handleGlobalClick);
-    return () => window.removeEventListener('pointerdown', handleGlobalClick);
+    if (!boardRef.current) return;
+
+    const movableColor = getMovableColor();
+    const api = Chessground(boardRef.current, {
+      fen: overridePosition ?? chessPosition,
+      orientation: getOrientation(),
+      turnColor: currentTurn,
+      lastMove: lastMove ? [lastMove.from as Key, lastMove.to as Key] : undefined,
+
+      animation: { enabled: false },
+      movable: {
+        free: false,
+        color: movableColor,
+        dests: movableColor ? getLegalDests(chessGame) : new Map(),
+        showDests: false,
+        events: {
+          after: handleCgMove,
+        },
+      },
+      draggable: {
+        enabled: true,
+        showGhost: false,
+      },
+      selectable: {
+        enabled: true,
+      },
+      premovable: {
+        enabled: premovesEnabled,
+        showDests: false,
+        events: {
+          set: (orig: Key, dest: Key) => setPremove({ from: orig, to: dest }),
+          unset: () => setPremove(null),
+        },
+      },
+      drawable: {
+        enabled: true,
+        visible: true,
+        brushes: {
+          green: { key: 'green', color: '#20b2aa', opacity: 0.5, lineWidth: 10 },
+          red: { key: 'red', color: '#e74c3c', opacity: 0.5, lineWidth: 10 },
+          blue: { key: 'blue', color: '#3498db', opacity: 0.5, lineWidth: 10 },
+          yellow: { key: 'yellow', color: '#f1c40f', opacity: 0.5, lineWidth: 10 },
+        },
+      },
+    });
+
+    cgApiRef.current = api;
+
+    return () => {
+      api.destroy();
+      cgApiRef.current = null;
+    };
+    // Only run on mount/unmount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Update position when it changes (own moves, opponent moves, history navigation)
+  useEffect(() => {
+    const fen = overridePosition ?? chessPosition;
+    cgApiRef.current?.set({
+      fen,
+      lastMove: (lastMove && !isViewingHistory) ? [lastMove.from as Key, lastMove.to as Key] : undefined,
+
+    });
+  }, [chessPosition, overridePosition, lastMove, isViewingHistory, chessGame]);
+
+  // Update orientation when flipped or playerColor changes
+  useEffect(() => {
+    cgApiRef.current?.set({
+      orientation: getOrientation(),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerColor, flippedProp]);
+
+  // Update movable state when turn/game state changes
+  useEffect(() => {
+    const movableColor = getMovableColor();
+    cgApiRef.current?.set({
+      turnColor: currentTurn,
+      movable: {
+        color: movableColor,
+        dests: movableColor ? getLegalDests(chessGame) : new Map(),
+      },
+
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTurn, gameId, isViewingHistory, gameResult, playerColor, chessPosition]);
+
+  // Update move handler when it changes
+  useEffect(() => {
+    cgApiRef.current?.set({
+      movable: {
+        events: {
+          after: handleCgMove,
+        },
+      },
+    });
+  }, [handleCgMove]);
+
+  // Sync premovesEnabled setting to chessground
+  useEffect(() => {
+    cgApiRef.current?.set({
+      premovable: {
+        enabled: premovesEnabled,
+        events: {
+          set: (orig: Key, dest: Key) => setPremove({ from: orig, to: dest }),
+          unset: () => setPremove(null),
+        },
+      },
+    });
+  }, [premovesEnabled]);
+
+  // Handle opponent moves via WebSocket
   useEffect(() => {
     if (!lastMessage) return;
 
@@ -75,24 +320,33 @@ function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onT
           to,
           promotion: moveStr.length > 4 ? moveStr[4] as PromotionPiece : undefined,
         });
-        setChessPosition(chessGame.fen());
+        const newFen = chessGame.fen();
+        setChessPosition(newFen);
         setLastMove({ from, to });
         playMoveSound();
+        const newTurn = lastMessage.turn as PlayerColor;
+        setCurrentTurn(newTurn);
         onPgnChange?.(chessGame.pgn());
 
+        // Update chessground
+        cgApiRef.current?.set({
+          fen: newFen,
+          lastMove: [from as Key, to as Key],
+          turnColor: newTurn,
+    
+          movable: {
+            color: playerColor,
+            dests: newTurn === playerColor ? getLegalDests(chessGame) : new Map(),
+          },
+        });
+
         // Execute premove if one is set and it's now our turn
-        const newTurn = lastMessage.turn as PlayerColor;
-        if (premove && newTurn === playerColor) {
-          // Use setTimeout so the opponent's move renders first
+        if (premoveRef.current && newTurn === playerColor) {
           setTimeout(() => {
-            setPremove(null);
-            const premoveFrom = premove.from;
-            const premoveTo = premove.to;
-            // Check if it's a valid promotion
-            if (isPromotionMove(premoveFrom, premoveTo)) {
-              executeMove(premoveFrom, premoveTo, "q");
-            } else {
-              executeMove(premoveFrom, premoveTo);
+            const played = cgApiRef.current?.playPremove();
+            if (!played) {
+              // Premove was invalid in the new position, clear it
+              setPremove(null);
             }
           }, 50);
         }
@@ -100,242 +354,20 @@ function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onT
         console.log("Failed to make move", error);
       }
     }
-  }, [lastMessage, chessGame]);
-
-  const sendMove = (moveStr: string) => {
-    sendMessage({
-      action: "move",
-      gameId,
-      move: moveStr,
-      time: new Date().toISOString(),
-    });
-  };
-
-  // Check if a move is a pawn promotion
-  const isPromotionMove = (from: string, to: string): boolean => {
-    const piece = chessGame.get(from as Square);
-    if (!piece || piece.type !== "p") return false;
-    return (piece.color === "w" && to[1] === "8") || (piece.color === "b" && to[1] === "1");
-  };
-
-  // Execute a move with optional promotion piece
-  const executeMove = (from: string, to: string, promotion?: PromotionPiece): boolean => {
-    try {
-      const moveResult = chessGame.move({
-        from,
-        to,
-        promotion: promotion || "q",
-      });
-
-      if (!moveResult) return false;
-
-      setChessPosition(chessGame.fen());
-      setLastMove({ from, to });
-      playMoveSound();
-
-      const move = promotion ? `${from}${to}${promotion}` : `${from}${to}`;
-      sendMove(move);
-      const newTurn: PlayerColor = chessGame.turn() === 'w' ? 'white' : 'black';
-      onTurnChange?.(newTurn);
-      onPgnChange?.(chessGame.pgn());
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  // Validate premove by piece movement pattern only (no check/pin validation,
-  // since the board will change before the premove executes)
-  const tryPremove = (from: string, to: string): boolean => {
-    const piece = chessGame.get(from as Square);
-    if (!piece) return false;
-    const ourColor = playerColor === "white" ? "w" : "b";
-    if (piece.color !== ourColor) return false;
-    if (from === to) return false;
-
-    const fc = from.charCodeAt(0) - 97; // file 0-7
-    const fr = parseInt(from[1]) - 1;    // rank 0-7
-    const tc = to.charCodeAt(0) - 97;
-    const tr = parseInt(to[1]) - 1;
-    const dc = Math.abs(tc - fc);
-    const dr = Math.abs(tr - fr);
-
-    let valid = false;
-    switch (piece.type) {
-      case 'p': {
-        const dir = piece.color === 'w' ? 1 : -1;
-        const startRank = piece.color === 'w' ? 1 : 6;
-        // Forward 1
-        if (dc === 0 && tr - fr === dir) valid = true;
-        // Forward 2 from start
-        if (dc === 0 && tr - fr === 2 * dir && fr === startRank) valid = true;
-        // Diagonal capture (1 square)
-        if (dc === 1 && tr - fr === dir) valid = true;
-        break;
-      }
-      case 'n':
-        valid = (dc === 1 && dr === 2) || (dc === 2 && dr === 1);
-        break;
-      case 'b':
-        valid = dc === dr && dc > 0;
-        break;
-      case 'r':
-        valid = (dc === 0 || dr === 0) && (dc + dr > 0);
-        break;
-      case 'q':
-        valid = (dc === dr && dc > 0) || ((dc === 0 || dr === 0) && (dc + dr > 0));
-        break;
-      case 'k':
-        // Normal king move or castling
-        valid = (dc <= 1 && dr <= 1 && (dc + dr > 0)) || (dr === 0 && dc === 2);
-        break;
-    }
-
-    if (!valid) return false;
-
-    setPremove({ from, to });
-    setSelectedSquare(null);
-    return true;
-  };
-
-  // Attempt to make a move (used by both drag-drop and click-to-move)
-  const tryMove = (from: string, to: string): boolean => {
-    // Use chess.js turn directly to avoid stale React state during pre-drag
-    const actualTurn = chessGame.turn() === 'w' ? 'white' : 'black';
-    if (!gameId || isViewingHistory || gameResult !== null) {
-      return false;
-    }
-
-    // If it's not our turn, set a premove (if enabled)
-    if (playerColor !== actualTurn) {
-      return premovesEnabled ? tryPremove(from, to) : false;
-    }
-
-    // Check if this is a promotion
-    if (isPromotionMove(from, to)) {
-      if (autoPromoteToQueen) {
-        return executeMove(from, to, "q");
-      }
-      // Show the picker
-      setPendingPromotion({ from, to });
-      return true;
-    }
-
-    return executeMove(from, to);
-  };
-
-  // Handle promotion piece selection
-  const handlePromotionSelect = (piece: PromotionPiece) => {
-    if (pendingPromotion) {
-      executeMove(pendingPromotion.from, pendingPromotion.to, piece);
-      setPendingPromotion(null);
-    }
-  };
-
-  const cancelPromotion = () => {
-    setPendingPromotion(null);
-  };
-
-  function onPieceDrag(): void {
-    setSelectedSquare(null);
-  }
-
-  function onPieceDrop({ sourceSquare, targetSquare }: PieceDropHandlerArgs): boolean {
-    if (!targetSquare) return false;
-    setSelectedSquare(null);
-    setPremove(null);
-    return tryMove(sourceSquare, targetSquare);
-  }
-
-  function onSquareClick({ square }: SquareHandlerArgs): void {
-    const sq = square as Square;
-    const piece = chessGame.get(sq);
-    const prevSelected = prevSelectedRef.current;
-    prevSelectedRef.current = null;
-    const ourColor = playerColor === "white" ? "w" : "b";
-
-    // If viewing history, don't allow selection
-    if (isViewingHistory) {
-      return;
-    }
-
-    // If we had a selected square (from before pointerDown cleared it)
-    if (prevSelected) {
-      // If clicking the same square, stay deselected
-      if (prevSelected === sq) {
-        return;
-      }
-
-      // Try to move (or premove if not our turn)
-      if (gameId) {
-        const moved = tryMove(prevSelected, sq);
-        if (moved) {
-          return;
-        }
-      }
-
-      // If clicked on own piece, switch selection to it
-      if (piece && piece.color === ourColor) {
-        setSelectedSquare(sq);
-      }
-      return;
-    }
-
-    // No piece selected — select own piece if clicked
-    if (piece && piece.color === ourColor) {
-      setSelectedSquare(sq);
-    }
-  }
-
-  // Get styles for selected square and last move highlight
-  const getSquareStyles = (): Record<string, React.CSSProperties> => {
-    const styles: Record<string, React.CSSProperties> = {};
-
-    // Highlight last move squares (only when viewing current position)
-    if (lastMove && !isViewingHistory) {
-      const highlightStyle = {
-        backgroundColor: theme.colors.moveHighlight,
-      };
-      styles[lastMove.from] = highlightStyle;
-      styles[lastMove.to] = highlightStyle;
-    }
-
-    // Highlight premove squares
-    if (premove) {
-      const premoveStyle = {
-        backgroundColor: 'rgba(220, 50, 50, 0.45)',
-      };
-      styles[premove.from] = { ...styles[premove.from], ...premoveStyle };
-      styles[premove.to] = { ...styles[premove.to], ...premoveStyle };
-    }
-
-    // Highlight selected square (adds to last move highlight if same square)
-    if (selectedSquare) {
-      const borderWidth = Math.round(boardSize * 0.06 / 8);
-      styles[selectedSquare] = {
-        ...styles[selectedSquare],
-        boxShadow: `inset 0 0 0 ${borderWidth}px ${theme.colors.squareHighlight}`,
-      };
-    }
-
-    return styles;
-  };
+  }, [lastMessage, chessGame, playerColor, onPgnChange]);
 
   // Calculate optimal board size to fit viewport without scrolling
   const calculateOptimalSize = useCallback(() => {
     if (typeof window === "undefined") return 400;
 
-    // Account for: page padding (40px), player rows (~60px total), sidebar (~340px)
-    const verticalPadding = 250; // padding + player name rows
-    const horizontalPadding = 400; // padding + sidebar space
+    const verticalPadding = 250;
+    const horizontalPadding = 400;
 
     const maxWidth = window.innerWidth - horizontalPadding;
     const maxHeight = window.innerHeight - verticalPadding;
 
-    // Board must be square, so use the smaller dimension
     const optimalSize = Math.min(maxWidth, maxHeight);
 
-    // Clamp between min and max
     const minSize = 220;
     const maxSize = 800;
     return Math.max(minSize, Math.min(maxSize, optimalSize));
@@ -349,6 +381,11 @@ function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onT
   useEffect(() => {
     onSizeChange?.(boardSize);
   }, [boardSize, onSizeChange]);
+
+  // Redraw chessground when board size changes
+  useEffect(() => {
+    requestAnimationFrame(() => cgApiRef.current?.redrawAll());
+  }, [boardSize]);
 
   // Auto-resize on window resize (only if not manually resizing)
   useEffect(() => {
@@ -384,45 +421,9 @@ function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onT
     document.addEventListener("mouseup", handleResizeEnd);
   }, [boardSize, handleResizeMove, handleResizeEnd]);
 
-  const chessboardOptions = {
-    position: overridePosition ?? chessPosition,
-    boardOrientation: flippedProp ? (playerColor === 'white' ? 'black' : 'white') : playerColor,
-    animationDurationInMs: 0,
-    showAnimations: false,
-    onPieceDrop,
-    onPieceDrag,
-    onSquareClick,
-    squareStyles: getSquareStyles(),
-    id: "on-piece-drop",
-    draggingPieceStyle: { transform: 'scale(1)' },
-    draggingPieceGhostStyle: { opacity: 0 },
-    darkSquareStyle: {
-      backgroundColor: '#5b8fb9'
-    },
-    lightSquareStyle: {
-      backgroundColor: "#f0f4f8"
-    },
-    arrowOptions: {
-      color: "#20b2aa", // sea green
-      secondaryColor: "#2e8b57", // darker sea green
-      tertiaryColor: "#3cb371", // medium sea green
-      arrowLengthReducerDenominator: 8,
-      sameTargetArrowLengthReducerDenominator: 4,
-      arrowWidthDenominator: 5,
-      activeArrowWidthMultiplier: 0.9,
-      opacity: 0.5,
-      activeOpacity: 0.3,
-    }
-  };
-
   return (
     <div style={{ position: "relative", width: boardSize, height: boardSize, borderRadius: 8, overflow: "hidden" }}>
-      <div onPointerDown={() => {
-        prevSelectedRef.current = selectedSquare;
-        setSelectedSquare(null);
-      }}>
-        <Chessboard options={chessboardOptions} />
-      </div>
+      <div ref={boardRef} style={{ width: '100%', height: '100%' }} />
 
       {pendingPromotion && (
         <PromotionPicker
