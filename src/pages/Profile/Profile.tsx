@@ -98,7 +98,7 @@ export default function Profile() {
                 </span>
             </div>
 
-            <div style={{ ...theme.card, maxWidth: 350, padding: 12 }}>
+            <div style={{ ...theme.card, maxWidth: 600, maxHeight: 600, overflow: 'auto', padding: 12 }}>
                 {isEditing ? (
                     <textarea
                         value={editedDetails}
