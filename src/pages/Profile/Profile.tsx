@@ -119,6 +119,7 @@ export default function Profile() {
                     <div style={{
                         color: theme.colors.text,
                         whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
                     }}>
                         {profile?.profile_details || (
                             <span style={{ color: theme.colors.placeholder, fontStyle: 'italic' }}>
