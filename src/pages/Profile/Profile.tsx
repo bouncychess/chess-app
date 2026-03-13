@@ -4,6 +4,7 @@ import { Button } from '../../components/buttons/Button';
 import { theme } from '../../config/theme';
 import { getUserProfile, updateUserProfile, type UserProfile } from '../../services/profile';
 import { useAuth } from '../../context/AuthContext';
+import GameHistory from './GameHistory';
 
 export default function Profile() {
     const { username: profileUsername } = useParams<{ username: string }>();
@@ -190,6 +191,8 @@ export default function Profile() {
                     </div>
                 )}
             </div>
+
+            {profile && <GameHistory username={profile.username} />}
         </div>
     );
 }
