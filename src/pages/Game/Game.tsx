@@ -226,6 +226,10 @@ function Game() {
     if (lastMessage.action === "gameEnd" && lastMessage.gameId === gameId) {
       setGameResult(lastMessage.result);
       setGameEndReason(lastMessage.reason);
+      if (lastMessage.reason === "timeout") {
+        if (lastMessage.result === "white") setBlackTime(0);
+        else if (lastMessage.result === "black") setWhiteTime(0);
+      }
     }
     if (lastMessage.action === "move") {
       if (lastMessage.turn) {
