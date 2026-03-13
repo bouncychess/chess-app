@@ -426,7 +426,7 @@ function Game() {
                   opponentOfferedRematch={opponentOfferedRematch}
                   isWaitingNewGame={isWaitingNewGame}
                 />
-              ) : (
+              ) : isPlayer ? (
                 <GameControls
                   onResign={handleResign}
                   onOfferDraw={handleOfferDraw}
@@ -436,7 +436,7 @@ function Game() {
                   hasOfferedDraw={hasOfferedDraw}
                   hasPendingDrawOffer={pendingDrawOffer !== null}
                 />
-              )}
+              ) : null}
             </div>
           </div>
           <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: 78}}>
