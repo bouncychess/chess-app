@@ -92,6 +92,7 @@ export default function GameHistory({ username }: { username: string }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', color: theme.colors.text }}>
                     <thead>
                         <tr style={{ backgroundColor: theme.colors.background }}>
+                            <th style={cellStyle}>Date</th>
                             <th style={cellStyle}>Opponent</th>
                             <th style={cellStyle}>Color</th>
                             <th style={cellStyle}>Result</th>
@@ -102,7 +103,7 @@ export default function GameHistory({ username }: { username: string }) {
                     <tbody>
                         {paged.length === 0 ? (
                             <tr>
-                                <td colSpan={5} style={{ ...cellStyle, textAlign: 'center', color: theme.colors.placeholder }}>
+                                <td colSpan={6} style={{ ...cellStyle, textAlign: 'center', color: theme.colors.placeholder }}>
                                     No games found
                                 </td>
                             </tr>
@@ -112,7 +113,13 @@ export default function GameHistory({ username }: { username: string }) {
                             const result = getResultForPlayer(game, username);
                             return (
                                 <tr key={game.game_id}>
-                                    <td style={cellStyle}>{opponent}</td>                                    <td style={cellStyle}>{playedWhite ? 'White' : 'Black'}</td>
+                                    <td style={{ ...cellStyle, fontSize: '0.875rem' }}>
+                                        {game.last_move_timestamp
+                                            ? new Date(game.last_move_timestamp).toLocaleDateString()
+                                            : '—'}
+                                    </td>
+                                    <td style={cellStyle}>{opponent}</td>
+                                    <td style={cellStyle}>{playedWhite ? 'White' : 'Black'}</td>
                                     <td style={{ ...cellStyle, color: getResultColor(result), fontWeight: 600 }}>
                                         {result}
                                     </td>

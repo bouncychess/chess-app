@@ -8,6 +8,7 @@ export type GameHistoryItem = {
     end_reason: string | null;
     initial_time: number;
     increment: number;
+    last_move_timestamp: number | null;
 };
 
 export async function getUserGames(username: string): Promise<GameHistoryItem[]> {
