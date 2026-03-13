@@ -90,101 +90,63 @@ export default function Profile() {
     }
 
     return (
-        <div style={{ padding: 20 }}>
-            <h2>{profile?.username}</h2>
+        <div style={{ padding: '16px 20px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 8 }}>
+                <h2 style={{ margin: 0, fontSize: '1.75rem' }}>{profile?.username}</h2>
+                <span style={{ color: theme.colors.placeholder, fontSize: '0.875rem' }}>
+                    Rating: <span style={{ color: theme.colors.text, fontWeight: 600 }}>{profile?.rating ?? 0}</span>
+                </span>
+            </div>
 
-            <div style={{
-                ...theme.card,
-                maxWidth: 500,
-            }}>
-                {/* Rating */}
-                <div style={{ marginBottom: 20 }}>
-                    <label style={{
-                        display: 'block',
-                        fontSize: '0.875rem',
-                        fontWeight: 500,
-                        marginBottom: 4,
-                        color: theme.colors.text,
-                    }}>
-                        Rating
-                    </label>
-                    <div style={{
-                        padding: '8px 12px',
-                        backgroundColor: theme.colors.background,
-                        borderRadius: 4,
-                        color: theme.colors.text,
-                        fontWeight: 600,
-                    }}>
-                        {profile?.rating}
-                    </div>
-                </div>
-
-                {/* Profile Details */}
-                <div style={{ marginBottom: 20 }}>
-                    <label style={{
-                        display: 'block',
-                        fontSize: '0.875rem',
-                        fontWeight: 500,
-                        marginBottom: 4,
-                        color: theme.colors.text,
-                    }}>
-                        About
-                    </label>
-                    {isEditing ? (
-                        <textarea
-                            value={editedDetails}
-                            onChange={(e) => setEditedDetails(e.target.value)}
-                            placeholder="Tell others about yourself..."
-                            style={{
-                                width: '100%',
-                                minHeight: 100,
-                                padding: '8px 12px',
-                                border: `1px solid ${theme.colors.border}`,
-                                borderRadius: 4,
-                                fontSize: '1rem',
-                                resize: 'vertical',
-                                boxSizing: 'border-box',
-                            }}
-                        />
-                    ) : (
-                        <div style={{
+            <div style={{ ...theme.card, maxWidth: 350, padding: 12 }}>
+                {isEditing ? (
+                    <textarea
+                        value={editedDetails}
+                        onChange={(e) => setEditedDetails(e.target.value)}
+                        placeholder="Tell others about yourself..."
+                        style={{
+                            width: '100%',
+                            minHeight: 80,
                             padding: '8px 12px',
-                            backgroundColor: theme.colors.background,
+                            border: `1px solid ${theme.colors.border}`,
                             borderRadius: 4,
-                            color: theme.colors.text,
-                            minHeight: 60,
-                            whiteSpace: 'pre-wrap',
-                        }}>
-                            {profile?.profile_details || (
-                                <span style={{ color: theme.colors.placeholder, fontStyle: 'italic' }}>
-                                    No profile details yet
-                                </span>
-                            )}
-                        </div>
-                    )}
-                </div>
+                            fontSize: '1rem',
+                            resize: 'vertical',
+                            boxSizing: 'border-box',
+                        }}
+                    />
+                ) : (
+                    <div style={{
+                        color: theme.colors.text,
+                        whiteSpace: 'pre-wrap',
+                    }}>
+                        {profile?.profile_details || (
+                            <span style={{ color: theme.colors.placeholder, fontStyle: 'italic' }}>
+                                No profile details yet
+                            </span>
+                        )}
+                    </div>
+                )}
 
-                {/* Error message */}
                 {error && (
-                    <p style={{ color: theme.colors.danger, margin: '0 0 16px 0' }}>
+                    <p style={{ color: theme.colors.danger, margin: '8px 0 0 0' }}>
                         {error}
                     </p>
                 )}
 
-                {/* Action buttons - only show if viewing own profile */}
                 {canEdit && (
-                    <div style={{ display: 'flex', gap: 12 }}>
+                    <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
                         {isEditing ? (
                             <>
-                                <Button onClick={handleSave} disabled={saving}>
+                                <Button size="sm" onClick={handleSave} disabled={saving}>
                                     {saving ? 'Saving...' : 'Save'}
                                 </Button>
-                                <Button onClick={handleCancel} variant="secondary" disabled={saving}>
+                                <Button size="sm" onClick={handleCancel} variant="secondary" disabled={saving}>
                                     Cancel
                                 </Button>
                             </>
                         ) : (
-                            <Button onClick={() => setIsEditing(true)}>
+                            <Button size="sm" onClick={() => setIsEditing(true)}>
                                 Edit Profile
                             </Button>
                         )}
