@@ -137,7 +137,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
           color: playerColorRef.current,
           dests: newTurn === playerColorRef.current ? getLegalDests(chess) : new Map(),
         },
-        check: chess.isCheck(),
+
       });
 
       return true;
@@ -202,7 +202,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       orientation: getOrientation(),
       turnColor: currentTurn,
       lastMove: lastMove ? [lastMove.from as Key, lastMove.to as Key] : undefined,
-      check: chessGame.isCheck(),
+
       animation: { enabled: false },
       movable: {
         free: false,
@@ -256,7 +256,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     cgApiRef.current?.set({
       fen,
       lastMove: (lastMove && !isViewingHistory) ? [lastMove.from as Key, lastMove.to as Key] : undefined,
-      check: chessGame.isCheck(),
+
     });
   }, [chessPosition, overridePosition, lastMove, isViewingHistory, chessGame]);
 
@@ -277,6 +277,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         color: movableColor,
         dests: movableColor ? getLegalDests(chessGame) : new Map(),
       },
+
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTurn, gameId, isViewingHistory, gameResult, playerColor, chessPosition]);
@@ -332,7 +333,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
           fen: newFen,
           lastMove: [from as Key, to as Key],
           turnColor: newTurn,
-          check: chessGame.isCheck(),
+    
           movable: {
             color: playerColor,
             dests: newTurn === playerColor ? getLegalDests(chessGame) : new Map(),
