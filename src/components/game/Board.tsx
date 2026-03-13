@@ -340,13 +340,16 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   useEffect(() => {
     if (!lastMessage) return;
 
-    if (lastMessage.action === "move") {
+    if (lastMessage.action === "move" && lastMessage.move) {
       // Skip own move echoes — already applied locally in executeMove
       const newTurn = lastMessage.turn as PlayerColor;
       if (newTurn !== playerColor) return;
 
+      const moveStr = lastMessage.move;
+      // Clear so re-fires of this effect don't reprocess
+      delete lastMessage.move;
+
       try {
-        const moveStr = lastMessage.move;
         const from = moveStr.slice(0, 2);
         const to = moveStr.slice(2, 4);
         chessGame.move({
