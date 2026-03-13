@@ -103,6 +103,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   };
 
   const premoveRef = useRef(premove);
+  const isPremoveExecution = useRef(false);
   useEffect(() => { premoveRef.current = premove; }, [premove]);
 
   const sendMove = useCallback((moveStr: string) => {
@@ -111,7 +112,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       gameId: gameIdRef.current,
       move: moveStr,
       time: new Date().toISOString(),
+      premove: isPremoveExecution.current,
     });
+    isPremoveExecution.current = false;
   }, [sendMessage]);
 
   // Check if a move is a pawn promotion
@@ -370,9 +373,11 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         // Execute premove if one is set and it's now our turn
         if (premoveRef.current && newTurn === playerColor) {
           setTimeout(() => {
+            isPremoveExecution.current = true;
             const played = cgApiRef.current?.playPremove();
             if (!played) {
               // Premove was invalid in the new position, clear it
+              isPremoveExecution.current = false;
               setPremove(null);
             }
           }, 50);
