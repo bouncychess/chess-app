@@ -59,7 +59,7 @@ function Game() {
   const [isWaitingNewGame, setIsWaitingNewGame] = useState(false);
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
-  const gameStartSoundRef = useRef(new Audio("/sounds/bouncy_ping.mp3"));
+  const gameStartSoundRef = useRef(new Audio("/sounds/game_time.mp3"));
 
   // Derived values for rematch/new game
   const isPlayer = username !== null && (username === whiteUsername || username === blackUsername);
