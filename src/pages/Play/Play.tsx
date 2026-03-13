@@ -26,8 +26,33 @@ function Play() {
     deserialize: (s) => TIME_CONTROLS.find(tc => tc.label === s),
   });
   const [previewTime, setPreviewTime] = useState<number>(selectedTimeControl.initialTime);
+  const [dots, setDots] = useState(1);
+
+  useEffect(() => {
+    if (status !== "waiting") return;
+    setDots(1);
+    const interval = setInterval(() => setDots(d => (d % 3) + 1), 500);
+    return () => clearInterval(interval);
+  }, [status]);
+
   const [boardSize, setBoardSize] = useState(400);
+  const [flipped, setFlipped] = useState(false);
   const hasRequestedPlayers = useRef(false);
+
+  // Keyboard shortcut to flip board
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement ||
+          event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (event.key === "f") {
+        setFlipped(f => !f);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Request players list on mount and when connection changes
   useEffect(() => {
@@ -110,6 +135,8 @@ function Play() {
           blackName={null}
           activeColor={null}
           playerColor="white"
+          onFlip={() => setFlipped(f => !f)}
+          flipped={flipped}
         >
           <Board
             gameId={null}
@@ -117,6 +144,7 @@ function Play() {
             initialTurn="white"
             onTurnChange={() => {}}
             onSizeChange={setBoardSize}
+            flipped={flipped}
           />
         </GameClock>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + panelOffset }}>
@@ -137,7 +165,9 @@ function Play() {
             }}
           />
           <Button variant="danger" onClick={status === "waiting" ? onCancelPlay : onPlay} disabled={!selectedTimeControl}>
-            {status === "waiting" ? "Waiting for opponent..." : "Play"}
+            {status === "waiting"
+              ? <span style={{ display: "flex", alignItems: "center", width: "100%", position: "relative" }}><span style={{ flex: 1, textAlign: "center" }}>Waiting{".".repeat(dots)}<span style={{ visibility: "hidden" }}>{".".repeat(3 - dots)}</span></span><span style={{ fontWeight: 900, fontSize: "1.0em", position: "absolute", right: 0 }}>✕</span></span>
+              : "Play"}
           </Button>
           <div style={{ flex: 1, minHeight: 0 }}>
             <Players players={players} currentUsername={username ?? undefined} onPlayBot={onPlayBot} />

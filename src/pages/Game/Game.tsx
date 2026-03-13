@@ -33,6 +33,7 @@ function Game() {
   const { mode } = useTheme();
   const navigate = useNavigate();
   const [boardSize, setBoardSize] = useState(400);
+  const [flipped, setFlipped] = useState(false);
   const panelOffset = mode === 'windows' ? 67 : 85;
 
   // Initialize from navigation state
@@ -342,6 +343,8 @@ function Game() {
       } else if (event.key === "ArrowRight") {
         event.preventDefault();
         handleNavigate("next");
+      } else if (event.key === "f") {
+        setFlipped(f => !f);
       }
     };
 
@@ -374,6 +377,8 @@ function Game() {
             blackName={blackUsername}
             activeColor={status === "playing" && gameStarted ? currentTurn : null}
             playerColor={playerColor}
+            onFlip={() => setFlipped(f => !f)}
+            flipped={flipped}
           >
             <Board
               gameId={gameId}
@@ -386,6 +391,7 @@ function Game() {
               overridePosition={displayPosition}
               isViewingHistory={isViewingHistory}
               gameResult={gameResult}
+              flipped={flipped}
             />
           </GameClock>
         </div>

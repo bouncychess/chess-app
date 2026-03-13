@@ -42,7 +42,7 @@ function applyCssVariables(mode: ThemeMode) {
 function getInitialMode(): ThemeMode {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'normal' || stored === 'windows') return stored;
-    return 'normal';
+    return 'windows';
 }
 
 // Initialize on load so the first render has the right theme

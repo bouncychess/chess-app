@@ -6,6 +6,7 @@ import Logout from './pages/Logout/Logout';
 import Article from './pages/Article/Article';
 import Profile from './pages/Profile/Profile';
 import SignIn from './pages/SignIn/SignIn';
+import Clive from './pages/Clive/Clive';
 import Settings from './pages/Settings/Settings';
 import Layout from './components/layout/Layout';
 import { WebSocketProvider } from './context/WebSocketContext';
@@ -33,6 +34,7 @@ export default function App() {
                         <Route path="/user/:username" element={<Layout><Profile /></Layout>} />
                         <Route path="/signin" element={<Layout><SignIn /></Layout>} />
                         <Route path="/articles/:id" element={<Layout><Article /></Layout>} />
+                        <Route path="/clive" element={<Layout><Clive /></Layout>} />
                         <Route path="/settings" element={<Layout><Settings /></Layout>} />
                         <Route path="/logout" element={<Layout><Logout /></Layout>} />
                     </Routes>
