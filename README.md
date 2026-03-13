@@ -1,3 +1,6 @@
+# Open Source
+This is open source because we are using chessground
+
 # Setup
 1) navigate to your chess dev directory (For me it's `cd ~/dev/chess`)
 2) clone chess-app `git@github.com:chess/chess-app.git`
