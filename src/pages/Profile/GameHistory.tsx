@@ -91,7 +91,15 @@ export default function GameHistory({ username }: { username: string }) {
             </div>
 
             <div style={{ ...theme.card, padding: 0, overflow: 'hidden', height: PAGE_SIZE * 37 + 37 }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', color: theme.colors.text }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', color: theme.colors.text, tableLayout: 'fixed' }}>
+                    <colgroup>
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '30%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '13%' }} />
+                    </colgroup>
                     <thead>
                         <tr style={{ backgroundColor: theme.colors.background }}>
                             <th style={cellStyle}>Date</th>
