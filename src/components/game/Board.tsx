@@ -43,6 +43,23 @@ function getLegalDests(chess: Chess): Map<Key, Key[]> {
     if (!dests.has(from)) dests.set(from, []);
     dests.get(from)!.push(move.to as Key);
   }
+
+  // Add extra castling destinations (rook square + intermediate squares)
+  const kingSquare = (chess.turn() === 'w' ? 'e1' : 'e8') as Key;
+  const kingDests = dests.get(kingSquare);
+  if (kingDests) {
+    const rank = chess.turn() === 'w' ? '1' : '8';
+    if (kingDests.includes(`g${rank}` as Key)) {
+      if (!kingDests.includes(`f${rank}` as Key)) kingDests.push(`f${rank}` as Key);
+      if (!kingDests.includes(`h${rank}` as Key)) kingDests.push(`h${rank}` as Key);
+    }
+    if (kingDests.includes(`c${rank}` as Key)) {
+      if (!kingDests.includes(`d${rank}` as Key)) kingDests.push(`d${rank}` as Key);
+      if (!kingDests.includes(`b${rank}` as Key)) kingDests.push(`b${rank}` as Key);
+      if (!kingDests.includes(`a${rank}` as Key)) kingDests.push(`a${rank}` as Key);
+    }
+  }
+
   return dests;
 }
 
@@ -150,6 +167,16 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const handleCgMove = useCallback((orig: Key, dest: Key) => {
     const chess = chessGameRef.current;
 
+    // Translate castling moves: any king move 2+ squares maps to standard castling dest
+    const piece = chess.get(orig as Square);
+    if (piece?.type === 'k') {
+      const destFile = dest.charCodeAt(0) - 97;
+      const origFile = orig.charCodeAt(0) - 97;
+      const rank = orig[1];
+      if (destFile - origFile >= 2) dest = `g${rank}` as Key;
+      else if (origFile - destFile >= 2) dest = `c${rank}` as Key;
+    }
+
     // Check if this is a promotion
     if (isPromotionMove(orig, dest)) {
       if (autoPromoteToQueenRef.current) {
@@ -209,7 +236,6 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         color: movableColor,
         dests: movableColor ? getLegalDests(chessGame) : new Map(),
         showDests: false,
-        rookCastle: true,
         events: {
           after: handleCgMove,
         },
