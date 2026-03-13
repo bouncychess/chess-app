@@ -90,7 +90,7 @@ export default function GameHistory({ username }: { username: string }) {
                 />
             </div>
 
-            <div style={{ ...theme.card, padding: 0, overflow: 'hidden', minHeight: PAGE_SIZE * 37 + 37 }}>
+            <div style={{ ...theme.card, padding: 0, overflow: 'hidden', height: PAGE_SIZE * 37 + 37 }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', color: theme.colors.text }}>
                     <thead>
                         <tr style={{ backgroundColor: theme.colors.background }}>
@@ -146,7 +146,7 @@ export default function GameHistory({ username }: { username: string }) {
                     <Button size="sm" variant="secondary" onClick={() => setPage(p => p - 1)} disabled={page === 0}>
                         Prev
                     </Button>
-                    <span style={{ color: theme.colors.text, fontSize: '0.875rem' }}>
+                    <span style={{ color: theme.colors.text, fontSize: '0.875rem', minWidth: 60, textAlign: 'center' }}>
                         {page + 1} / {totalPages}
                     </span>
                     <Button size="sm" variant="secondary" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>
