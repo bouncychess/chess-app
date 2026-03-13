@@ -204,7 +204,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         free: false,
         color: movableColor,
         dests: movableColor ? getLegalDests(chessGame) : new Map(),
-        showDests: true,
+        showDests: false,
         events: {
           after: handleCgMove,
         },
