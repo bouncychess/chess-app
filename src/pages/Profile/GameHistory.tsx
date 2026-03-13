@@ -90,7 +90,7 @@ export default function GameHistory({ username }: { username: string }) {
                 />
             </div>
 
-            <div style={{ ...theme.card, padding: 0, overflow: 'hidden' }}>
+            <div style={{ ...theme.card, padding: 0, overflow: 'hidden', minHeight: PAGE_SIZE * 37 + 37 }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', color: theme.colors.text }}>
                     <thead>
                         <tr style={{ backgroundColor: theme.colors.background }}>
