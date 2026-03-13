@@ -341,6 +341,10 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     if (!lastMessage) return;
 
     if (lastMessage.action === "move") {
+      // Skip own move echoes — already applied locally in executeMove
+      const newTurn = lastMessage.turn as PlayerColor;
+      if (newTurn !== playerColor) return;
+
       try {
         const moveStr = lastMessage.move;
         const from = moveStr.slice(0, 2);
