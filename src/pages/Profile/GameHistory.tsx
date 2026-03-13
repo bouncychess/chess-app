@@ -77,7 +77,7 @@ export default function GameHistory({ username }: { username: string }) {
     };
 
     return (
-        <div style={{ marginTop: 24 }}>
+        <div style={{ marginTop: 24, maxWidth: 850 }}>
             <h3 style={{ color: theme.colors.text, marginBottom: 12 }}>Games</h3>
 
             <div style={{ marginBottom: 12, maxWidth: 250 }}>
@@ -138,6 +138,9 @@ export default function GameHistory({ username }: { username: string }) {
 
             {totalPages > 1 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+                    <Button size="sm" variant="secondary" onClick={() => setPage(0)} disabled={page === 0}>
+                        First
+                    </Button>
                     <Button size="sm" variant="secondary" onClick={() => setPage(p => p - 1)} disabled={page === 0}>
                         Prev
                     </Button>
@@ -146,6 +149,9 @@ export default function GameHistory({ username }: { username: string }) {
                     </span>
                     <Button size="sm" variant="secondary" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>
                         Next
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => setPage(totalPages - 1)} disabled={page >= totalPages - 1}>
+                        Last
                     </Button>
                 </div>
             )}
