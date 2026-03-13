@@ -386,6 +386,7 @@ function Board({ gameId, playerColor, initialTurn: _initialTurn, initialPgn, onT
     position: overridePosition ?? chessPosition,
     boardOrientation: flippedProp ? (playerColor === 'white' ? 'black' : 'white') : playerColor,
     animationDurationInMs: 0,
+    showAnimations: false,
     onPieceDrop,
     onPieceDrag,
     onSquareClick,
