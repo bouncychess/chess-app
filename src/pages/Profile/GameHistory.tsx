@@ -77,11 +77,8 @@ export default function GameHistory({ username }: { username: string }) {
     };
 
     return (
-        <div style={{ marginTop: 24, maxWidth: 850 }}>
-            <h3 style={{ color: theme.colors.text, marginBottom: 12 }}>
-                Games <span style={{ color: theme.colors.placeholder, fontSize: '1rem', fontWeight: 400 }}>({games.length})</span>
-            </h3>
-
+        <div style={{ marginTop: 40, maxWidth: 850 }}>
+            <h3 style={{ color: theme.colors.text, marginTop: 0, marginBottom: 12 }}>Games</h3>
             <div style={{ marginBottom: 12, maxWidth: 250 }}>
                 <TextInput
                     value={search}
@@ -146,25 +143,30 @@ export default function GameHistory({ username }: { username: string }) {
                 </table>
             </div>
 
-            {totalPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
-                    <Button size="sm" variant="secondary" onClick={() => setPage(0)} disabled={page === 0}>
-                        First
-                    </Button>
-                    <Button size="sm" variant="secondary" onClick={() => setPage(p => p - 1)} disabled={page === 0}>
-                        Prev
-                    </Button>
-                    <span style={{ color: theme.colors.text, fontSize: '0.875rem', minWidth: 60, textAlign: 'center' }}>
-                        {page + 1} / {totalPages}
-                    </span>
-                    <Button size="sm" variant="secondary" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>
-                        Next
-                    </Button>
-                    <Button size="sm" variant="secondary" onClick={() => setPage(totalPages - 1)} disabled={page >= totalPages - 1}>
-                        Last
-                    </Button>
-                </div>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+                {totalPages > 1 && (
+                    <>
+                        <Button size="sm" variant="secondary" onClick={() => setPage(0)} disabled={page === 0}>
+                            First
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => setPage(p => p - 1)} disabled={page === 0}>
+                            Prev
+                        </Button>
+                        <span style={{ color: theme.colors.text, fontSize: '0.875rem', minWidth: 60, textAlign: 'center' }}>
+                            {page + 1} / {totalPages}
+                        </span>
+                        <Button size="sm" variant="secondary" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>
+                            Next
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => setPage(totalPages - 1)} disabled={page >= totalPages - 1}>
+                            Last
+                        </Button>
+                    </>
+                )}
+                <span style={{ color: theme.colors.placeholder, fontSize: '0.875rem', marginLeft: totalPages > 1 ? 'auto' : 0 }}>
+                    {games.length} games played
+                </span>
+            </div>
         </div>
     );
 }
