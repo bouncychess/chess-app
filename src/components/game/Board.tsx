@@ -209,6 +209,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         color: movableColor,
         dests: movableColor ? getLegalDests(chessGame) : new Map(),
         showDests: false,
+        rookCastle: true,
         events: {
           after: handleCgMove,
         },
