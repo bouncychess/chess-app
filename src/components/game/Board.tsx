@@ -72,7 +72,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>(initialTurn);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
-  const [premove, setPremove] = useState<{ from: string; to: string } | null>(null);
+  const [hasPremoves, setHasPremoves] = useState(false);
   const moveSoundRef = useRef(new Audio("/sounds/move.mp3"));
 
   const boardRef = useRef<HTMLDivElement>(null);
@@ -102,9 +102,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     moveSoundRef.current.play().catch(() => {});
   };
 
-  const premoveRef = useRef(premove);
+  const hasPremovesRef = useRef(hasPremoves);
   const isPremoveExecution = useRef(false);
-  useEffect(() => { premoveRef.current = premove; }, [premove]);
+  useEffect(() => { hasPremovesRef.current = hasPremoves; }, [hasPremoves]);
 
   const sendMove = useCallback((moveStr: string) => {
     sendMessage({
@@ -252,10 +252,11 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       },
       premovable: {
         enabled: premovesEnabled,
+        maxQueue: 10,
         showDests: false,
         events: {
-          set: (orig: Key, dest: Key) => setPremove({ from: orig, to: dest }),
-          unset: () => setPremove(null),
+          set: () => setHasPremoves(true),
+          unset: () => setHasPremoves(false),
         },
       },
       drawable: {
@@ -328,9 +329,10 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     cgApiRef.current?.set({
       premovable: {
         enabled: premovesEnabled,
+        maxQueue: 10,
         events: {
-          set: (orig: Key, dest: Key) => setPremove({ from: orig, to: dest }),
-          unset: () => setPremove(null),
+          set: () => setHasPremoves(true),
+          unset: () => setHasPremoves(false),
         },
       },
     });
@@ -377,15 +379,14 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
           },
         });
 
-        // Execute premove if one is set and it's now our turn
-        if (premoveRef.current && newTurn === playerColor) {
+        // Execute premove if one is queued and it's now our turn
+        if (hasPremovesRef.current && newTurn === playerColor) {
           setTimeout(() => {
             isPremoveExecution.current = true;
             const played = cgApiRef.current?.playPremove();
             if (!played) {
-              // Premove was invalid in the new position, clear it
               isPremoveExecution.current = false;
-              setPremove(null);
+              setHasPremoves(false);
             }
           }, 50);
         }
