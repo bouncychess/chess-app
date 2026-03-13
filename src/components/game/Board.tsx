@@ -80,7 +80,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   const playMoveSound = () => {
     moveSoundRef.current.currentTime = 0;
-    moveSoundRef.current.volume = 0.3;
+    moveSoundRef.current.volume = 0.6;
     moveSoundRef.current.playbackRate = 2;
     moveSoundRef.current.play().catch(() => {});
   };
