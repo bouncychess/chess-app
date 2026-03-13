@@ -142,6 +142,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const premoveQueueRef = useRef<PremoveEntry[]>([]);
   const shadowChessRef = useRef<Chess | null>(null);
   const isRestoringPremoveRef = useRef(false);
+  const unsetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => { premoveRef.current = premove; }, [premove]);
 
   const clearPremoveQueue = useCallback(() => {
@@ -200,6 +201,50 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     rebuildShadowChess();
     updateQueueHighlights();
   }, [rebuildShadowChess, updateQueueHighlights]);
+
+  // Shared premove event handlers used by both init and sync effects.
+  // When chessground replaces a premove, it fires unset then set synchronously.
+  // We defer the unset so that set can cancel it if it's a replacement (not a user cancel).
+  const handlePremoveSet = useCallback((orig: Key, dest: Key) => {
+    // Cancel any pending unset — this is a replacement, not a cancel
+    if (unsetTimerRef.current !== null) {
+      clearTimeout(unsetTimerRef.current);
+      unsetTimerRef.current = null;
+    }
+
+    const existing = premoveRef.current;
+    if (existing && premoveQueueRef.current.length < MAX_PREMOVE_QUEUE) {
+      // Already have a premove — queue the new one instead of replacing
+      const shadow = shadowChessRef.current;
+      if (shadow && isPlausiblePremove(shadow.fen(), orig, dest)) {
+        premoveQueueRef.current.push({ from: orig, to: dest });
+        applyPremoveOnShadow(shadow, { from: orig, to: dest });
+        updateQueueHighlights();
+      }
+      // Restore the original first premove in chessground
+      isRestoringPremoveRef.current = true;
+      setTimeout(() => {
+        cgApiRef.current?.set({
+          premovable: { current: [existing.from as Key, existing.to as Key] },
+        });
+        isRestoringPremoveRef.current = false;
+      }, 0);
+    } else {
+      // First premove — normal flow
+      setPremove({ from: orig, to: dest });
+      initShadowChess(orig, dest);
+    }
+  }, [initShadowChess, updateQueueHighlights]);
+
+  const handlePremoveUnset = useCallback(() => {
+    if (isRestoringPremoveRef.current) return;
+    // Defer the clear — if a set follows immediately, it will cancel this
+    unsetTimerRef.current = setTimeout(() => {
+      unsetTimerRef.current = null;
+      setPremove(null);
+      clearPremoveQueue();
+    }, 0);
+  }, [clearPremoveQueue]);
 
   const sendMove = useCallback((moveStr: string) => {
     sendMessage({
@@ -349,35 +394,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         enabled: premovesEnabled,
         showDests: false,
         events: {
-          set: (orig: Key, dest: Key) => {
-            const existing = premoveRef.current;
-            if (existing && premoveQueueRef.current.length < MAX_PREMOVE_QUEUE) {
-              // Already have a premove — queue the new one instead of replacing
-              const shadow = shadowChessRef.current;
-              if (shadow && isPlausiblePremove(shadow.fen(), orig, dest)) {
-                premoveQueueRef.current.push({ from: orig, to: dest });
-                applyPremoveOnShadow(shadow, { from: orig, to: dest });
-                updateQueueHighlights();
-              }
-              // Restore the original first premove in chessground
-              isRestoringPremoveRef.current = true;
-              setTimeout(() => {
-                cgApiRef.current?.set({
-                  premovable: { current: [existing.from as Key, existing.to as Key] },
-                });
-                isRestoringPremoveRef.current = false;
-              }, 0);
-            } else {
-              // First premove — normal flow
-              setPremove({ from: orig, to: dest });
-              initShadowChess(orig, dest);
-            }
-          },
-          unset: () => {
-            if (isRestoringPremoveRef.current) return; // Ignore programmatic restores
-            setPremove(null);
-            clearPremoveQueue();
-          },
+          set: handlePremoveSet,
+          unset: handlePremoveUnset,
         },
       },
       drawable: {
@@ -446,7 +464,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     });
   }, [handleCgMove]);
 
-  // Sync premovesEnabled setting to chessground
+  // Sync premovesEnabled setting and premove handlers to chessground
   useEffect(() => {
     if (!premovesEnabled) {
       setPremove(null);
@@ -457,36 +475,12 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       premovable: {
         enabled: premovesEnabled,
         events: {
-          set: (orig: Key, dest: Key) => {
-            const existing = premoveRef.current;
-            if (existing && premoveQueueRef.current.length < MAX_PREMOVE_QUEUE) {
-              const shadow = shadowChessRef.current;
-              if (shadow && isPlausiblePremove(shadow.fen(), orig, dest)) {
-                premoveQueueRef.current.push({ from: orig, to: dest });
-                applyPremoveOnShadow(shadow, { from: orig, to: dest });
-                updateQueueHighlights();
-              }
-              isRestoringPremoveRef.current = true;
-              setTimeout(() => {
-                cgApiRef.current?.set({
-                  premovable: { current: [existing.from as Key, existing.to as Key] },
-                });
-                isRestoringPremoveRef.current = false;
-              }, 0);
-            } else {
-              setPremove({ from: orig, to: dest });
-              initShadowChess(orig, dest);
-            }
-          },
-          unset: () => {
-            if (isRestoringPremoveRef.current) return;
-            setPremove(null);
-            clearPremoveQueue();
-          },
+          set: handlePremoveSet,
+          unset: handlePremoveUnset,
         },
       },
     });
-  }, [premovesEnabled, clearPremoveQueue, initShadowChess, updateQueueHighlights]);
+  }, [premovesEnabled, clearPremoveQueue, handlePremoveSet, handlePremoveUnset]);
 
   // Clear premove queue when game ends
   useEffect(() => {
