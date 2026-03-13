@@ -85,12 +85,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     moveSoundRef.current.play().catch(() => {});
   };
 
-  // Clear premove on any click anywhere on the page
-  useEffect(() => {
-    const handleGlobalClick = () => setPremove(null);
-    window.addEventListener('pointerdown', handleGlobalClick);
-    return () => window.removeEventListener('pointerdown', handleGlobalClick);
-  }, []);
+  const premoveRef = useRef(premove);
+  useEffect(() => { premoveRef.current = premove; }, [premove]);
 
   const sendMove = useCallback((moveStr: string) => {
     sendMessage({
@@ -138,7 +134,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         lastMove: [from as Key, to as Key],
         turnColor: newTurn,
         movable: {
-          color: newTurn === playerColorRef.current ? playerColorRef.current : undefined,
+          color: playerColorRef.current,
           dests: newTurn === playerColorRef.current ? getLegalDests(chess) : new Map(),
         },
         check: chess.isCheck(),
@@ -186,8 +182,6 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   // Determine if the player can move
   const getMovableColor = (): PlayerColor | undefined => {
     if (!gameId || isViewingHistory || gameResult !== null) return undefined;
-    const actualTurn = chessGame.turn() === 'w' ? 'white' : 'black';
-    if (playerColor !== actualTurn) return undefined;
     return playerColor;
   };
 
@@ -227,7 +221,12 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         enabled: true,
       },
       premovable: {
-        enabled: false,
+        enabled: premovesEnabled,
+        showDests: false,
+        events: {
+          set: (orig: Key, dest: Key) => setPremove({ from: orig, to: dest }),
+          unset: () => setPremove(null),
+        },
       },
       drawable: {
         enabled: true,
@@ -293,6 +292,19 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     });
   }, [handleCgMove]);
 
+  // Sync premovesEnabled setting to chessground
+  useEffect(() => {
+    cgApiRef.current?.set({
+      premovable: {
+        enabled: premovesEnabled,
+        events: {
+          set: (orig: Key, dest: Key) => setPremove({ from: orig, to: dest }),
+          unset: () => setPremove(null),
+        },
+      },
+    });
+  }, [premovesEnabled]);
+
   // Handle opponent moves via WebSocket
   useEffect(() => {
     if (!lastMessage) return;
@@ -322,22 +334,18 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
           turnColor: newTurn,
           check: chessGame.isCheck(),
           movable: {
-            color: newTurn === playerColor ? playerColor : undefined,
+            color: playerColor,
             dests: newTurn === playerColor ? getLegalDests(chessGame) : new Map(),
           },
         });
 
         // Execute premove if one is set and it's now our turn
-        if (premove && newTurn === playerColor) {
-          // Use setTimeout so the opponent's move renders first
+        if (premoveRef.current && newTurn === playerColor) {
           setTimeout(() => {
-            setPremove(null);
-            const premoveFrom = premove.from;
-            const premoveTo = premove.to;
-            if (isPromotionMove(premoveFrom, premoveTo)) {
-              executeMove(premoveFrom, premoveTo, "q");
-            } else {
-              executeMove(premoveFrom, premoveTo);
+            const played = cgApiRef.current?.playPremove();
+            if (!played) {
+              // Premove was invalid in the new position, clear it
+              setPremove(null);
             }
           }, 50);
         }
