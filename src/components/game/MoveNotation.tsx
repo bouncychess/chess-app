@@ -1,10 +1,17 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { theme } from "../../config/theme";
+import { useTheme } from "../../context/ThemeContext";
+import {
+  WindowsClipboardIcon,
+  ModernCopyIcon,
+  CheckmarkIcon,
+} from "../icons/ClipboardIcons";
 import { ResizableCard } from "../ResizableCard";
 interface MoveNotationProps {
   pgn: string;
   viewedMoveIndex?: number | null;
   onMoveClick?: (moveIndex: number) => void;
+  boardSize?: number;
 }
 
 interface ParsedMove {
@@ -42,10 +49,15 @@ export function MoveNotation({
   pgn,
   viewedMoveIndex = null,
   onMoveClick,
+  boardSize = 400,
 }: MoveNotationProps) {
   const moves = parsePgn(pgn);
   const moveRowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
+  const { mode } = useTheme();
+  const scale = boardSize / 400;
+  const iconSize = Math.round(16 * scale);
 
   // Auto-scroll to selected move when viewedMoveIndex changes
   useEffect(() => {
@@ -66,10 +78,51 @@ export function MoveNotation({
     }
   }, [viewedMoveIndex]);
 
+  const handleCopy = () => {
+    const movesOnly = pgn.replace(/\[[^\]]*\]\s*/g, "").replace(/\s*\*\s*$/, "").trim();
+    navigator.clipboard.writeText(movesOnly).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
   return (
     <ResizableCard
-      style={{ height: "100%", display: "flex", flexDirection: "column" }}
+      style={{ height: "100%", display: "flex", flexDirection: "column", position: "relative" }}
     >
+      {moves.length > 0 && (
+        <button
+          onClick={handleCopy}
+          title="Copy PGN"
+          style={{
+            position: "absolute",
+            bottom: 4,
+            right: 4,
+            zIndex: 2,
+            background: "none",
+            border: "none",
+            boxShadow: "none",
+            outline: "none",
+            cursor: "pointer",
+            padding: 2,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: copied ? 1 : 0.6,
+            transition: "opacity 0.15s",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
+          onMouseLeave={(e) => { if (!copied) e.currentTarget.style.opacity = "0.6"; }}
+        >
+          {copied ? (
+            <CheckmarkIcon size={iconSize} />
+          ) : mode === "windows" ? (
+            <WindowsClipboardIcon size={iconSize} />
+          ) : (
+            <ModernCopyIcon color={theme.colors.text} size={iconSize} />
+          )}
+        </button>
+      )}
       {moves.length === 0 ? (
         <p style={{ color: theme.colors.placeholder, fontSize: "0.875rem", margin: 0 }}>
           No moves yet

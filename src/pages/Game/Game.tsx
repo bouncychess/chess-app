@@ -441,6 +441,7 @@ function Game() {
               pgn={pgn || ""}
               viewedMoveIndex={viewedMoveIndex}
               onMoveClick={handleMoveClick}
+              boardSize={boardSize}
             />
             <div style={{ marginTop: 11 }}>
               {gameResult !== null && gameEndReason !== null ? (
