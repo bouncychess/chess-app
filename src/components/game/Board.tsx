@@ -329,7 +329,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     cgApiRef.current?.set({
       premovable: {
         enabled: premovesEnabled,
-        maxQueue: 10,
+        maxQueue: 100,
         events: {
           set: () => setHasPremoves(true),
           unset: () => setHasPremoves(false),
