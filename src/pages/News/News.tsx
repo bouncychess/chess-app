@@ -1,11 +1,6 @@
 import ArticleCard, { type Article } from '../../components/ArticleCard';
 
 
-const featuredArticles: Article[] = [
-    { id: 'elf_incident', title: 'The "Elf Incident"', thumbnail: '/images/articles/clive_elf.png' },
-    { id: 'crab_incident', title: 'The "Crab Incident"', thumbnail: '/images/articles/crab_incident.png' },
-];
-
 // Sample articles - replace with real data later
 const articles: Article[] = [
     { id: '1', title: 'A Bloated Mess', thumbnail: '/images/articles/bloated_mess.png' },
@@ -43,18 +38,6 @@ export default function News() {
                     All the news that&apos;s fit to print
                 </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 24 }}>
-                {featuredArticles.map((article) => (
-                    <div key={article.id} style={{ width: 'calc((100% - 40px) / 3)' }}>
-                        <ArticleCard article={article} />
-                    </div>
-                ))}
-            </div>
-            <hr style={{
-                border: 'none',
-                borderTop: '2px solid currentColor',
-                marginBottom: 24,
-            }} />
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
