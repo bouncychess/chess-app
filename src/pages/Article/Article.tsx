@@ -1,5 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import articles from './articles';
+import Comments from './components/Comments';
 
 export default function Article() {
     const { id } = useParams<{ id: string }>();
@@ -120,6 +121,7 @@ export default function Article() {
                     </span>
                 </div>
             )}
+            {id && <Comments articleId={id} />}
         </div>
     );
 }
