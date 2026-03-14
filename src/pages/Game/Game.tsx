@@ -432,6 +432,7 @@ function Game() {
               isViewingHistory={isViewingHistory}
               gameResult={gameResult}
               flipped={flipped}
+              isSpectator={!isPlayer}
             />
           </GameClock>
         </div>
