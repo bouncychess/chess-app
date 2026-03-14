@@ -3,9 +3,9 @@ import ArticleCard, { type Article } from '../../components/ArticleCard';
 
 // Sample articles - replace with real data later
 const articles: Article[] = [
-    { id: '5', title: 'Tactical Patterns Every Player Should Know', thumbnail: 'https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=400' },
+    { id: 'tactical_patterns', title: 'Tactical Patterns Every Player Should Know', thumbnail: 'https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=400' },
     { id: 'mike_ohearn', title: 'Healthy Body, Healthy Mind', thumbnail: '/images/articles/mike.png' },
-    { id: '6', title: 'How to Analyze Your Games', thumbnail: 'https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=400' },
+    { id: 'analyze_games', title: 'How to Analyze Your Games', thumbnail: 'https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=400' },
 ];
 
 export default function News() {
