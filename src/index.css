@@ -73,3 +73,11 @@ button:focus-visible {
   outline: var(--btn-focus-outline);
   outline-offset: var(--btn-focus-outline-offset);
 }
+
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
