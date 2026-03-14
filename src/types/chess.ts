@@ -38,7 +38,8 @@ export type GameAction =
   | "respondChallenge"
   | "cancelChallenge"
   | "challengeDeclined"
-  | "challengeCanceled";
+  | "challengeCanceled"
+  | "spectatePlayer";
 
 export interface Player {
   id: string;

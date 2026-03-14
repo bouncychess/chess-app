@@ -79,7 +79,7 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
                 {player.isBot && <BotIcon />}
               </span>
               {player.gameId ? (
-                <Link to={`/game/${player.gameId}`} style={{ color: theme.colors.link, textDecoration: "none" }}>
+                <Link to={`/game/${player.gameId}`} state={{ spectatingUsername: player.username }} style={{ color: theme.colors.link, textDecoration: "none" }}>
                   {player.status}
                 </Link>
               ) : player.isBot && onPlayBot ? (
