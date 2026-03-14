@@ -130,6 +130,7 @@ export function MoveNotation({
       ) : (
         <div
           ref={containerRef}
+          className="hide-scrollbar"
           style={{
             display: "flex",
             flexDirection: "column",
