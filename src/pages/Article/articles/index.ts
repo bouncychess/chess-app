@@ -11,7 +11,7 @@ import crabIncident from './crab-incident';
 const articles: Record<string, ArticleData> = {
     '1': bloatedMess,
     '2': bewareOfCoach,
-    '3': healthyBody,
+    'mike_ohearn': healthyBody,
     '4': headSize,
     '5': tacticalPatterns,
     '6': analyzeGames,
