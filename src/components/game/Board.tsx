@@ -103,7 +103,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     const sound = moveSoundRef.current;
     if (!sound) return;
     sound.currentTime = 0;
-    sound.volume = 0.8;
+    sound.volume = 0.5;
     sound.playbackRate = 1;
     sound.play().catch(() => {});
   };
