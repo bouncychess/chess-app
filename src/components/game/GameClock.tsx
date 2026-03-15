@@ -16,9 +16,10 @@ interface GameClockProps {
   boardSize?: number;
 }
 
-// Scale factor: 1.0 at 400px board, scales linearly
+// Scale factor: 1.0 at 400px board, dampened so it doesn't grow too large
 function getScale(boardSize: number) {
-  return boardSize / 400;
+  const raw = boardSize / 400;
+  return 0.7 + raw * 0.3;
 }
 
 function PlayerRow({ name, time, isActive, trailing, scale }: { name: string | null; time: number; isActive: boolean; trailing?: ReactNode; scale: number }) {
