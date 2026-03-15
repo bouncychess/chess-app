@@ -12,6 +12,7 @@ interface MoveNotationProps {
   viewedMoveIndex?: number | null;
   onMoveClick?: (moveIndex: number) => void;
   boardSize?: number;
+  collapsible?: boolean;
 }
 
 interface ParsedMove {
@@ -50,6 +51,7 @@ export function MoveNotation({
   viewedMoveIndex = null,
   onMoveClick,
   boardSize = 400,
+  collapsible = false,
 }: MoveNotationProps) {
   const moves = parsePgn(pgn);
   const moveRowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -89,6 +91,8 @@ export function MoveNotation({
   return (
     <ResizableCard
       style={{ height: "100%", display: "flex", flexDirection: "column", position: "relative" }}
+      collapsible={collapsible}
+      collapsedLabel="Moves"
     >
       {moves.length > 0 && (
         <button

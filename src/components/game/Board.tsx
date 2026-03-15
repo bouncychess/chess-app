@@ -404,15 +404,16 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const calculateOptimalSize = useCallback(() => {
     if (typeof window === "undefined") return 400;
 
-    const verticalPadding = 250;
-    const horizontalPadding = 400;
+    const isMobile = window.innerWidth < 768;
+    const verticalPadding = isMobile ? 100 : 250;
+    const horizontalPadding = isMobile ? 24 : 400;
 
     const maxWidth = window.innerWidth - horizontalPadding;
     const maxHeight = window.innerHeight - verticalPadding;
 
     const optimalSize = Math.min(maxWidth, maxHeight);
 
-    const minSize = 220;
+    const minSize = 320;
     const maxSize = 800;
     return Math.max(minSize, Math.min(maxSize, optimalSize));
   }, []);
