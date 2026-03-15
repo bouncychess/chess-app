@@ -412,7 +412,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
     const isMobile = window.innerWidth < 768;
     const verticalPadding = isMobile ? 100 : 250;
-    const horizontalPadding = isMobile ? 24 : 400;
+    const horizontalPadding = isMobile ? 16 : 400;
 
     const maxWidth = window.innerWidth - horizontalPadding;
     const maxHeight = window.innerHeight - verticalPadding;
