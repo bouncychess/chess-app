@@ -134,7 +134,7 @@ function Play() {
 
   return (
     <div style={{ padding: isMobile ? 4 : 20 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: isMobile ? 8 : 20 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: isMobile ? 8 : 20, justifyContent: isMobile ? "center" : undefined }}>
         <GameClock
           whiteTime={previewTime}
           blackTime={previewTime}
