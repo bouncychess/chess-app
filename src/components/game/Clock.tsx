@@ -1,6 +1,7 @@
 interface ClockProps {
   time: number;
   isActive: boolean;
+  scale?: number;
 }
 
 function formatTime(ms: number): string {
@@ -23,7 +24,7 @@ function formatTime(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-export function Clock({ time, isActive }: ClockProps) {
+export function Clock({ time, isActive, scale = 1 }: ClockProps) {
   const isLowTime = time < 30000 && time > 0;
   const isFlagged = time <= 0;
 
@@ -42,8 +43,8 @@ export function Clock({ time, isActive }: ClockProps) {
   return (
     <div
       style={{
-        padding: "4px 12px",
-        borderRadius: 6,
+        padding: `${Math.round(4 * scale)}px ${Math.round(12 * scale)}px`,
+        borderRadius: Math.round(6 * scale),
         backgroundColor: getBackgroundColor(),
         color: getTextColor(),
         transition: "background-color 0.2s ease",
@@ -52,7 +53,7 @@ export function Clock({ time, isActive }: ClockProps) {
       <span
         style={{
           fontFamily: "monospace",
-          fontSize: "1.1rem",
+          fontSize: `${1.1 * scale}rem`,
           fontWeight: 600,
         }}
       >

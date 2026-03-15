@@ -34,7 +34,14 @@ function Game() {
   const navigate = useNavigate();
   const [boardSize, setBoardSize] = useState(400);
   const [flipped, setFlipped] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const panelOffset = mode === 'windows' ? 67 : 85;
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Initialize from navigation state
   const initialState = location.state as GameState | null;
@@ -367,8 +374,8 @@ function Game() {
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
+    <div style={{ padding: isMobile ? 4 : 20 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: isMobile ? 8 : 20 }}>
         <div style={{ position: "relative" }}>
           <GameClock
             whiteTime={whiteTime}
@@ -379,6 +386,7 @@ function Game() {
             playerColor={playerColor}
             onFlip={() => setFlipped(f => !f)}
             flipped={flipped}
+            boardSize={boardSize}
           >
             <Board
               gameId={gameId}

@@ -37,6 +37,13 @@ function Play() {
 
   const [boardSize, setBoardSize] = useState(400);
   const [flipped, setFlipped] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const hasRequestedPlayers = useRef(false);
 
   // Keyboard shortcut to flip board
@@ -126,8 +133,8 @@ function Play() {
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
+    <div style={{ padding: isMobile ? 4 : 20 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: isMobile ? 8 : 20 }}>
         <GameClock
           whiteTime={previewTime}
           blackTime={previewTime}
@@ -137,6 +144,7 @@ function Play() {
           playerColor="white"
           onFlip={() => setFlipped(f => !f)}
           flipped={flipped}
+          boardSize={boardSize}
         >
           <Board
             gameId={null}
