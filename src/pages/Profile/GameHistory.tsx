@@ -12,8 +12,7 @@ function getResultForPlayer(game: GameHistoryItem, username: string): string {
     if (game.result === 'draw') return 'Draw';
     const playedWhite = game.white_username === username;
     const whiteWon = game.result === 'white';
-    if ((playedWhite && whiteWon) || (!playedWhite && !whiteWon)) return 'Win';
-    return 'Loss';
+    return (playedWhite && whiteWon) || (!playedWhite && !whiteWon) ? 'Win' : 'Loss';
 }
 
 function getResultColor(result: string): string {
