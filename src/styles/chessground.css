@@ -1,0 +1,66 @@
+/* Board colors: light #f0f4f8, dark #5b8fb9 */
+cg-board {
+  background-color: #5b8fb9;
+  background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgOCA4IiBzaGFwZS1yZW5kZXJpbmc9ImNyaXNwRWRnZXMiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjNWI4ZmI5Ii8+CjxnIGlkPSJyIj48cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjZjBmNGY4Ii8+PC9nPgo8dXNlIGhyZWY9IiNyIiB4PSIyIi8+PHVzZSBocmVmPSIjciIgeD0iNCIvPjx1c2UgaHJlZj0iI3IiIHg9IjYiLz4KPHVzZSBocmVmPSIjciIgeD0iMSIgeT0iMSIvPjx1c2UgaHJlZj0iI3IiIHg9IjMiIHk9IjEiLz48dXNlIGhyZWY9IiNyIiB4PSI1IiB5PSIxIi8+PHVzZSBocmVmPSIjciIgeD0iNyIgeT0iMSIvPgo8dXNlIGhyZWY9IiNyIiB5PSIyIi8+PHVzZSBocmVmPSIjciIgeD0iMiIgeT0iMiIvPjx1c2UgaHJlZj0iI3IiIHg9IjQiIHk9IjIiLz48dXNlIGhyZWY9IiNyIiB4PSI2IiB5PSIyIi8+Cjx1c2UgaHJlZj0iI3IiIHg9IjEiIHk9IjMiLz48dXNlIGhyZWY9IiNyIiB4PSIzIiB5PSIzIi8+PHVzZSBocmVmPSIjciIgeD0iNSIgeT0iMyIvPjx1c2UgaHJlZj0iI3IiIHg9IjciIHk9IjMiLz4KPHVzZSBocmVmPSIjciIgeT0iNCIvPjx1c2UgaHJlZj0iI3IiIHg9IjIiIHk9IjQiLz48dXNlIGhyZWY9IiNyIiB4PSI0IiB5PSI0Ii8+PHVzZSBocmVmPSIjciIgeD0iNiIgeT0iNCIvPgo8dXNlIGhyZWY9IiNyIiB4PSIxIiB5PSI1Ii8+PHVzZSBocmVmPSIjciIgeD0iMyIgeT0iNSIvPjx1c2UgaHJlZj0iI3IiIHg9IjUiIHk9IjUiLz48dXNlIGhyZWY9IiNyIiB4PSI3IiB5PSI1Ii8+Cjx1c2UgaHJlZj0iI3IiIHk9IjYiLz48dXNlIGhyZWY9IiNyIiB4PSIyIiB5PSI2Ii8+PHVzZSBocmVmPSIjciIgeD0iNCIgeT0iNiIvPjx1c2UgaHJlZj0iI3IiIHg9IjYiIHk9IjYiLz4KPHVzZSBocmVmPSIjciIgeD0iMSIgeT0iNyIvPjx1c2UgaHJlZj0iI3IiIHg9IjMiIHk9IjciLz48dXNlIGhyZWY9IiNyIiB4PSI1IiB5PSI3Ii8+PHVzZSBocmVmPSIjciIgeD0iNyIgeT0iNyIvPgo8L3N2Zz4K');
+}
+
+/* Last move highlight */
+cg-board square.last-move {
+  background-color: rgba(255, 221, 0, 0.4);
+}
+
+/* Selected square highlight */
+cg-board square.selected {
+  background-color: rgba(255, 221, 0, 0.8);
+}
+
+/* Check indicator disabled */
+cg-board square.check {
+  background: none;
+}
+
+/* Move destination dots */
+cg-board square.move-dest {
+  background: radial-gradient(rgba(20, 85, 30, 0.5) 22%, #208530 0, rgba(0, 0, 0, 0.3) 0, rgba(0, 0, 0, 0) 0);
+}
+cg-board square.oc.move-dest {
+  background: radial-gradient(transparent 0%, transparent 80%, rgba(20, 85, 0, 0.3) 80%);
+}
+cg-board square.move-dest:hover,
+cg-board square.move-dest.hover {
+  background: rgba(20, 85, 30, 0.3);
+}
+
+/* Premove styles */
+cg-board square.premove-dest {
+  background: radial-gradient(rgba(228, 60, 38, 0.5) 22%, #e43c26 0, rgba(0, 0, 0, 0.3) 0, rgba(0, 0, 0, 0) 0);
+}
+cg-board square.oc.premove-dest {
+  background: radial-gradient(transparent 0%, transparent 80%, rgba(228, 60, 38, 0.2) 80%);
+}
+cg-board square.premove-dest:hover,
+cg-board square.premove-dest.hover {
+  background: rgba(228, 60, 38, 0.2);
+}
+cg-board square.current-premove {
+  background-color: rgba(228, 60, 38, 0.5);
+}
+
+/* No animation */
+cg-board piece {
+  transition: none;
+}
+
+/* Coordinate label colors */
+.orientation-white .ranks :nth-child(odd),
+.orientation-white .files :nth-child(odd),
+.orientation-black .ranks :nth-child(even),
+.orientation-black .files :nth-child(even) {
+  color: rgba(255, 255, 255, 0.8);
+}
+.orientation-white .ranks :nth-child(even),
+.orientation-white .files :nth-child(even),
+.orientation-black .ranks :nth-child(odd),
+.orientation-black .files :nth-child(odd) {
+  color: rgba(72, 72, 72, 0.8);
+}
