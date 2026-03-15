@@ -390,13 +390,19 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         });
 
         // Execute premove if one is queued and it's now our turn
-        if (hasPremovesRef.current && newTurn === playerColor) {
+        if (newTurn === playerColor) {
           setTimeout(() => {
-            isPremoveExecution.current = true;
-            const played = cgApiRef.current?.playPremove();
-            if (!played) {
-              isPremoveExecution.current = false;
-              setHasPremoves(false);
+            // Check both our ref and chessground's queue directly
+            const cg = cgApiRef.current;
+            const hasQueuedPremoves = hasPremovesRef.current ||
+              (cg?.state?.premovable?.queue?.length ?? 0) > 0;
+            if (hasQueuedPremoves) {
+              isPremoveExecution.current = true;
+              const played = cg?.playPremove();
+              if (!played) {
+                isPremoveExecution.current = false;
+                setHasPremoves(false);
+              }
             }
           }, 50);
         }
