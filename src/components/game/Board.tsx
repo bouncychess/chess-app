@@ -239,6 +239,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       turnColor: currentTurn,
       lastMove: lastMove ? [lastMove.from as Key, lastMove.to as Key] : undefined,
 
+      coordinates: boardSize >= 500,
       animation: { enabled: false },
       movable: {
         free: false,
