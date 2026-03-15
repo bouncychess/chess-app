@@ -72,7 +72,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>(initialTurn);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
-  const [premove, setPremove] = useState<{ from: string; to: string } | null>(null);
+  const [hasPremoves, setHasPremoves] = useState(false);
   const moveSoundRef = useRef(new Audio("/sounds/move.mp3"));
 
   const boardRef = useRef<HTMLDivElement>(null);
@@ -102,8 +102,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     moveSoundRef.current.play().catch(() => {});
   };
 
-  const premoveRef = useRef(premove);
-  useEffect(() => { premoveRef.current = premove; }, [premove]);
+  const hasPremovesRef = useRef(hasPremoves);
+  const isPremoveExecution = useRef(false);
+  useEffect(() => { hasPremovesRef.current = hasPremoves; }, [hasPremoves]);
 
   const sendMove = useCallback((moveStr: string) => {
     sendMessage({
@@ -111,7 +112,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       gameId: gameIdRef.current,
       move: moveStr,
       time: new Date().toISOString(),
+      premove: isPremoveExecution.current,
     });
+    isPremoveExecution.current = false;
   }, [sendMessage]);
 
   // Check if a move is a pawn promotion
@@ -249,10 +252,11 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       },
       premovable: {
         enabled: premovesEnabled,
+        maxQueue: 10,
         showDests: false,
         events: {
-          set: (orig: Key, dest: Key) => setPremove({ from: orig, to: dest }),
-          unset: () => setPremove(null),
+          set: () => setHasPremoves(true),
+          unset: () => setHasPremoves(false),
         },
       },
       drawable: {
@@ -325,9 +329,10 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     cgApiRef.current?.set({
       premovable: {
         enabled: premovesEnabled,
+        maxQueue: 100,
         events: {
-          set: (orig: Key, dest: Key) => setPremove({ from: orig, to: dest }),
-          unset: () => setPremove(null),
+          set: () => setHasPremoves(true),
+          unset: () => setHasPremoves(false),
         },
       },
     });
@@ -337,9 +342,16 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   useEffect(() => {
     if (!lastMessage) return;
 
-    if (lastMessage.action === "move") {
+    if (lastMessage.action === "move" && lastMessage.move) {
+      // Skip own move echoes — already applied locally in executeMove
+      const newTurn = lastMessage.turn as PlayerColor;
+      if (newTurn !== playerColor) return;
+
+      const moveStr = lastMessage.move;
+      // Clear so re-fires of this effect don't reprocess
+      delete lastMessage.move;
+
       try {
-        const moveStr = lastMessage.move;
         const from = moveStr.slice(0, 2);
         const to = moveStr.slice(2, 4);
         chessGame.move({
@@ -367,13 +379,20 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
           },
         });
 
-        // Execute premove if one is set and it's now our turn
-        if (premoveRef.current && newTurn === playerColor) {
+        // Execute premove if one is queued and it's now our turn
+        if (newTurn === playerColor) {
           setTimeout(() => {
-            const played = cgApiRef.current?.playPremove();
-            if (!played) {
-              // Premove was invalid in the new position, clear it
-              setPremove(null);
+            // Check both our ref and chessground's queue directly
+            const cg = cgApiRef.current;
+            const hasQueuedPremoves = hasPremovesRef.current ||
+              (cg?.state?.premovable?.queue?.length ?? 0) > 0;
+            if (hasQueuedPremoves) {
+              isPremoveExecution.current = true;
+              const played = cg?.playPremove();
+              if (!played) {
+                isPremoveExecution.current = false;
+                setHasPremoves(false);
+              }
             }
           }, 50);
         }
