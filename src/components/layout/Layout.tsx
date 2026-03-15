@@ -22,13 +22,20 @@ export default function Layout({ children }: { children: ReactNode }) {
     return (
         <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
             <Sidebar />
-            <main style={{ flex: 1, padding: isMobile ? '4px' : '1rem', overflowY: 'auto', backgroundColor: theme.colors.background, color: theme.colors.text, position: 'relative' }}>
+            <main style={{ flex: 1, padding: isMobile ? '4px' : '1rem', paddingTop: isMobile ? '48px' : '1rem', overflowY: 'auto', backgroundColor: theme.colors.background, color: theme.colors.text, position: 'relative' }}>
                 <ConnectingOverlay isConnecting={!isConnected} />
                 {mode === 'windows' && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                        <img src="/images/articles/windows.svg" alt="Windows" width={isMobile ? 40 : 48} height={isMobile ? 40 : 48} />
-                        <span style={{ fontSize: isMobile ? '16px' : '18px', color: theme.colors.placeholder }}>Powered by Windows</span>
-                    </div>
+                    isMobile ? (
+                        <div style={{ position: 'fixed', top: 8, left: 52, zIndex: 1000, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <img src="/images/articles/windows.svg" alt="Windows" width={32} height={32} />
+                            <span style={{ fontSize: '14px', color: theme.colors.placeholder }}>Powered by Windows</span>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                            <img src="/images/articles/windows.svg" alt="Windows" width={48} height={48} />
+                            <span style={{ fontSize: '18px', color: theme.colors.placeholder }}>Powered by Windows</span>
+                        </div>
+                    )
                 )}
                 {children}
             </main>
