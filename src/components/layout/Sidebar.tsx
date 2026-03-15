@@ -240,10 +240,6 @@ export default function Sidebar() {
                 <button
                     onClick={() => setMenuOpen(true)}
                     style={{
-                        position: 'fixed',
-                        top: 4,
-                        left: 4,
-                        zIndex: 1000,
                         background: 'none',
                         border: 'none',
                         color: theme.colors.text,
