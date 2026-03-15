@@ -17,7 +17,7 @@ function getResultForPlayer(game: GameHistoryItem, username: string): string {
 
 function getResultColor(result: string): string {
     if (result === 'Win') return '#16a34a';
-    if (result === 'Loss') return theme.colors.danger;
+    if (result === 'Loss') return '#dc2626';
     return theme.colors.text;
 }
 
