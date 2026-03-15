@@ -74,7 +74,10 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [hasPremoves, setHasPremoves] = useState(false);
-  const moveSoundRef = useRef(new Audio("/sounds/move.mp3"));
+  const moveSoundRef = useRef<HTMLAudioElement | null>(null);
+  if (!moveSoundRef.current) {
+    moveSoundRef.current = new Audio("/sounds/move.mp3");
+  }
 
   const boardRef = useRef<HTMLDivElement>(null);
   const cgApiRef = useRef<Api | null>(null);
@@ -97,10 +100,12 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   useEffect(() => { chessGameRef.current = chessGame; }, [chessGame]);
 
   const playMoveSound = () => {
-    moveSoundRef.current.currentTime = 0;
-    moveSoundRef.current.volume = 0.8;
-    moveSoundRef.current.playbackRate = 1;
-    moveSoundRef.current.play().catch(() => {});
+    const sound = moveSoundRef.current;
+    if (!sound) return;
+    sound.currentTime = 0;
+    sound.volume = 0.8;
+    sound.playbackRate = 1;
+    sound.play().catch(() => {});
   };
 
   const hasPremovesRef = useRef(hasPremoves);
