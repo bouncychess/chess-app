@@ -386,7 +386,6 @@ function Game() {
             playerColor={playerColor}
             onFlip={() => setFlipped(f => !f)}
             flipped={flipped}
-            boardSize={boardSize}
           >
             <Board
               gameId={gameId}

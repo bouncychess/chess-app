@@ -409,7 +409,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
     const optimalSize = Math.min(maxWidth, maxHeight);
 
-    const minSize = 400;
+    const minSize = 320;
     const maxSize = 800;
     return Math.max(minSize, Math.min(maxSize, optimalSize));
   }, []);
