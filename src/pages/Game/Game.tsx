@@ -402,7 +402,7 @@ function Game() {
             />
           </GameClock>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + panelOffset }}>
+        {!isMobile && <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + panelOffset }}>
           <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0}}>
             <MoveNotation
               pgn={pgn || ""}
@@ -437,8 +437,41 @@ function Game() {
           <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: 78}}>
             <Chat gameId={gameId} initialChat={chatLog} />
           </div>
-        </div>
+        </div>}
       </div>
+      {isMobile && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+          <MoveNotation
+            pgn={pgn || ""}
+            viewedMoveIndex={viewedMoveIndex}
+            onMoveClick={handleMoveClick}
+            collapsible
+          />
+          <Chat gameId={gameId} initialChat={chatLog} collapsible />
+          {gameResult !== null && gameEndReason !== null ? (
+            <GameEndDisplay
+              gameResult={gameResult}
+              gameEndReason={gameEndReason}
+              onRematch={handleRematch}
+              onNewGame={handleNewGame}
+              isPlayer={isPlayer}
+              hasOfferedRematch={hasOfferedRematch}
+              opponentOfferedRematch={opponentOfferedRematch}
+              isWaitingNewGame={isWaitingNewGame}
+            />
+          ) : (
+            <GameControls
+              onResign={handleResign}
+              onOfferDraw={handleOfferDraw}
+              onAcceptDraw={handleAcceptDraw}
+              onDeclineDraw={handleDeclineDraw}
+              isGameOver={gameResult !== null}
+              hasOfferedDraw={hasOfferedDraw}
+              hasPendingDrawOffer={pendingDrawOffer !== null}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
