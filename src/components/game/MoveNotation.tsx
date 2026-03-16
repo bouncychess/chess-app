@@ -142,6 +142,7 @@ export function MoveNotation({
             flex: 1,
             overflowY: "auto",
             scrollBehavior: "smooth",
+            scrollbarWidth: "none",
           }}
         >
           {moves.map((move) => {

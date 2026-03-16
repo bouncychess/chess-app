@@ -479,7 +479,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   }, [boardSize, handleResizeMove, handleResizeEnd]);
 
   return (
-    <div style={{ position: "relative", width: boardSize, height: boardSize, borderRadius: 8, overflow: "hidden" }}>
+    <div style={{ position: "relative", width: boardSize, height: boardSize, borderRadius: 8, overflow: "hidden", "--board-size": `${boardSize}px` } as React.CSSProperties}>
       <div ref={boardRef} style={{ width: '100%', height: '100%' }} />
 
       {pendingPromotion && (

@@ -51,6 +51,27 @@ cg-board piece {
   transition: none;
 }
 
+/* Scale coordinate notation with board size */
+.cg-wrap coords {
+  font-size: calc(var(--board-size, 400px) * 0.02);
+}
+
+.cg-wrap coords.ranks {
+  left: calc(var(--board-size, 400px) * 0.01);
+  top: calc(var(--board-size, 400px) * -0.05);
+  width: calc(var(--board-size, 400px) * 0.03);
+}
+
+.cg-wrap coords.ranks.left {
+  left: calc(var(--board-size, 400px) * -0.0375);
+}
+
+.cg-wrap coords.files {
+  bottom: calc(var(--board-size, 400px) * -0.015);
+  left: calc(var(--board-size, 400px) * 0.052);
+  height: calc(var(--board-size, 400px) * 0.04);
+}
+
 /* Coordinate label colors */
 .orientation-white .ranks :nth-child(odd),
 .orientation-white .files :nth-child(odd),
