@@ -88,6 +88,10 @@ function Play() {
 
     if (lastMessage.action === "players") {
       setPlayers(lastMessage.players);
+      const self = lastMessage.players.find((p: Player) => p.username === username);
+      if (self?.gameId) {
+        navigate(`/game/${self.gameId}`);
+      }
     }
   }, [lastMessage, navigate, selectedTimeControl.increment]);
 

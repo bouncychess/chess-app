@@ -130,21 +130,27 @@ export default function Profile() {
                         About
                     </label>
                     {isEditing ? (
-                        <textarea
-                            value={editedDetails}
-                            onChange={(e) => setEditedDetails(e.target.value)}
-                            placeholder="Tell others about yourself..."
-                            style={{
-                                width: '100%',
-                                minHeight: 100,
-                                padding: '8px 12px',
-                                border: `1px solid ${theme.colors.border}`,
-                                borderRadius: 4,
-                                fontSize: '1rem',
-                                resize: 'vertical',
-                                boxSizing: 'border-box',
-                            }}
-                        />
+                        <div>
+                            <textarea
+                                value={editedDetails}
+                                onChange={(e) => setEditedDetails(e.target.value.slice(0, 1000))}
+                                placeholder="Tell others about yourself..."
+                                maxLength={1000}
+                                style={{
+                                    width: '100%',
+                                    minHeight: 100,
+                                    padding: '8px 12px',
+                                    border: `1px solid ${theme.colors.border}`,
+                                    borderRadius: 4,
+                                    fontSize: '1rem',
+                                    resize: 'vertical',
+                                    boxSizing: 'border-box',
+                                }}
+                            />
+                            <div style={{ textAlign: 'right', fontSize: '0.75rem', color: theme.colors.placeholder, marginTop: 4 }}>
+                                {editedDetails.length} / 1000
+                            </div>
+                        </div>
                     ) : (
                         <div style={{
                             padding: '8px 12px',
