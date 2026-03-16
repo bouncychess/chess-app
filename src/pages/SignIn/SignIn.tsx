@@ -34,6 +34,9 @@ export default function SignIn() {
         if (username.startsWith('Guest_') || username.startsWith('guest_')) {
             throw new Error('Username cannot start with "Guest_"');
         }
+        if (username.endsWith('_bot')) {
+            throw new Error('Username cannot end with "_bot"');
+        }
         const result = await register(username, email, password);
         if (result.needsConfirmation) {
             setMode('confirm');
