@@ -31,10 +31,11 @@ export default function SignIn() {
     };
 
     const handleRegister = async () => {
-        if (username.startsWith('Guest_') || username.startsWith('guest_')) {
-            throw new Error('Username cannot start with "Guest_"');
+        const usernameLower = username.toLowerCase();
+        if (usernameLower.startsWith('guest_')) {
+            throw new Error('Username cannot start with "guest_"');
         }
-        if (username.endsWith('_bot')) {
+        if (usernameLower.endsWith('_bot')) {
             throw new Error('Username cannot end with "_bot"');
         }
         const result = await register(username, email, password);
