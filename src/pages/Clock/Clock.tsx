@@ -1,24 +1,17 @@
 import { useState, useEffect } from "react";
 import { ResizableCard } from "../../components/ResizableCard";
+import { Button } from "../../components/buttons/Button";
+import { theme } from "../../config/theme";
 
-function getMidnightPST(): number {
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Los_Angeles",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(now);
+const STORAGE_KEY = "clock-start-time";
 
-  const get = (type: string) =>
-    parts.find((p) => p.type === type)?.value ?? "0";
-  const hour = Number(get("hour"));
-  const minute = Number(get("minute"));
-  const second = Number(get("second"));
-  const elapsedSinceMidnight = (hour * 3600 + minute * 60 + second) * 1000;
-
-  return now.getTime() - elapsedSinceMidnight;
+function loadStartTime(): number | null {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    const ts = Number(stored);
+    if (!isNaN(ts)) return ts;
+  }
+  return null;
 }
 
 function formatElapsed(ms: number): string {
@@ -32,18 +25,43 @@ function formatElapsed(ms: number): string {
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}.${pad(centiseconds)}`;
 }
 
+function toLocalDatetimeString(ts: number): string {
+  const d = new Date(ts);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function Clock() {
+  const [startTime, setStartTime] = useState<number | null>(loadStartTime);
   const [elapsed, setElapsed] = useState("");
-  const [midnightPST] = useState(getMidnightPST);
+  const [inputValue, setInputValue] = useState(() => {
+    const saved = loadStartTime();
+    return saved !== null ? toLocalDatetimeString(saved) : "";
+  });
 
   useEffect(() => {
+    if (startTime === null) return;
     const update = () => {
-      setElapsed(formatElapsed(Date.now() - midnightPST));
+      setElapsed(formatElapsed(Date.now() - startTime));
     };
     update();
     const id = setInterval(update, 10);
     return () => clearInterval(id);
-  }, [midnightPST]);
+  }, [startTime]);
+
+  const handleSet = () => {
+    const ts = new Date(inputValue).getTime();
+    if (isNaN(ts)) return;
+    localStorage.setItem(STORAGE_KEY, String(ts));
+    setStartTime(ts);
+  };
+
+  const handleClear = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setStartTime(null);
+    setElapsed("");
+    setInputValue("");
+  };
 
   return (
     <div
@@ -59,20 +77,48 @@ export default function Clock() {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 12,
+          gap: 16,
         }}
       >
-        <h2 style={{ margin: 0 }}>Time Since Midnight PST</h2>
-        <div
-          style={{
-            fontFamily: "monospace",
-            fontSize: "3rem",
-            fontWeight: 700,
-            letterSpacing: 2,
-          }}
-        >
-          {elapsed}
-        </div>
+        <h2 style={{ margin: 0 }}>Stopwatch</h2>
+        {startTime !== null ? (
+          <>
+            <div
+              style={{
+                fontFamily: "monospace",
+                fontSize: "3rem",
+                fontWeight: 700,
+                letterSpacing: 2,
+              }}
+            >
+              {elapsed}
+            </div>
+            <Button onClick={handleClear} size="sm" variant="secondary">
+              Clear
+            </Button>
+          </>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              gap: 8,
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <label style={{ fontSize: "0.875rem" }}>Start time</label>
+              <input
+                type="datetime-local"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                style={theme.input}
+              />
+            </div>
+            <Button onClick={handleSet} size="sm">
+              Set
+            </Button>
+          </div>
+        )}
       </ResizableCard>
     </div>
   );
