@@ -87,6 +87,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const autoPromoteToQueenRef = useRef(autoPromoteToQueen);
   const gameResultRef = useRef(gameResult);
   const chessGameRef = useRef(chessGame);
+  const isSpectatorRef = useRef(isSpectator);
 
   useEffect(() => { gameIdRef.current = gameId; }, [gameId]);
   useEffect(() => { playerColorRef.current = playerColor; }, [playerColor]);
@@ -95,6 +96,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   useEffect(() => { autoPromoteToQueenRef.current = autoPromoteToQueen; }, [autoPromoteToQueen]);
   useEffect(() => { gameResultRef.current = gameResult; }, [gameResult]);
   useEffect(() => { chessGameRef.current = chessGame; }, [chessGame]);
+  useEffect(() => { isSpectatorRef.current = isSpectator; }, [isSpectator]);
 
   const playMoveSound = () => {
     moveSoundRef.current.currentTime = 0;
@@ -210,9 +212,10 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     cgApiRef.current?.set({ fen: chessGame.fen() });
   };
 
-  // Determine if the player can move
-  const getMovableColor = (): PlayerColor | undefined => {
+  // Determine if the player can move (spectators get 'both' so pieces are draggable but snap back)
+  const getMovableColor = (): PlayerColor | 'both' | undefined => {
     if (!gameId || isViewingHistory || gameResult !== null) return undefined;
+    if (isSpectator) return 'both';
     return playerColor;
   };
 
@@ -238,7 +241,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       movable: {
         free: false,
         color: movableColor,
-        dests: movableColor ? getLegalDests(chessGame) : new Map(),
+        dests: (movableColor && !isSpectator) ? getLegalDests(chessGame) : new Map(),
         showDests: false,
         events: {
           after: handleCgMove,
@@ -307,12 +310,12 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       turnColor: currentTurn,
       movable: {
         color: movableColor,
-        dests: movableColor ? getLegalDests(chessGame) : new Map(),
+        dests: (movableColor && !isSpectator) ? getLegalDests(chessGame) : new Map(),
       },
 
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTurn, gameId, isViewingHistory, gameResult, playerColor, chessPosition]);
+  }, [currentTurn, gameId, isViewingHistory, gameResult, playerColor, chessPosition, isSpectator]);
 
   // Update move handler when it changes
   useEffect(() => {
@@ -378,8 +381,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
           turnColor: newTurn,
     
           movable: {
-            color: playerColor,
-            dests: newTurn === playerColor ? getLegalDests(chessGame) : new Map(),
+            color: isSpectatorRef.current ? 'both' : playerColor,
+            dests: (!isSpectatorRef.current && newTurn === playerColor) ? getLegalDests(chessGame) : new Map(),
           },
         });
 
@@ -404,7 +407,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         console.log("Failed to make move", error);
       }
     }
-  }, [lastMessage, chessGame, playerColor, onPgnChange]);
+  }, [lastMessage, chessGame, playerColor, onPgnChange, isSpectator]);
 
   // Calculate optimal board size to fit viewport without scrolling
   const calculateOptimalSize = useCallback(() => {
