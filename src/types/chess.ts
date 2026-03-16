@@ -34,12 +34,12 @@ export type GameAction =
   | "offerRematch"
   | "rematchOffer"
   | "rematchCanceled"
+  | "spectatePlayer"
   | "challenge"
   | "respondChallenge"
   | "cancelChallenge"
   | "challengeDeclined"
-  | "challengeCanceled"
-  | "spectatePlayer";
+  | "challengeCanceled";
 
 export interface Player {
   id: string;
