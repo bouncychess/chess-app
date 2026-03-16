@@ -31,6 +31,9 @@ export default function SignIn() {
     };
 
     const handleRegister = async () => {
+        if (username.startsWith('Guest_')) {
+            throw new Error('Username cannot start with "Guest_"');
+        }
         const result = await register(username, email, password);
         if (result.needsConfirmation) {
             setMode('confirm');

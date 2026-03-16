@@ -75,7 +75,7 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
               color: theme.colors.text,
             }}>
               <span style={{ display: 'flex', alignItems: 'center' }}>
-                {!player.isBot && !player.username.startsWith('guest_') ? (
+                {!player.isBot && !player.username.startsWith('Guest_') ? (
                   <Link to={`/user/${player.username}`} style={{ color: theme.colors.link, textDecoration: "none" }}>
                     {player.username}
                   </Link>

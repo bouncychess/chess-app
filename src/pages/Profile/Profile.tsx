@@ -99,35 +99,52 @@ export default function Profile() {
             </div>
 
             <div style={{ ...theme.card, maxWidth: 600, maxHeight: 600, overflow: 'auto', padding: 12 }}>
-                {isEditing ? (
-                    <textarea
-                        value={editedDetails}
-                        onChange={(e) => setEditedDetails(e.target.value)}
-                        placeholder="Tell others about yourself..."
-                        style={{
-                            width: '100%',
-                            minHeight: 80,
-                            padding: '8px 12px',
-                            border: `1px solid ${theme.colors.border}`,
-                            borderRadius: 4,
-                            fontSize: '1rem',
-                            resize: 'vertical',
-                            boxSizing: 'border-box',
-                        }}
-                    />
-                ) : (
-                    <div style={{
+                <div style={{ marginBottom: 8 }}>
+                    <label style={{
+                        display: 'block',
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        marginBottom: 4,
                         color: theme.colors.text,
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word',
                     }}>
-                        {profile?.profile_details || (
-                            <span style={{ color: theme.colors.placeholder, fontStyle: 'italic' }}>
-                                No profile details yet
-                            </span>
-                        )}
-                    </div>
-                )}
+                        About
+                    </label>
+                    {isEditing ? (
+                        <div>
+                            <textarea
+                                value={editedDetails}
+                                onChange={(e) => setEditedDetails(e.target.value.slice(0, 1000))}
+                                placeholder="Tell others about yourself..."
+                                maxLength={1000}
+                                style={{
+                                    width: '100%',
+                                    minHeight: 80,
+                                    padding: '8px 12px',
+                                    border: `1px solid ${theme.colors.border}`,
+                                    borderRadius: 4,
+                                    fontSize: '1rem',
+                                    resize: 'vertical',
+                                    boxSizing: 'border-box',
+                                }}
+                            />
+                            <div style={{ textAlign: 'right', fontSize: '0.75rem', color: theme.colors.placeholder, marginTop: 4 }}>
+                                {editedDetails.length} / 1000
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{
+                            color: theme.colors.text,
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                        }}>
+                            {profile?.profile_details || (
+                                <span style={{ color: theme.colors.placeholder, fontStyle: 'italic' }}>
+                                    No profile details yet
+                                </span>
+                            )}
+                        </div>
+                    )}
+                </div>
 
                 {error && (
                     <p style={{ color: theme.colors.danger, margin: '8px 0 0 0' }}>
