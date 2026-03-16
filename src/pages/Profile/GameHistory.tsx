@@ -88,7 +88,7 @@ export default function GameHistory({ username }: { username: string }) {
             </div>
 
             <div style={{ overflowX: 'auto' }}>
-            <div style={{ ...theme.card, padding: 0, overflow: 'hidden', height: PAGE_SIZE * 37 + 37, minWidth: 600 }}>
+            <div style={{ ...theme.card, padding: 0, overflow: 'hidden', height: PAGE_SIZE * 37 + 37, minWidth: 600, boxShadow: '0 6px 20px rgba(0,0,0,0.15)', border: '1px solid rgba(0,0,0,0.18)', outline: 'none' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', color: theme.colors.text, tableLayout: 'fixed' }}>
                     <colgroup>
                         <col style={{ width: '15%' }} />
