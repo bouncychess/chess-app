@@ -34,7 +34,8 @@ export type GameAction =
   | "offerRematch"
   | "rematchOffer"
   | "rematchCanceled"
-  | "spectatePlayer";
+  | "spectatePlayer"
+  | "leaveGame";
 
 export interface Player {
   id: string;

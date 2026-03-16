@@ -13,7 +13,7 @@ import type { Player } from "../../types/chess";
 
 function Play() {
   const navigate = useNavigate();
-  const { sendMessage, lastMessage, isConnected, username } = useWebSocket();
+  const { sendMessage, subscribe, isConnected, username } = useWebSocket();
   const { mode } = useTheme();
   const panelOffset = mode === 'windows' ? 67 : 85;
 
@@ -68,28 +68,31 @@ function Play() {
     }
   }, [isConnected, sendMessage]);
 
+  const selectedTimeControlRef = useRef(selectedTimeControl);
+  useEffect(() => { selectedTimeControlRef.current = selectedTimeControl; }, [selectedTimeControl]);
+
   useEffect(() => {
-    if (!lastMessage) return;
+    return subscribe((msg) => {
+      if (msg.action === "startGame") {
+        console.log("startGame received, navigating to game:", msg);
+        navigate(`/game/${msg.gameId}`, {
+          state: {
+            playerColor: msg.color,
+            currentTurn: msg.turn || "white",
+            whiteTime: msg.whiteTime,
+            blackTime: msg.blackTime,
+            whiteUsername: msg.whiteUsername,
+            blackUsername: msg.blackUsername,
+            increment: selectedTimeControlRef.current.increment,
+          }
+        });
+      }
 
-    if (lastMessage.action === "startGame") {
-      console.log("startGame received, navigating to game:", lastMessage);
-      navigate(`/game/${lastMessage.gameId}`, {
-        state: {
-          playerColor: lastMessage.color,
-          currentTurn: lastMessage.turn || "white",
-          whiteTime: lastMessage.whiteTime,
-          blackTime: lastMessage.blackTime,
-          whiteUsername: lastMessage.whiteUsername,
-          blackUsername: lastMessage.blackUsername,
-          increment: selectedTimeControl.increment,
-        }
-      });
-    }
-
-    if (lastMessage.action === "players") {
-      setPlayers(lastMessage.players);
-    }
-  }, [lastMessage, navigate, selectedTimeControl.increment]);
+      if (msg.action === "players") {
+        setPlayers(msg.players);
+      }
+    });
+  }, [subscribe, navigate]);
 
   const onPlay = () => {
     if (isConnected && selectedTimeControl) {

@@ -11,7 +11,8 @@ interface ChatProps {
 }
 
 function Chat({ gameId, initialChat = [] }: ChatProps) {
-    const { sendMessage, lastMessage, username } = useWebSocket();
+    const { sendMessage, subscribe, username } = useWebSocket();
+    const usernameRef = useRef(username);
     const [chatLog, setChatLog] = useState<ChatMessage[]>(initialChat);
     const [text, setText] = useState<string>('');
     const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -35,25 +36,27 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
         }
     }, [chatLog.length, lastSeenLength]);
 
+    useEffect(() => { usernameRef.current = username; }, [username]);
+
     useEffect(() => {
-        if (!lastMessage) return;
+        return subscribe((msg) => {
+            // Handle chat messages (skip our own - already added optimistically)
+            if (msg.action === "chat" && msg.chat && msg.chat.username !== usernameRef.current) {
+                setChatLog((prevLog) => [...prevLog, msg.chat]);
+            }
 
-        // Handle chat messages (skip our own - already added optimistically)
-        if (lastMessage.action === "chat" && lastMessage.chat && lastMessage.chat.username !== username) {
-            setChatLog((prevLog) => [...prevLog, lastMessage.chat]);
-        }
+            // Handle chat that comes with move messages (e.g., from bots)
+            if (msg.action === "move" && msg.chat) {
+                setChatLog((prevLog) => [...prevLog, msg.chat]);
+            }
 
-        // Handle chat that comes with move messages (e.g., from bots)
-        if (lastMessage.action === "move" && lastMessage.chat) {
-            setChatLog((prevLog) => [...prevLog, lastMessage.chat]);
-        }
-
-        // Handle game end — show result as system chat
-        if (lastMessage.action === "gameEnd") {
-            const { title, subtitle } = formatGameEndMessage(lastMessage.result, lastMessage.reason);
-            setChatLog((prevLog) => [...prevLog, { username: "", message: `${title} — ${subtitle}`, isSystem: true }]);
-        }
-    }, [lastMessage, username]);
+            // Handle game end — show result as system chat
+            if (msg.action === "gameEnd") {
+                const { title, subtitle } = formatGameEndMessage(msg.result, msg.reason);
+                setChatLog((prevLog) => [...prevLog, { username: "", message: `${title} — ${subtitle}`, isSystem: true }]);
+            }
+        });
+    }, [subscribe]);
 
     // Auto-scroll to bottom when new messages are added
     useEffect(() => {

@@ -4,14 +4,14 @@ import { fetchAuthSession } from "aws-amplify/auth";
 import { useAuth } from "./AuthContext";
 import type { GameAction } from "../types/chess";
 
-type WebSocketMessage = {
+export type WebSocketMessage = {
   action: GameAction;
   [key: string]: any;
 };
 
 type WebSocketContextType = {
   sendMessage: (message: WebSocketMessage) => void;
-  lastMessage: WebSocketMessage | null;
+  subscribe: (callback: (msg: WebSocketMessage) => void) => () => void;
   isConnected: boolean;
   username: string | null;
 };
@@ -35,10 +35,15 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
-  const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
+  const listenersRef = useRef<Set<(msg: WebSocketMessage) => void>>(new Set());
   const [isConnected, setIsConnected] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
+
+  const subscribe = useCallback((callback: (msg: WebSocketMessage) => void) => {
+    listenersRef.current.add(callback);
+    return () => { listenersRef.current.delete(callback); };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,7 +95,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             if (parsed.action === "connected" && parsed.username) {
               setUsername(parsed.username);
             }
-            flushSync(() => setLastMessage(parsed));
+            flushSync(() => {
+              listenersRef.current.forEach(cb => cb(parsed));
+            });
           } catch (e) {
             console.error("Invalid WS message:", event.data);
           }
@@ -143,7 +150,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, []);
 
   return (
-    <WebSocketContext.Provider value={{ sendMessage, lastMessage, isConnected, username }}>
+    <WebSocketContext.Provider value={{ sendMessage, subscribe, isConnected, username }}>
       {children}
     </WebSocketContext.Provider>
   );

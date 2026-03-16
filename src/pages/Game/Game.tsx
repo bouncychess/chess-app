@@ -29,7 +29,7 @@ const MOVE_NOTATION_RATIO = 0.6;
 function Game() {
   const { gameId } = useParams<{ gameId: string }>();
   const location = useLocation();
-  const { sendMessage, lastMessage, isConnected, username } = useWebSocket();
+  const { sendMessage, subscribe, isConnected, username } = useWebSocket();
   const { mode } = useTheme();
   const navigate = useNavigate();
   const [boardSize, setBoardSize] = useState(400);
@@ -88,6 +88,25 @@ function Game() {
     }
   }, [isConnected, gameId, sendMessage, spectatingUsername]);
 
+  // Clean up viewer/spectator registration when the Game component unmounts
+  // (i.e., user navigates away from /game/:gameId via React Router).
+  // Tab switches don't unmount — the visibility handler above resyncs on return.
+  // Also resets hasRequestedGameState so that if React Strict Mode (dev only)
+  // fires this cleanup then remounts, the remount re-sends getGameState to
+  // re-register as a viewer.
+  useEffect(() => {
+    return () => {
+      if (gameId) {
+        sendMessage({
+          action: "leaveGame",
+          gameId,
+          spectatingUsername: spectatingUsername || undefined,
+        });
+        hasRequestedGameState.current = false;
+      }
+    };
+  }, [gameId, sendMessage, spectatingUsername]);
+
   // Resync when tab regains focus — moves are incremental so any missed
   // messages while backgrounded leave the board out of sync
   useEffect(() => {
@@ -112,6 +131,11 @@ function Game() {
       setBlackTime(prev => prev + increment);
     }
   }, [increment]);
+
+  const handleTurnChangeRef = useRef(handleTurnChange);
+  useEffect(() => { handleTurnChangeRef.current = handleTurnChange; }, [handleTurnChange]);
+  const opponentUsernameRef = useRef(opponentUsername);
+  useEffect(() => { opponentUsernameRef.current = opponentUsername; }, [opponentUsername]);
 
   const handlePgnChange = (newPgn: string) => {
     setPgn(newPgn);
@@ -216,105 +240,105 @@ function Game() {
   }, [isConnected, status]);
 
   useEffect(() => {
-    if (!lastMessage) return;
-
-    // Handle startGame — either for this game or a new game (rematch/new game match)
-    if (lastMessage.action === "startGame") {
-      if (lastMessage.gameId === gameId) {
-        setPlayerColor(spectatingUsername ? (spectatingUsername === lastMessage.blackUsername ? "black" : "white") : lastMessage.color);
-        setCurrentTurn(lastMessage.turn || "white");
-        setWhiteUsername(lastMessage.whiteUsername);
-        setBlackUsername(lastMessage.blackUsername);
-        setStatus("playing");
-        if (lastMessage.whiteTime !== undefined) {
-          setWhiteTime(lastMessage.whiteTime);
-          setBlackTime(lastMessage.blackTime);
-          setInitialTime(lastMessage.whiteTime);
+    return subscribe((msg) => {
+      // Handle startGame — either for this game or a new game (rematch/new game match)
+      if (msg.action === "startGame") {
+        if (msg.gameId === gameId) {
+          setPlayerColor(spectatingUsername ? (spectatingUsername === msg.blackUsername ? "black" : "white") : msg.color);
+          setCurrentTurn(msg.turn || "white");
+          setWhiteUsername(msg.whiteUsername);
+          setBlackUsername(msg.blackUsername);
+          setStatus("playing");
+          if (msg.whiteTime !== undefined) {
+            setWhiteTime(msg.whiteTime);
+            setBlackTime(msg.blackTime);
+            setInitialTime(msg.whiteTime);
+          }
+        } else if (msg.gameId) {
+          // New game started (rematch or new game match) — navigate to it
+          navigate(`/game/${msg.gameId}`, {
+            state: {
+              playerColor: msg.color,
+              currentTurn: msg.turn || "white",
+              whiteTime: msg.whiteTime,
+              blackTime: msg.blackTime,
+              whiteUsername: msg.whiteUsername,
+              blackUsername: msg.blackUsername,
+              increment: msg.increment ?? 0,
+              spectatingUsername,
+            },
+          });
         }
-      } else if (lastMessage.gameId) {
-        // New game started (rematch or new game match) — navigate to it
-        navigate(`/game/${lastMessage.gameId}`, {
-          state: {
-            playerColor: lastMessage.color,
-            currentTurn: lastMessage.turn || "white",
-            whiteTime: lastMessage.whiteTime,
-            blackTime: lastMessage.blackTime,
-            whiteUsername: lastMessage.whiteUsername,
-            blackUsername: lastMessage.blackUsername,
-            increment: lastMessage.increment ?? 0,
-            spectatingUsername,
-          },
-        });
       }
-    }
-    if (lastMessage.action === "gameEnd" && lastMessage.gameId === gameId) {
-      setGameResult(lastMessage.result);
-      setGameEndReason(lastMessage.reason);
-    }
-    if (lastMessage.action === "move") {
-      if (lastMessage.turn) {
-        handleTurnChange(lastMessage.turn);
+      if (msg.action === "gameEnd" && msg.gameId === gameId) {
+        setGameResult(msg.result);
+        setGameEndReason(msg.reason);
       }
-      if (lastMessage.whiteTime !== undefined) {
-        setWhiteTime(lastMessage.whiteTime);
-        setBlackTime(lastMessage.blackTime);
+      if (msg.action === "move") {
+        if (msg.turn) {
+          handleTurnChangeRef.current(msg.turn);
+        }
+        if (msg.whiteTime !== undefined) {
+          setWhiteTime(msg.whiteTime);
+          setBlackTime(msg.blackTime);
+        }
+        // Clear draw offer state when a move is made
+        setHasOfferedDraw(false);
+        setPendingDrawOffer(null);
       }
-      // Clear draw offer state when a move is made
-      setHasOfferedDraw(false);
-      setPendingDrawOffer(null);
-    }
 
-    if (lastMessage.action === "clockSync") {
-      setWhiteTime(lastMessage.whiteTime);
-      setBlackTime(lastMessage.blackTime);
-    }
-
-    // Handle rematch offer/cancel from opponent
-    if (lastMessage.action === "rematchOffer" && lastMessage.gameId === gameId) {
-      setRematchOfferedBy(opponentUsername);
-    }
-    if (lastMessage.action === "rematchCanceled" && lastMessage.gameId === gameId) {
-      setRematchOfferedBy(null);
-    }
-
-    // Handle draw offer received from opponent
-    if (lastMessage.action === "drawOffer" && lastMessage.gameId === gameId) {
-      setPendingDrawOffer(lastMessage.offeredBy);
-    }
-
-    // Handle draw declined notification (received by the player who offered)
-    if (lastMessage.action === "drawDeclined" && lastMessage.gameId === gameId) {
-      setHasOfferedDraw(false);
-    }
-
-    // Handle gameState response when loading game directly
-    if (lastMessage.action === "gameState" && lastMessage.gameId === gameId) {
-      setPlayerColor(spectatingUsername ? (spectatingUsername === lastMessage.blackUsername ? "black" : "white") : lastMessage.playerColor);
-      setCurrentTurn(lastMessage.currentTurn);
-      setWhiteTime(lastMessage.whiteTime);
-      setBlackTime(lastMessage.blackTime);
-      setWhiteUsername(lastMessage.whiteUsername);
-      setBlackUsername(lastMessage.blackUsername);
-      setIncrement(lastMessage.increment ?? 0);
-      setInitialTime(lastMessage.initialTime ?? null);
-      setPgn(lastMessage.pgn ?? null);
-      setChatLog(lastMessage.chat ?? []);
-      setStatus("playing");
-      // Handle finished game state
-      if (lastMessage.result) {
-        setGameResult(lastMessage.result);
-        setGameEndReason(lastMessage.endReason ?? null);
+      if (msg.action === "clockSync") {
+        setWhiteTime(msg.whiteTime);
+        setBlackTime(msg.blackTime);
       }
-      // Select the latest move if there are any moves
-      if (lastMessage.pgn) {
-        const moveCount = getMoveCount(lastMessage.pgn);
-        setViewedMoveIndex(moveCount > 0 ? moveCount - 1 : null);
-        setGameStarted(true);
-      } else if (lastMessage.currentTurn === "black") {
-        setGameStarted(true);
+
+      // Handle rematch offer/cancel from opponent
+      if (msg.action === "rematchOffer" && msg.gameId === gameId) {
+        setRematchOfferedBy(opponentUsernameRef.current);
       }
-    }
-  }, [lastMessage, gameId, handleTurnChange, navigate, opponentUsername, spectatingUsername]);
+      if (msg.action === "rematchCanceled" && msg.gameId === gameId) {
+        setRematchOfferedBy(null);
+      }
+
+      // Handle draw offer received from opponent
+      if (msg.action === "drawOffer" && msg.gameId === gameId) {
+        setPendingDrawOffer(msg.offeredBy);
+      }
+
+      // Handle draw declined notification (received by the player who offered)
+      if (msg.action === "drawDeclined" && msg.gameId === gameId) {
+        setHasOfferedDraw(false);
+      }
+
+      // Handle gameState response when loading game directly
+      if (msg.action === "gameState" && msg.gameId === gameId) {
+        setPlayerColor(spectatingUsername ? (spectatingUsername === msg.blackUsername ? "black" : "white") : msg.playerColor);
+        setCurrentTurn(msg.currentTurn);
+        setWhiteTime(msg.whiteTime);
+        setBlackTime(msg.blackTime);
+        setWhiteUsername(msg.whiteUsername);
+        setBlackUsername(msg.blackUsername);
+        setIncrement(msg.increment ?? 0);
+        setInitialTime(msg.initialTime ?? null);
+        setPgn(msg.pgn ?? null);
+        setChatLog(msg.chat ?? []);
+        setStatus("playing");
+        // Handle finished game state
+        if (msg.result) {
+          setGameResult(msg.result);
+          setGameEndReason(msg.endReason ?? null);
+        }
+        // Select the latest move if there are any moves
+        if (msg.pgn) {
+          const moveCount = getMoveCount(msg.pgn);
+          setViewedMoveIndex(moveCount > 0 ? moveCount - 1 : null);
+          setGameStarted(true);
+        } else if (msg.currentTurn === "black") {
+          setGameStarted(true);
+        }
+      }
+    });
+  }, [subscribe, gameId, navigate, spectatingUsername]);
 
   // Client-side clock countdown using actual elapsed time
   // Only starts ticking after white makes their first move

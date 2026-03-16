@@ -65,7 +65,7 @@ function getLegalDests(chess: Chess): Map<Key, Key[]> {
 }
 
 function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null, flipped: flippedProp = false, isSpectator = false }: BoardProps) {
-  const { sendMessage, lastMessage } = useWebSocket();
+  const { sendMessage, subscribe } = useWebSocket();
   const { premovesEnabled } = useSettings();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
 
@@ -88,6 +88,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const gameResultRef = useRef(gameResult);
   const chessGameRef = useRef(chessGame);
   const isSpectatorRef = useRef(isSpectator);
+  const onPgnChangeRef = useRef(onPgnChange);
 
   useEffect(() => { gameIdRef.current = gameId; }, [gameId]);
   useEffect(() => { playerColorRef.current = playerColor; }, [playerColor]);
@@ -97,6 +98,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   useEffect(() => { gameResultRef.current = gameResult; }, [gameResult]);
   useEffect(() => { chessGameRef.current = chessGame; }, [chessGame]);
   useEffect(() => { isSpectatorRef.current = isSpectator; }, [isSpectator]);
+  useEffect(() => { onPgnChangeRef.current = onPgnChange; }, [onPgnChange]);
 
   const playMoveSound = () => {
     moveSoundRef.current.currentTime = 0;
@@ -342,54 +344,55 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     });
   }, [premovesEnabled]);
 
-  // Handle opponent moves via WebSocket
+  // Handle opponent/spectator moves via WebSocket subscribe callback.
+  // Using subscribe instead of useEffect on lastMessage ensures each message
+  // is processed synchronously before the next arrives (fixes bot game two-ply bug).
   useEffect(() => {
-    if (!lastMessage) return;
+    return subscribe((msg) => {
+      if (msg.action !== "move" || !msg.move) return;
 
-    if (lastMessage.action === "move" && lastMessage.move) {
+      const chess = chessGameRef.current;
+      const pColor = playerColorRef.current;
+
       // Players skip their own move echoes (already applied locally in executeMove).
       // Spectators never make local moves, so they must apply everything.
-      if (!isSpectator) {
-        const newTurn = lastMessage.turn as PlayerColor;
-        if (newTurn !== playerColor) return;
+      if (!isSpectatorRef.current) {
+        const newTurn = msg.turn as PlayerColor;
+        if (newTurn !== pColor) return;
       }
 
-      const moveStr = lastMessage.move;
-      // Clear so re-fires of this effect don't reprocess
-      delete lastMessage.move;
+      const moveStr = msg.move;
 
       try {
         const from = moveStr.slice(0, 2);
         const to = moveStr.slice(2, 4);
-        chessGame.move({
+        chess.move({
           from,
           to,
           promotion: moveStr.length > 4 ? moveStr[4] as PromotionPiece : undefined,
         });
-        const newFen = chessGame.fen();
+        const newFen = chess.fen();
         setChessPosition(newFen);
         setLastMove({ from, to });
         playMoveSound();
-        const newTurn = lastMessage.turn as PlayerColor;
+        const newTurn = msg.turn as PlayerColor;
         setCurrentTurn(newTurn);
-        onPgnChange?.(chessGame.pgn());
+        onPgnChangeRef.current?.(chess.pgn());
 
         // Update chessground
         cgApiRef.current?.set({
           fen: newFen,
           lastMove: [from as Key, to as Key],
           turnColor: newTurn,
-    
           movable: {
-            color: isSpectatorRef.current ? 'both' : playerColor,
-            dests: (!isSpectatorRef.current && newTurn === playerColor) ? getLegalDests(chessGame) : new Map(),
+            color: isSpectatorRef.current ? 'both' : pColor,
+            dests: (!isSpectatorRef.current && newTurn === pColor) ? getLegalDests(chess) : new Map(),
           },
         });
 
         // Execute premove if one is queued and it's now our turn
-        if (newTurn === playerColor) {
+        if (newTurn === pColor) {
           setTimeout(() => {
-            // Check both our ref and chessground's queue directly
             const cg = cgApiRef.current;
             const hasQueuedPremoves = hasPremovesRef.current ||
               (cg?.state?.premovable?.queue?.length ?? 0) > 0;
@@ -406,8 +409,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       } catch (error) {
         console.log("Failed to make move", error);
       }
-    }
-  }, [lastMessage, chessGame, playerColor, onPgnChange, isSpectator]);
+    });
+  }, [subscribe]);
 
   // Calculate optimal board size to fit viewport without scrolling
   const calculateOptimalSize = useCallback(() => {
