@@ -38,7 +38,13 @@ function Players({ players, currentUsername, onPlayBot }: PlayersProps) {
               color: theme.colors.text,
             }}>
               <span style={{ display: 'flex', alignItems: 'center' }}>
-                {player.username}
+                {!player.isBot && !player.username.startsWith('guest_') ? (
+                  <Link to={`/user/${player.username}`} style={{ color: theme.colors.link, textDecoration: "none" }}>
+                    {player.username}
+                  </Link>
+                ) : (
+                  player.username
+                )}
                 {player.isBot && <BotIcon />}
               </span>
               {player.gameId ? (
