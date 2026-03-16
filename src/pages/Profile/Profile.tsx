@@ -155,7 +155,7 @@ export default function Profile() {
                 )}
             </div>
 
-            {profile && <GameHistory username={profile.username} />}
+            {profile && <GameHistory key={profile.username} username={profile.username} />}
         </div>
     );
 }
