@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@lichess-org/chessground": "^10.1.0",
+    "@lichess-org/chessground": "github:bouncychess/chessground#multiple-premoves",
     "aws-amplify": "^6.15.10",
     "chess.js": "^1.4.0",
     "react": "^19.1.1",
