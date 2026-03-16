@@ -67,10 +67,13 @@ const MOBILE_BREAKPOINT = 768;
 export default function Sidebar() {
     const { user } = useAuth();
     const [collapsed, setCollapsed] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
 
     useEffect(() => {
         const handleResize = () => {
-            if (window.innerWidth < MOBILE_BREAKPOINT) {
+            const mobile = window.innerWidth < MOBILE_BREAKPOINT;
+            setIsMobile(mobile);
+            if (mobile) {
                 setCollapsed(true);
             }
         };
@@ -92,10 +95,10 @@ export default function Sidebar() {
 
     return (
         <aside style={{
-            width: collapsed ? '60px' : '175px',
+            width: collapsed ? (isMobile ? '40px' : '60px') : '175px',
             background: theme.colors.sidebarBackground,
             color: theme.colors.sidebarText,
-            padding: '1rem',
+            padding: collapsed && isMobile ? '0.5rem' : '1rem',
             minHeight: '100%',
             display: 'flex',
             flexDirection: 'column',

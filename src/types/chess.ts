@@ -34,6 +34,7 @@ export type GameAction =
   | "offerRematch"
   | "rematchOffer"
   | "rematchCanceled"
+  | "spectatePlayer"
   | "challenge"
   | "respondChallenge"
   | "cancelChallenge"

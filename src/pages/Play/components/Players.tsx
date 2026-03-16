@@ -75,11 +75,17 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
               color: theme.colors.text,
             }}>
               <span style={{ display: 'flex', alignItems: 'center' }}>
-                {player.username}
+                {!player.isBot && !player.username.startsWith('Guest_') ? (
+                  <Link to={`/user/${player.username}`} style={{ color: theme.colors.link, textDecoration: "none" }}>
+                    {player.username}
+                  </Link>
+                ) : (
+                  player.username
+                )}
                 {player.isBot && <BotIcon />}
               </span>
               {player.gameId ? (
-                <Link to={`/game/${player.gameId}`} style={{ color: theme.colors.link, textDecoration: "none" }}>
+                <Link to={`/game/${player.gameId}`} state={{ spectatingUsername: player.username }} style={{ color: theme.colors.link, textDecoration: "none" }}>
                   {player.status}
                 </Link>
               ) : player.isBot && onPlayBot ? (
