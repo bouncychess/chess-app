@@ -44,6 +44,10 @@ export interface Player {
   gameId?: string;
   isBot?: boolean;
   timeControl?: string;
+  color?: string;
+  opponentUsername?: string;
+  opponentIsBot?: boolean;
+  spectatingUsername?: string;
 }
 
 export interface TimeControl {

@@ -1,4 +1,3 @@
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
@@ -13,7 +12,5 @@ document.documentElement.style.setProperty('--color-text', theme.colors.text);
 document.documentElement.style.setProperty('--color-button-hover-border', theme.colors.buttonHoverBorder);
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+  <App />,
 )
