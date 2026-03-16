@@ -87,7 +87,8 @@ export default function GameHistory({ username }: { username: string }) {
                 />
             </div>
 
-            <div style={{ ...theme.card, padding: 0, overflow: 'hidden', height: PAGE_SIZE * 37 + 37 }}>
+            <div style={{ overflowX: 'auto' }}>
+            <div style={{ ...theme.card, padding: 0, overflow: 'hidden', height: PAGE_SIZE * 37 + 37, minWidth: 600 }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', color: theme.colors.text, tableLayout: 'fixed' }}>
                     <colgroup>
                         <col style={{ width: '15%' }} />
@@ -125,7 +126,13 @@ export default function GameHistory({ username }: { username: string }) {
                                             ? new Date(game.last_move_timestamp).toLocaleDateString()
                                             : '—'}
                                     </td>
-                                    <td style={cellStyle}>{opponent}</td>
+                                    <td style={cellStyle}>
+                                        {!opponent.startsWith('Guest_') && !opponent.startsWith('guest_') && !opponent.endsWith('_bot') ? (
+                                            <Link to={`/user/${opponent}`} style={{ color: theme.colors.link, textDecoration: 'none' }}>
+                                                {opponent}
+                                            </Link>
+                                        ) : opponent}
+                                    </td>
                                     <td style={cellStyle}>{playedWhite ? 'White' : 'Black'}</td>
                                     <td style={{ ...cellStyle, color: getResultColor(result), fontWeight: 600 }}>
                                         {result}
@@ -141,6 +148,7 @@ export default function GameHistory({ username }: { username: string }) {
                         })}
                     </tbody>
                 </table>
+            </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
