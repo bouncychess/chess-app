@@ -22,6 +22,7 @@ interface BoardProps {
   autoPromoteToQueen?: boolean;
   gameResult?: GameResult | null;
   flipped?: boolean;
+  isSpectator?: boolean;
 }
 
 function createChessInstance(pgn?: string | null): Chess {
@@ -63,7 +64,7 @@ function getLegalDests(chess: Chess): Map<Key, Key[]> {
   return dests;
 }
 
-function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null, flipped: flippedProp = false }: BoardProps) {
+function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null, flipped: flippedProp = false, isSpectator = false }: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
   const { premovesEnabled } = useSettings();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
@@ -343,9 +344,12 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     if (!lastMessage) return;
 
     if (lastMessage.action === "move" && lastMessage.move) {
-      // Skip own move echoes — already applied locally in executeMove
-      const newTurn = lastMessage.turn as PlayerColor;
-      if (newTurn !== playerColor) return;
+      // Players skip their own move echoes (already applied locally in executeMove).
+      // Spectators never make local moves, so they must apply everything.
+      if (!isSpectator) {
+        const newTurn = lastMessage.turn as PlayerColor;
+        if (newTurn !== playerColor) return;
+      }
 
       const moveStr = lastMessage.move;
       // Clear so re-fires of this effect don't reprocess
