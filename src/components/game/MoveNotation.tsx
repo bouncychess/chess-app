@@ -130,6 +130,7 @@ export function MoveNotation({
       ) : (
         <div
           ref={containerRef}
+          className="hide-scrollbar"
           style={{
             display: "flex",
             flexDirection: "column",
@@ -137,6 +138,7 @@ export function MoveNotation({
             flex: 1,
             overflowY: "auto",
             scrollBehavior: "smooth",
+            scrollbarWidth: "none",
           }}
         >
           {moves.map((move) => {
