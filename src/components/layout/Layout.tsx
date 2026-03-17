@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ConnectingOverlay } from '../ConnectingOverlay';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { useTheme } from '../../context/ThemeContext';
+import { Button } from '../buttons/Button';
 import ChallengeNotification from '../../pages/Play/components/ChallengeNotification';
 
 const MOBILE_BREAKPOINT = 768;
@@ -17,6 +18,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
     const [pendingChallenges, setPendingChallenges] = useState<{ username: string; timeControl: string }[]>([]);
+    const [activeGameId, setActiveGameId] = useState<string | null>(null);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
@@ -26,6 +28,10 @@ export default function Layout({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (!lastMessage) return;
+
+        if (lastMessage.action === 'connected' && lastMessage.gameId) {
+            setActiveGameId(lastMessage.gameId);
+        }
 
         if (lastMessage.action === 'challenge') {
             setPendingChallenges((prev) => {
@@ -38,19 +44,26 @@ export default function Layout({ children }: { children: ReactNode }) {
             setPendingChallenges((prev) => prev.filter((c) => c.username !== lastMessage.challengerUsername));
         }
 
-        if (lastMessage.action === 'startGame' && !location.pathname.startsWith('/game/')) {
-            setPendingChallenges([]);
-            navigate(`/game/${lastMessage.gameId}`, {
-                state: {
-                    playerColor: lastMessage.color,
-                    currentTurn: lastMessage.turn || 'white',
-                    whiteTime: lastMessage.whiteTime,
-                    blackTime: lastMessage.blackTime,
-                    whiteUsername: lastMessage.whiteUsername,
-                    blackUsername: lastMessage.blackUsername,
-                    increment: lastMessage.increment,
-                },
-            });
+        if (lastMessage.action === 'startGame') {
+            setActiveGameId(lastMessage.gameId);
+            if (!location.pathname.startsWith('/game/')) {
+                setPendingChallenges([]);
+                navigate(`/game/${lastMessage.gameId}`, {
+                    state: {
+                        playerColor: lastMessage.color,
+                        currentTurn: lastMessage.turn || 'white',
+                        whiteTime: lastMessage.whiteTime,
+                        blackTime: lastMessage.blackTime,
+                        whiteUsername: lastMessage.whiteUsername,
+                        blackUsername: lastMessage.blackUsername,
+                        increment: lastMessage.increment,
+                    },
+                });
+            }
+        }
+
+        if (lastMessage.action === 'gameEnd') {
+            setActiveGameId(null);
         }
     }, [lastMessage, navigate, location.pathname]);
 
@@ -81,6 +94,14 @@ export default function Layout({ children }: { children: ReactNode }) {
                             <span style={{ fontSize: '18px', color: theme.colors.placeholder }}>Powered by Windows</span>
                         </div>
                     )
+                )}
+                {activeGameId && !location.pathname.startsWith('/game/') && (
+                    <div style={{ position: 'absolute', top: isMobile ? 48 : 8, right: isMobile ? 4 : 16, zIndex: 10, padding: '8px 12px', backgroundColor: '#991b1b', color: '#ffffff', borderRadius: mode === 'windows' ? 0 : 8, display: 'flex', alignItems: 'center', gap: 12, ...(mode === 'windows' ? { boxShadow: theme.card.boxShadow } : { boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }) }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>You have an active game</span>
+                        <Button variant="secondary" size="sm" onClick={() => navigate(`/game/${activeGameId}`)}>
+                            Return to game
+                        </Button>
+                    </div>
                 )}
                 {children}
             </main>
