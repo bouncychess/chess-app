@@ -76,25 +76,6 @@ export function GameEndDisplay({
     );
   };
 
-  // Previous layout: title/subtitle displayed above buttons in a ResizableCard.
-  // Now game end message is shown in Chat as a system message instead.
-  // return (
-  //   <ResizableCard style={{ textAlign: "center" }}>
-  //     <div style={{ fontSize: "1.1rem", fontWeight: 600, color: theme.colors.text }}>
-  //       {formatGameEndMessage(gameResult, gameEndReason).title}
-  //     </div>
-  //     <div style={{ fontSize: "0.875rem", color: theme.colors.placeholder, marginBottom: 12 }}>
-  //       {formatGameEndMessage(gameResult, gameEndReason).subtitle}
-  //     </div>
-  //     <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-  //       {getRematchButton()}
-  //       <Button variant="primary" onClick={onNewGame}>
-  //         {isWaitingNewGame ? "Waiting..." : "New Game"}
-  //       </Button>
-  //     </div>
-  //   </ResizableCard>
-  // );
-
   return (
     <div style={{
       display: "flex",

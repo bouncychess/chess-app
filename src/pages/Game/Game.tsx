@@ -473,7 +473,12 @@ function Game() {
             </div>
           </div>
           <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: 78}}>
-            <Chat gameId={gameId} initialChat={chatLog} />
+          <Chat 
+            gameId={gameId} 
+            initialChat={chatLog} 
+            gameResult={gameResult}
+            gameEndReason={gameEndReason}
+          />
           </div>
         </div>}
       </div>
@@ -485,7 +490,13 @@ function Game() {
             onMoveClick={handleMoveClick}
             collapsible
           />
-          <Chat gameId={gameId} initialChat={chatLog} collapsible />
+          <Chat 
+            gameId={gameId} 
+            initialChat={chatLog} 
+            collapsible 
+            gameResult={gameResult}
+            gameEndReason={gameEndReason}
+          />
           {gameResult !== null && gameEndReason !== null ? (
             <GameEndDisplay
               gameResult={gameResult}
