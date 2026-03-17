@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useWebSocket } from "../../context/WebSocketContext";
 import { useTheme } from "../../context/ThemeContext";
 import Board from "../../components/game/Board";
@@ -12,7 +11,6 @@ import { Button } from "../../components/buttons/Button";
 import type { Player } from "../../types/chess";
 
 function Play() {
-  const navigate = useNavigate();
   const { sendMessage, lastMessage, isConnected, username } = useWebSocket();
   const { mode } = useTheme();
   const panelOffset = mode === 'windows' ? 67 : 85;
@@ -27,6 +25,7 @@ function Play() {
   });
   const [previewTime, setPreviewTime] = useState<number>(selectedTimeControl.initialTime);
   const [dots, setDots] = useState(1);
+  const [challengesSent, setChallengesSent] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (status !== "waiting") return;
@@ -37,7 +36,18 @@ function Play() {
 
   const [boardSize, setBoardSize] = useState(400);
   const [flipped, setFlipped] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const hasRequestedPlayers = useRef(false);
+  const gameStartSoundRef = useRef<HTMLAudioElement | null>(null);
+  if (!gameStartSoundRef.current) {
+    gameStartSoundRef.current = new Audio("/sounds/game_time.mp3");
+  }
 
   // Keyboard shortcut to flip board
   useEffect(() => {
@@ -72,24 +82,32 @@ function Play() {
     if (!lastMessage) return;
 
     if (lastMessage.action === "startGame") {
-      console.log("startGame received, navigating to game:", lastMessage);
-      navigate(`/game/${lastMessage.gameId}`, {
-        state: {
-          playerColor: lastMessage.color,
-          currentTurn: lastMessage.turn || "white",
-          whiteTime: lastMessage.whiteTime,
-          blackTime: lastMessage.blackTime,
-          whiteUsername: lastMessage.whiteUsername,
-          blackUsername: lastMessage.blackUsername,
-          increment: selectedTimeControl.increment,
-        }
+      if (gameStartSoundRef.current) {
+        gameStartSoundRef.current.currentTime = 0;
+        gameStartSoundRef.current.play().catch(() => {});
+      }
+      // Cancel all outstanding challenges (Layout handles navigation)
+      setChallengesSent((prev) => {
+        prev.forEach((target) => {
+          sendMessage({ action: "cancelChallenge", targetUsername: target });
+        });
+        return new Set();
       });
     }
 
     if (lastMessage.action === "players") {
       setPlayers(lastMessage.players);
     }
-  }, [lastMessage, navigate, selectedTimeControl.increment]);
+
+    if (lastMessage.action === "challengeDeclined") {
+      setChallengesSent((prev) => {
+        const next = new Set(prev);
+        next.delete(lastMessage.declinedBy);
+        return next;
+      });
+    }
+
+  }, [lastMessage, sendMessage]);
 
   const onPlay = () => {
     if (isConnected && selectedTimeControl) {
@@ -125,9 +143,33 @@ function Play() {
     }
   };
 
+  const onChallenge = (targetUsername: string) => {
+    if (!isConnected) return;
+    if (challengesSent.has(targetUsername)) {
+      // Cancel existing challenge
+      sendMessage({ action: "cancelChallenge", targetUsername });
+      setChallengesSent((prev) => {
+        const next = new Set(prev);
+        next.delete(targetUsername);
+        return next;
+      });
+    } else if (selectedTimeControl) {
+      // Send new challenge
+      sendMessage({
+        action: "challenge",
+        targetUsername,
+        timeControl: {
+          initialTime: selectedTimeControl.initialTime,
+          increment: selectedTimeControl.increment,
+        },
+      });
+      setChallengesSent((prev) => new Set(prev).add(targetUsername));
+    }
+  };
+
   return (
-    <div style={{ padding: 20 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
+    <div style={{ padding: isMobile ? 4 : 20 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: isMobile ? 8 : 20, justifyContent: isMobile ? "center" : undefined }}>
         <GameClock
           whiteTime={previewTime}
           blackTime={previewTime}
@@ -170,7 +212,13 @@ function Play() {
               : "Play"}
           </Button>
           <div style={{ flex: 1, minHeight: 0 }}>
-            <Players players={players} currentUsername={username ?? undefined} onPlayBot={onPlayBot} />
+            <Players
+              players={players}
+              currentUsername={username ?? undefined}
+              onPlayBot={onPlayBot}
+              onChallenge={onChallenge}
+              challengesSent={challengesSent}
+            />
           </div>
         </div>
       </div>

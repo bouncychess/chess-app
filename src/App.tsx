@@ -12,6 +12,7 @@ import Layout from './components/layout/Layout';
 import { WebSocketProvider } from './context/WebSocketContext';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { SettingsProvider } from './context/SettingsContext';
 
 function GameWrapper() {
     const { gameId } = useParams<{ gameId: string }>();
@@ -20,6 +21,7 @@ function GameWrapper() {
 
 export default function App() {
     return (
+        <SettingsProvider>
         <ThemeProvider>
         <AuthProvider>
             <WebSocketProvider>
@@ -40,5 +42,6 @@ export default function App() {
             </WebSocketProvider>
         </AuthProvider>
         </ThemeProvider>
+        </SettingsProvider>
     );
 }
