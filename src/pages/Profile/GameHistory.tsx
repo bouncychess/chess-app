@@ -30,7 +30,7 @@ function formatTimeControl(initialTime: number, increment: number): string {
 
 export default function GameHistory({ username }: { username: string }) {
     const { mode } = useTheme();
-    const rowHeight = mode === 'windows' ? 32.5g : 37;
+    const rowHeight = mode === 'windows' ? 32.5 : 37;
     const [games, setGames] = useState<GameHistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
