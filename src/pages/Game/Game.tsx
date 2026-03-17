@@ -231,7 +231,7 @@ function Game() {
 
     // Handle startGame — either for this game or a new game (rematch/new game match)
     if (lastMessage.action === "startGame") {
-      if (gameStartSoundRef.current) {
+      if (gameStartSoundRef.current && !pgn) {
         gameStartSoundRef.current.currentTime = 0;
         gameStartSoundRef.current.play().catch(() => {});
       }
