@@ -67,6 +67,10 @@ function Game() {
   const [isWaitingNewGame, setIsWaitingNewGame] = useState(false);
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
+  const gameStartSoundRef = useRef<HTMLAudioElement | null>(null);
+  if (!gameStartSoundRef.current) {
+    gameStartSoundRef.current = new Audio("/sounds/game_time.mp3");
+  }
 
   // Derived values for rematch/new game
   const isPlayer = username !== null && (username === whiteUsername || username === blackUsername);
@@ -227,6 +231,10 @@ function Game() {
 
     // Handle startGame — either for this game or a new game (rematch/new game match)
     if (lastMessage.action === "startGame") {
+      if (gameStartSoundRef.current) {
+        gameStartSoundRef.current.currentTime = 0;
+        gameStartSoundRef.current.play().catch(() => {});
+      }
       if (lastMessage.gameId === gameId) {
         setPlayerColor(spectatingUsername ? (spectatingUsername === lastMessage.blackUsername ? "black" : "white") : lastMessage.color);
         setCurrentTurn(lastMessage.turn || "white");

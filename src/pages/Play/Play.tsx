@@ -44,6 +44,10 @@ function Play() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   const hasRequestedPlayers = useRef(false);
+  const gameStartSoundRef = useRef<HTMLAudioElement | null>(null);
+  if (!gameStartSoundRef.current) {
+    gameStartSoundRef.current = new Audio("/sounds/game_time.mp3");
+  }
 
   // Keyboard shortcut to flip board
   useEffect(() => {
@@ -78,7 +82,11 @@ function Play() {
     if (!lastMessage) return;
 
     if (lastMessage.action === "startGame") {
-      // Cancel all outstanding challenges before navigating to game (Layout handles navigation)
+      if (gameStartSoundRef.current) {
+        gameStartSoundRef.current.currentTime = 0;
+        gameStartSoundRef.current.play().catch(() => {});
+      }
+      // Cancel all outstanding challenges (Layout handles navigation)
       setChallengesSent((prev) => {
         prev.forEach((target) => {
           sendMessage({ action: "cancelChallenge", targetUsername: target });
