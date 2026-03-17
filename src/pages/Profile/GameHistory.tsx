@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { theme } from '../../config/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { TextInput } from '../../components/input/TextInput';
 import { Button } from '../../components/buttons/Button';
 import { getUserGames, type GameHistoryItem } from '../../services/games';
@@ -28,6 +29,8 @@ function formatTimeControl(initialTime: number, increment: number): string {
 }
 
 export default function GameHistory({ username }: { username: string }) {
+    const { mode } = useTheme();
+    const rowHeight = mode === 'windows' ? 32.5g : 37;
     const [games, setGames] = useState<GameHistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -88,7 +91,7 @@ export default function GameHistory({ username }: { username: string }) {
             </div>
 
             <div style={{ overflowX: 'auto', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-            <div style={{ ...theme.card, padding: 0, overflow: 'hidden', height: PAGE_SIZE * 37 + 37, minWidth: 600, boxShadow: 'none', border: '1px solid rgba(0,0,0,0.15)' }}>
+            <div style={{ ...theme.card, padding: 0, overflow: 'hidden', height: PAGE_SIZE * rowHeight + rowHeight, minWidth: 600, boxShadow: 'none', border: '1px solid rgba(0,0,0,0.15)' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', color: theme.colors.text, tableLayout: 'fixed' }}>
                     <colgroup>
                         <col style={{ width: '15%' }} />
