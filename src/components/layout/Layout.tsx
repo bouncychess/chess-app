@@ -11,7 +11,7 @@ import ChallengeNotification from '../../pages/Play/components/ChallengeNotifica
 const MOBILE_BREAKPOINT = 768;
 
 export default function Layout({ children }: { children: ReactNode }) {
-    const { isConnected, lastMessage, sendMessage } = useWebSocket();
+    const { isConnected, lastMessage, sendMessage, username } = useWebSocket();
     const { mode, theme } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
@@ -44,7 +44,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             setPendingChallenges((prev) => prev.filter((c) => c.username !== lastMessage.challengerUsername));
         }
 
-        if (lastMessage.action === 'startGame') {
+        if (lastMessage.action === 'startGame' && (lastMessage.whiteUsername === username || lastMessage.blackUsername === username)) {
             setActiveGameId(lastMessage.gameId);
             if (!location.pathname.startsWith('/game/')) {
                 setPendingChallenges([]);
