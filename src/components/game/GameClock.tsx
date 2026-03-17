@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { Clock } from "./Clock";
 import { ResizableCard } from "../ResizableCard";
 import { theme } from "../../config/theme";
@@ -28,22 +28,24 @@ function PlayerRow({ name, time, isActive, trailing }: { name: string | null; ti
   );
 }
 
+const MOBILE_BREAKPOINT = 768;
+
 export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whiteName, blackName, children, onFlip, flipped = false }: GameClockProps) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // When flipped, swap which color appears on top/bottom
   const isPlayerWhite = flipped ? playerColor !== "white" : playerColor === "white";
 
   const topRow = isPlayerWhite ? (
-    <PlayerRow
-      name={blackName}
-      time={blackTime}
-      isActive={activeColor === "black"}
-    />
+    <PlayerRow name={blackName} time={blackTime} isActive={activeColor === "black"} />
   ) : (
-    <PlayerRow
-      name={whiteName}
-      time={whiteTime}
-      isActive={activeColor === "white"}
-    />
+    <PlayerRow name={whiteName} time={whiteTime} isActive={activeColor === "white"} />
   );
 
   const flipButton = onFlip ? (
@@ -69,28 +71,32 @@ export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whit
   ) : undefined;
 
   const bottomRow = isPlayerWhite ? (
-    <PlayerRow
-      name={whiteName}
-      time={whiteTime}
-      isActive={activeColor === "white"}
-      trailing={flipButton}
-    />
+    <PlayerRow name={whiteName} time={whiteTime} isActive={activeColor === "white"} trailing={flipButton} />
   ) : (
-    <PlayerRow
-      name={blackName}
-      time={blackTime}
-      isActive={activeColor === "black"}
-      trailing={flipButton}
-    />
+    <PlayerRow name={blackName} time={blackTime} isActive={activeColor === "black"} trailing={flipButton} />
   );
+
+  const content = (
+    <>
+      {topRow}
+      {children}
+      {bottomRow}
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "fit-content" }}>
+        {content}
+      </div>
+    );
+  }
 
   return (
     <ResizableCard
       style={{ display: "flex", flexDirection: "column", gap: 8, width: "fit-content" }}
     >
-      {topRow}
-      {children}
-      {bottomRow}
+      {content}
     </ResizableCard>
   );
 }

@@ -8,9 +8,10 @@ import { ResizableCard } from "../../../components/ResizableCard";
 interface ChatProps {
     gameId: string;
     initialChat?: ChatMessage[];
+    collapsible?: boolean;
 }
 
-function Chat({ gameId, initialChat = [] }: ChatProps) {
+function Chat({ gameId, initialChat = [], collapsible = false }: ChatProps) {
     const { sendMessage, subscribe, username } = useWebSocket();
     const usernameRef = useRef(username);
     const [chatLog, setChatLog] = useState<ChatMessage[]>(initialChat);
@@ -89,6 +90,8 @@ function Chat({ gameId, initialChat = [] }: ChatProps) {
     return (
         <ResizableCard
             style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+            collapsible={collapsible}
+            collapsedLabel="Chat"
         >
             <style>{`
                 @keyframes fadeHighlight {

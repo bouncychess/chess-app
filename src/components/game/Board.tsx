@@ -74,7 +74,10 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [hasPremoves, setHasPremoves] = useState(false);
-  const moveSoundRef = useRef(new Audio("/sounds/move.mp3"));
+  const moveSoundRef = useRef<HTMLAudioElement | null>(null);
+  if (!moveSoundRef.current) {
+    moveSoundRef.current = new Audio("/sounds/move.mp3");
+  }
 
   const boardRef = useRef<HTMLDivElement>(null);
   const cgApiRef = useRef<Api | null>(null);
@@ -101,10 +104,12 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   useEffect(() => { onPgnChangeRef.current = onPgnChange; }, [onPgnChange]);
 
   const playMoveSound = () => {
-    moveSoundRef.current.currentTime = 0;
-    moveSoundRef.current.volume = 0.8;
-    moveSoundRef.current.playbackRate = 1;
-    moveSoundRef.current.play().catch(() => {});
+    const sound = moveSoundRef.current;
+    if (!sound) return;
+    sound.currentTime = 0;
+    sound.volume = 0.5;
+    sound.playbackRate = 1;
+    sound.play().catch(() => {});
   };
 
   const hasPremovesRef = useRef(hasPremoves);
@@ -239,6 +244,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       turnColor: currentTurn,
       lastMove: lastMove ? [lastMove.from as Key, lastMove.to as Key] : undefined,
 
+      coordinates: boardSize >= 500,
       animation: { enabled: false },
       movable: {
         free: false,
@@ -416,15 +422,16 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const calculateOptimalSize = useCallback(() => {
     if (typeof window === "undefined") return 400;
 
-    const verticalPadding = 250;
-    const horizontalPadding = 400;
+    const isMobile = window.innerWidth < 768;
+    const verticalPadding = isMobile ? 100 : 250;
+    const horizontalPadding = isMobile ? 16 : 400;
 
     const maxWidth = window.innerWidth - horizontalPadding;
     const maxHeight = window.innerHeight - verticalPadding;
 
     const optimalSize = Math.min(maxWidth, maxHeight);
 
-    const minSize = 220;
+    const minSize = 320;
     const maxSize = 800;
     return Math.max(minSize, Math.min(maxSize, optimalSize));
   }, []);

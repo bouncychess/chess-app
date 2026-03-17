@@ -34,7 +34,14 @@ function Game() {
   const navigate = useNavigate();
   const [boardSize, setBoardSize] = useState(400);
   const [flipped, setFlipped] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const panelOffset = mode === 'windows' ? 67 : 85;
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Initialize from navigation state
   const initialState = location.state as (GameState & { spectatingUsername?: string }) | null;
@@ -60,6 +67,10 @@ function Game() {
   const [isWaitingNewGame, setIsWaitingNewGame] = useState(false);
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
+  const gameStartSoundRef = useRef<HTMLAudioElement | null>(null);
+  if (!gameStartSoundRef.current) {
+    gameStartSoundRef.current = new Audio("/sounds/game_time.mp3");
+  }
 
   // Derived values for rematch/new game
   const isPlayer = username !== null && (username === whiteUsername || username === blackUsername);
@@ -243,6 +254,10 @@ function Game() {
     return subscribe((msg) => {
       // Handle startGame — either for this game or a new game (rematch/new game match)
       if (msg.action === "startGame") {
+        if (gameStartSoundRef.current && !pgn) {
+          gameStartSoundRef.current.currentTime = 0;
+          gameStartSoundRef.current.play().catch(() => {});
+        }
         if (msg.gameId === gameId) {
           setPlayerColor(spectatingUsername ? (spectatingUsername === msg.blackUsername ? "black" : "white") : msg.color);
           setCurrentTurn(msg.turn || "white");
@@ -273,6 +288,10 @@ function Game() {
       if (msg.action === "gameEnd" && msg.gameId === gameId) {
         setGameResult(msg.result);
         setGameEndReason(msg.reason);
+        if (msg.reason === "timeout") {
+          if (msg.result === "white") setBlackTime(0);
+          else if (msg.result === "black") setWhiteTime(0);
+        }
       }
       if (msg.action === "move") {
         if (msg.turn) {
@@ -415,8 +434,8 @@ function Game() {
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
+    <div style={{ padding: isMobile ? 4 : 20 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: isMobile ? 8 : 20, justifyContent: isMobile ? "center" : undefined }}>
         <div style={{ position: "relative" }}>
           <GameClock
             whiteTime={whiteTime}
@@ -444,7 +463,7 @@ function Game() {
             />
           </GameClock>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + panelOffset }}>
+        {!isMobile && <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + panelOffset }}>
           <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0}}>
             <MoveNotation
               pgn={pgn || ""}
@@ -480,8 +499,41 @@ function Game() {
           <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: 78}}>
             <Chat gameId={gameId} initialChat={chatLog} />
           </div>
-        </div>
+        </div>}
       </div>
+      {isMobile && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+          <MoveNotation
+            pgn={pgn || ""}
+            viewedMoveIndex={viewedMoveIndex}
+            onMoveClick={handleMoveClick}
+            collapsible
+          />
+          <Chat gameId={gameId} initialChat={chatLog} collapsible />
+          {gameResult !== null && gameEndReason !== null ? (
+            <GameEndDisplay
+              gameResult={gameResult}
+              gameEndReason={gameEndReason}
+              onRematch={handleRematch}
+              onNewGame={handleNewGame}
+              isPlayer={isPlayer}
+              hasOfferedRematch={hasOfferedRematch}
+              opponentOfferedRematch={opponentOfferedRematch}
+              isWaitingNewGame={isWaitingNewGame}
+            />
+          ) : (
+            <GameControls
+              onResign={handleResign}
+              onOfferDraw={handleOfferDraw}
+              onAcceptDraw={handleAcceptDraw}
+              onDeclineDraw={handleDeclineDraw}
+              isGameOver={gameResult !== null}
+              hasOfferedDraw={hasOfferedDraw}
+              hasPendingDrawOffer={pendingDrawOffer !== null}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

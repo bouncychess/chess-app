@@ -38,7 +38,18 @@ function Play() {
 
   const [boardSize, setBoardSize] = useState(400);
   const [flipped, setFlipped] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const hasRequestedPlayers = useRef(false);
+  const gameStartSoundRef = useRef<HTMLAudioElement | null>(null);
+  if (!gameStartSoundRef.current) {
+    gameStartSoundRef.current = new Audio("/sounds/game_time.mp3");
+  }
 
   // Keyboard shortcut to flip board
   useEffect(() => {
@@ -75,6 +86,10 @@ function Play() {
   useEffect(() => {
     return subscribe((msg) => {
       if (msg.action === "startGame") {
+        if (gameStartSoundRef.current) {
+          gameStartSoundRef.current.currentTime = 0;
+          gameStartSoundRef.current.play().catch(() => {});
+        }
         // Cancel all outstanding challenges (Layout handles navigation)
         setChallengesSent((prev) => {
           prev.forEach((target) => {
@@ -161,8 +176,8 @@ function Play() {
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
+    <div style={{ padding: isMobile ? 4 : 20 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: isMobile ? 8 : 20, justifyContent: isMobile ? "center" : undefined }}>
         <GameClock
           whiteTime={previewTime}
           blackTime={previewTime}
