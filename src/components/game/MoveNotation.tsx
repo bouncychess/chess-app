@@ -11,6 +11,7 @@ interface MoveNotationProps {
   pgn: string;
   viewedMoveIndex?: number | null;
   onMoveClick?: (moveIndex: number) => void;
+  collapsible?: boolean;
   boardSize?: number;
 }
 
@@ -49,6 +50,7 @@ export function MoveNotation({
   pgn,
   viewedMoveIndex = null,
   onMoveClick,
+  collapsible = false,
   boardSize = 400,
 }: MoveNotationProps) {
   const moves = parsePgn(pgn);
@@ -89,6 +91,8 @@ export function MoveNotation({
   return (
     <ResizableCard
       style={{ height: "100%", display: "flex", flexDirection: "column", position: "relative" }}
+      collapsible={collapsible}
+      collapsedLabel="Moves"
     >
       {moves.length > 0 && (
         <button
