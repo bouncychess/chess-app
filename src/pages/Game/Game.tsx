@@ -270,7 +270,7 @@ function Game() {
         else if (lastMessage.result === "black") setWhiteTime(0);
       }
     }
-    if (lastMessage.action === "move") {
+    if (lastMessage.action === "move" && lastMessage.gameId === gameId) {
       if (lastMessage.turn) {
         handleTurnChange(lastMessage.turn);
       }
@@ -283,7 +283,7 @@ function Game() {
       setPendingDrawOffer(null);
     }
 
-    if (lastMessage.action === "clockSync") {
+    if (lastMessage.action === "clockSync" && lastMessage.gameId === gameId) {
       setWhiteTime(lastMessage.whiteTime);
       setBlackTime(lastMessage.blackTime);
     }

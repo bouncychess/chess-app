@@ -44,17 +44,17 @@ function Chat({ gameId, initialChat = [], collapsible = false, gameEndReason, ga
         if (!lastMessage) return;
 
         // Handle chat messages (skip our own - already added optimistically)
-        if (lastMessage.action === "chat" && lastMessage.chat && lastMessage.chat.username !== username) {
+        if (lastMessage.action === "chat" && lastMessage.gameId === gameId && lastMessage.chat && lastMessage.chat.username !== username) {
             setChatLog((prevLog) => [...prevLog, lastMessage.chat]);
         }
 
         // Handle chat that comes with move messages (e.g., from bots)
-        if (lastMessage.action === "move" && lastMessage.chat) {
+        if (lastMessage.action === "move" && lastMessage.gameId === gameId && lastMessage.chat) {
             setChatLog((prevLog) => [...prevLog, lastMessage.chat]);
         }
 
         // Handle game end — show result as system chat
-        if (lastMessage.action === "gameEnd") {
+        if (lastMessage.action === "gameEnd" && lastMessage.gameId === gameId) {
             setEndReason(lastMessage.reason);
             setEndResult(lastMessage.result);
         }
