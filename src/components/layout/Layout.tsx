@@ -65,7 +65,20 @@ export default function Layout({ children }: { children: ReactNode }) {
         if (lastMessage.action === 'gameEnd') {
             setActiveGameId(null);
         }
+
+        if (lastMessage.action === 'gameStatus' && !lastMessage.active) {
+            setActiveGameId(null);
+        }
     }, [lastMessage, navigate, location.pathname]);
+
+    // Poll to check if active game has ended (when not on the game page)
+    useEffect(() => {
+        if (!activeGameId || !isConnected || location.pathname.startsWith('/game/')) return;
+        const interval = setInterval(() => {
+            sendMessage({ action: 'checkGame', gameId: activeGameId });
+        }, 10_000);
+        return () => clearInterval(interval);
+    }, [activeGameId, isConnected, location.pathname, sendMessage]);
 
     const onAcceptChallenge = (challengerUsername: string) => {
         sendMessage({ action: 'respondChallenge', challengerUsername, accept: true });
