@@ -56,16 +56,12 @@ interface PlayersProps {
   challengesSent?: Set<string>;
 }
 
-<<<<<<< HEAD
 function isProfileLinkable(username: string) {
   const lower = username.toLowerCase();
   return !lower.startsWith('guest_') && !lower.endsWith('_bot');
 }
 
-function Players({ players, currentUsername, onPlayBot }: PlayersProps) {
-=======
 function Players({ players, currentUsername, onPlayBot, onChallenge, challengesSent = new Set() }: PlayersProps) {
->>>>>>> origin/main
   return (
     <ResizableCard style={{ height: "100%", display: "flex", flexDirection: "column", width: 250 }}>
       <h3 style={{ ...theme.cardHeader, flexShrink: 0 }}>Online Players</h3>
