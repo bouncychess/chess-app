@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useWebSocket } from "../../context/WebSocketContext";
 import { useTheme } from "../../context/ThemeContext";
 import Board from "../../components/game/Board";
@@ -12,7 +11,6 @@ import { Button } from "../../components/buttons/Button";
 import type { Player } from "../../types/chess";
 
 function Play() {
-  const navigate = useNavigate();
   const { sendMessage, lastMessage, isConnected, username } = useWebSocket();
   const { mode } = useTheme();
   const panelOffset = mode === 'windows' ? 67 : 85;
@@ -99,10 +97,6 @@ function Play() {
 
     if (lastMessage.action === "players") {
       setPlayers(lastMessage.players);
-      const self = lastMessage.players.find((p: Player) => p.username === username);
-      if (self?.gameId) {
-        navigate(`/game/${self.gameId}`);
-      }
     }
 
     if (lastMessage.action === "challengeDeclined") {
@@ -113,7 +107,7 @@ function Play() {
       });
     }
 
-  }, [lastMessage, navigate, sendMessage]);
+  }, [lastMessage, sendMessage]);
 
   const onPlay = () => {
     if (isConnected && selectedTimeControl) {
