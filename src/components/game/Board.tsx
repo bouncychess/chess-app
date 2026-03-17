@@ -22,6 +22,7 @@ interface BoardProps {
   autoPromoteToQueen?: boolean;
   gameResult?: GameResult | null;
   flipped?: boolean;
+  isSpectator?: boolean;
 }
 
 function createChessInstance(pgn?: string | null): Chess {
@@ -63,7 +64,7 @@ function getLegalDests(chess: Chess): Map<Key, Key[]> {
   return dests;
 }
 
-function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null, flipped: flippedProp = false }: BoardProps) {
+function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null, flipped: flippedProp = false, isSpectator = false }: BoardProps) {
   const { sendMessage, lastMessage } = useWebSocket();
   const { premovesEnabled } = useSettings();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
@@ -73,7 +74,10 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [hasPremoves, setHasPremoves] = useState(false);
-  const moveSoundRef = useRef(new Audio("/sounds/move.mp3"));
+  const moveSoundRef = useRef<HTMLAudioElement | null>(null);
+  if (!moveSoundRef.current) {
+    moveSoundRef.current = new Audio("/sounds/move.mp3");
+  }
 
   const boardRef = useRef<HTMLDivElement>(null);
   const cgApiRef = useRef<Api | null>(null);
@@ -96,10 +100,12 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   useEffect(() => { chessGameRef.current = chessGame; }, [chessGame]);
 
   const playMoveSound = () => {
-    moveSoundRef.current.currentTime = 0;
-    moveSoundRef.current.volume = 0.5;
-    moveSoundRef.current.playbackRate = 1;
-    moveSoundRef.current.play().catch(() => {});
+    const sound = moveSoundRef.current;
+    if (!sound) return;
+    sound.currentTime = 0;
+    sound.volume = 0.8;
+    sound.playbackRate = 1;
+    sound.play().catch(() => {});
   };
 
   const hasPremovesRef = useRef(hasPremoves);
@@ -233,6 +239,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       turnColor: currentTurn,
       lastMove: lastMove ? [lastMove.from as Key, lastMove.to as Key] : undefined,
 
+      coordinates: boardSize >= 500,
       animation: { enabled: false },
       movable: {
         free: false,
@@ -343,9 +350,12 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     if (!lastMessage) return;
 
     if (lastMessage.action === "move" && lastMessage.move) {
-      // Skip own move echoes — already applied locally in executeMove
-      const newTurn = lastMessage.turn as PlayerColor;
-      if (newTurn !== playerColor) return;
+      // Players skip their own move echoes (already applied locally in executeMove).
+      // Spectators never make local moves, so they must apply everything.
+      if (!isSpectator) {
+        const newTurn = lastMessage.turn as PlayerColor;
+        if (newTurn !== playerColor) return;
+      }
 
       const moveStr = lastMessage.move;
       // Clear so re-fires of this effect don't reprocess
@@ -380,13 +390,19 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         });
 
         // Execute premove if one is queued and it's now our turn
-        if (hasPremovesRef.current && newTurn === playerColor) {
+        if (newTurn === playerColor) {
           setTimeout(() => {
-            isPremoveExecution.current = true;
-            const played = cgApiRef.current?.playPremove();
-            if (!played) {
-              isPremoveExecution.current = false;
-              setHasPremoves(false);
+            // Check both our ref and chessground's queue directly
+            const cg = cgApiRef.current;
+            const hasQueuedPremoves = hasPremovesRef.current ||
+              (cg?.state?.premovable?.queue?.length ?? 0) > 0;
+            if (hasQueuedPremoves) {
+              isPremoveExecution.current = true;
+              const played = cg?.playPremove();
+              if (!played) {
+                isPremoveExecution.current = false;
+                setHasPremoves(false);
+              }
             }
           }, 50);
         }
@@ -400,15 +416,16 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const calculateOptimalSize = useCallback(() => {
     if (typeof window === "undefined") return 400;
 
-    const verticalPadding = 250;
-    const horizontalPadding = 400;
+    const isMobile = window.innerWidth < 768;
+    const verticalPadding = isMobile ? 100 : 250;
+    const horizontalPadding = isMobile ? 16 : 400;
 
     const maxWidth = window.innerWidth - horizontalPadding;
     const maxHeight = window.innerHeight - verticalPadding;
 
     const optimalSize = Math.min(maxWidth, maxHeight);
 
-    const minSize = 220;
+    const minSize = 320;
     const maxSize = 800;
     return Math.max(minSize, Math.min(maxSize, optimalSize));
   }, []);
@@ -462,7 +479,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   }, [boardSize, handleResizeMove, handleResizeEnd]);
 
   return (
-    <div style={{ position: "relative", width: boardSize, height: boardSize, borderRadius: 8, overflow: "hidden" }}>
+    <div style={{ position: "relative", width: boardSize, height: boardSize, borderRadius: 8, overflow: "hidden", "--board-size": `${boardSize}px` } as React.CSSProperties}>
       <div ref={boardRef} style={{ width: '100%', height: '100%' }} />
 
       {pendingPromotion && (

@@ -34,10 +34,18 @@ function Game() {
   const navigate = useNavigate();
   const [boardSize, setBoardSize] = useState(400);
   const [flipped, setFlipped] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const panelOffset = mode === 'windows' ? 67 : 85;
 
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Initialize from navigation state
-  const initialState = location.state as GameState | null;
+  const initialState = location.state as (GameState & { spectatingUsername?: string }) | null;
+  const [spectatingUsername] = useState<string | null>(initialState?.spectatingUsername ?? null);
   const [playerColor, setPlayerColor] = useState<PlayerColor>(initialState?.playerColor ?? "white");
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>(initialState?.currentTurn ?? "white");
   const [whiteTime, setWhiteTime] = useState<number>(initialState?.whiteTime ?? 180000);
@@ -84,8 +92,27 @@ function Game() {
     if (isConnected && gameId && !hasRequestedGameState.current) {
       hasRequestedGameState.current = true;
       sendMessage({ action: "getGameState", gameId });
+      // Re-register as spectator on connect/reconnect so the new connection ID is tracked
+      if (spectatingUsername) {
+        sendMessage({ action: "spectatePlayer", username: spectatingUsername });
+      }
     }
-  }, [isConnected, gameId, sendMessage]);
+  }, [isConnected, gameId, sendMessage, spectatingUsername]);
+
+  // Resync when tab regains focus — moves are incremental so any missed
+  // messages while backgrounded leave the board out of sync
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && isConnected && gameId) {
+        sendMessage({ action: "getGameState", gameId });
+        if (spectatingUsername) {
+          sendMessage({ action: "spectatePlayer", username: spectatingUsername });
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [isConnected, gameId, sendMessage, spectatingUsername]);
 
   const handleTurnChange = useCallback((newTurn: PlayerColor) => {
     setCurrentTurn(newTurn);
@@ -191,6 +218,9 @@ function Game() {
   useEffect(() => {
     if (!isConnected && status === "playing") {
       setStatus("disconnected");
+      // Allow re-requesting game state on reconnect so the new connection ID
+      // gets registered as a viewer and the board resyncs
+      hasRequestedGameState.current = false;
     } else if (isConnected && status === "disconnected") {
       setStatus("playing");
     }
@@ -206,7 +236,7 @@ function Game() {
         gameStartSoundRef.current.play().catch(() => {});
       }
       if (lastMessage.gameId === gameId) {
-        setPlayerColor(lastMessage.color);
+        setPlayerColor(spectatingUsername ? (spectatingUsername === lastMessage.blackUsername ? "black" : "white") : lastMessage.color);
         setCurrentTurn(lastMessage.turn || "white");
         setWhiteUsername(lastMessage.whiteUsername);
         setBlackUsername(lastMessage.blackUsername);
@@ -227,6 +257,7 @@ function Game() {
             whiteUsername: lastMessage.whiteUsername,
             blackUsername: lastMessage.blackUsername,
             increment: lastMessage.increment ?? 0,
+            spectatingUsername,
           },
         });
       }
@@ -273,7 +304,7 @@ function Game() {
 
     // Handle gameState response when loading game directly
     if (lastMessage.action === "gameState" && lastMessage.gameId === gameId) {
-      setPlayerColor(lastMessage.playerColor);
+      setPlayerColor(spectatingUsername ? (spectatingUsername === lastMessage.blackUsername ? "black" : "white") : lastMessage.playerColor);
       setCurrentTurn(lastMessage.currentTurn);
       setWhiteTime(lastMessage.whiteTime);
       setBlackTime(lastMessage.blackTime);
@@ -298,7 +329,7 @@ function Game() {
         setGameStarted(true);
       }
     }
-  }, [lastMessage, gameId, handleTurnChange, navigate, opponentUsername]);
+  }, [lastMessage, gameId, handleTurnChange, navigate, opponentUsername, spectatingUsername]);
 
   // Client-side clock countdown using actual elapsed time
   // Only starts ticking after white makes their first move
@@ -375,8 +406,8 @@ function Game() {
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
+    <div style={{ padding: isMobile ? 4 : 20 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: isMobile ? 8 : 20, justifyContent: isMobile ? "center" : undefined }}>
         <div style={{ position: "relative" }}>
           <GameClock
             whiteTime={whiteTime}
@@ -400,15 +431,17 @@ function Game() {
               isViewingHistory={isViewingHistory}
               gameResult={gameResult}
               flipped={flipped}
+              isSpectator={!isPlayer}
             />
           </GameClock>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + panelOffset }}>
+        {!isMobile && <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + panelOffset }}>
           <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0}}>
             <MoveNotation
               pgn={pgn || ""}
               viewedMoveIndex={viewedMoveIndex}
               onMoveClick={handleMoveClick}
+              boardSize={boardSize}
             />
             <div style={{ marginTop: 11 }}>
               {gameResult !== null && gameEndReason !== null ? (
@@ -422,7 +455,7 @@ function Game() {
                   opponentOfferedRematch={opponentOfferedRematch}
                   isWaitingNewGame={isWaitingNewGame}
                 />
-              ) : (
+              ) : isPlayer ? (
                 <GameControls
                   onResign={handleResign}
                   onOfferDraw={handleOfferDraw}
@@ -432,14 +465,47 @@ function Game() {
                   hasOfferedDraw={hasOfferedDraw}
                   hasPendingDrawOffer={pendingDrawOffer !== null}
                 />
-              )}
+              ) : null}
             </div>
           </div>
           <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: 78}}>
             <Chat gameId={gameId} initialChat={chatLog} />
           </div>
-        </div>
+        </div>}
       </div>
+      {isMobile && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+          <MoveNotation
+            pgn={pgn || ""}
+            viewedMoveIndex={viewedMoveIndex}
+            onMoveClick={handleMoveClick}
+            collapsible
+          />
+          <Chat gameId={gameId} initialChat={chatLog} collapsible />
+          {gameResult !== null && gameEndReason !== null ? (
+            <GameEndDisplay
+              gameResult={gameResult}
+              gameEndReason={gameEndReason}
+              onRematch={handleRematch}
+              onNewGame={handleNewGame}
+              isPlayer={isPlayer}
+              hasOfferedRematch={hasOfferedRematch}
+              opponentOfferedRematch={opponentOfferedRematch}
+              isWaitingNewGame={isWaitingNewGame}
+            />
+          ) : (
+            <GameControls
+              onResign={handleResign}
+              onOfferDraw={handleOfferDraw}
+              onAcceptDraw={handleAcceptDraw}
+              onDeclineDraw={handleDeclineDraw}
+              isGameOver={gameResult !== null}
+              hasOfferedDraw={hasOfferedDraw}
+              hasPendingDrawOffer={pendingDrawOffer !== null}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

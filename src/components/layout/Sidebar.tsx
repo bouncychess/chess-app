@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../config/theme';
 import { Tooltip } from '../Tooltip';
@@ -62,25 +62,23 @@ const ChevronRightIcon = () => (
     </svg>
 );
 
+const HamburgerIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="3" y1="6" x2="21" y2="6" />
+        <line x1="3" y1="12" x2="21" y2="12" />
+        <line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+);
+
 const MOBILE_BREAKPOINT = 768;
 
-export default function Sidebar() {
+function SidebarContent({ collapsed, onCollapse, onExpand, showToggle = true }: {
+    collapsed: boolean;
+    onCollapse: () => void;
+    onExpand: () => void;
+    showToggle?: boolean;
+}) {
     const { user } = useAuth();
-    const [collapsed, setCollapsed] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
-    const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
-
-    useEffect(() => {
-        const handleResize = () => {
-            const mobile = window.innerWidth < MOBILE_BREAKPOINT;
-            setIsMobile(mobile);
-            if (mobile) {
-                setCollapsed(true);
-            }
-        };
-
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
 
     const linkStyle = {
         color: theme.colors.sidebarText,
@@ -94,43 +92,35 @@ export default function Sidebar() {
     };
 
     return (
-        <aside style={{
-            width: collapsed ? (isMobile ? '40px' : '60px') : '175px',
-            background: theme.colors.sidebarBackground,
-            color: theme.colors.sidebarText,
-            padding: collapsed && isMobile ? '0.5rem' : '1rem',
-            minHeight: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            boxSizing: 'border-box',
-            transition: 'width 0.2s ease',
-        }}>
+        <>
             {!collapsed && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <Link to="/play" style={{ textDecoration: 'none', color: 'inherit' }}>
                         <h2 style={{ margin: 0, cursor: 'pointer' }}>Chess</h2>
                     </Link>
-                    <button
-                        onClick={() => setCollapsed(true)}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            color: theme.colors.sidebarText,
-                            cursor: 'pointer',
-                            padding: 4,
-                            display: 'flex',
-                            alignItems: 'center',
-                        }}
-                        aria-label="Collapse sidebar"
-                    >
-                        <ChevronLeftIcon />
-                    </button>
+                    {showToggle && (
+                        <button
+                            onClick={onCollapse}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: theme.colors.sidebarText,
+                                cursor: 'pointer',
+                                padding: 4,
+                                display: 'flex',
+                                alignItems: 'center',
+                            }}
+                            aria-label="Collapse sidebar"
+                        >
+                            <ChevronLeftIcon />
+                        </button>
+                    )}
                 </div>
             )}
 
-            {collapsed && (
+            {collapsed && showToggle && (
                 <button
-                    onClick={() => setCollapsed(false)}
+                    onClick={onExpand}
                     style={{
                         background: 'none',
                         border: 'none',
@@ -217,6 +207,112 @@ export default function Sidebar() {
                     </Link>
                 )}
             </div>
+        </>
+    );
+}
+
+export default function Sidebar() {
+    const location = useLocation();
+    const [collapsed, setCollapsed] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    useEffect(() => {
+        const handleResize = () => {
+            const mobile = window.innerWidth < MOBILE_BREAKPOINT;
+            setIsMobile(mobile);
+            if (mobile) setCollapsed(true);
+            if (!mobile) setMenuOpen(false);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Close menu on navigation
+    useEffect(() => {
+        setMenuOpen(false);
+    }, [location.pathname]);
+
+    if (isMobile) {
+        return (
+            <>
+                <button
+                    onClick={() => setMenuOpen(true)}
+                    style={{
+                        position: 'fixed',
+                        top: 4,
+                        left: 4,
+                        zIndex: 1000,
+                        background: theme.colors.background,
+                        border: 'none',
+                        borderRadius: 4,
+                        color: theme.colors.text,
+                        cursor: 'pointer',
+                        padding: 8,
+                        display: menuOpen ? 'none' : 'flex',
+                        alignItems: 'center',
+                    }}
+                    aria-label="Open menu"
+                >
+                    <HamburgerIcon />
+                </button>
+
+                {menuOpen && (
+                    <div
+                        onClick={() => setMenuOpen(false)}
+                        style={{
+                            position: 'fixed',
+                            inset: 0,
+                            background: 'rgba(0,0,0,0.4)',
+                            zIndex: 1001,
+                        }}
+                    />
+                )}
+
+                <aside style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '175px',
+                    height: '100%',
+                    background: theme.colors.sidebarBackground,
+                    color: theme.colors.sidebarText,
+                    padding: '1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxSizing: 'border-box',
+                    zIndex: 1002,
+                    transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)',
+                    transition: 'transform 0.2s ease',
+                }}>
+                    <SidebarContent
+                        collapsed={false}
+                        onCollapse={() => setMenuOpen(false)}
+                        onExpand={() => {}}
+                    />
+                </aside>
+            </>
+        );
+    }
+
+    return (
+        <aside style={{
+            width: collapsed ? '60px' : '175px',
+            background: theme.colors.sidebarBackground,
+            color: theme.colors.sidebarText,
+            padding: '1rem',
+            minHeight: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            boxSizing: 'border-box',
+            transition: 'width 0.2s ease',
+        }}>
+            <SidebarContent
+                collapsed={collapsed}
+                onCollapse={() => setCollapsed(true)}
+                onExpand={() => setCollapsed(false)}
+            />
         </aside>
     );
 }
