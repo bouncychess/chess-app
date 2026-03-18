@@ -396,21 +396,19 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
           },
         });
 
-        // Execute premove if one is queued and it's now our turn
+        // Execute premove immediately — .set() already updated chessground state synchronously
         if (newTurn === pColor) {
-          setTimeout(() => {
-            const cg = cgApiRef.current;
-            const hasQueuedPremoves = hasPremovesRef.current ||
-              (cg?.state?.premovable?.queue?.length ?? 0) > 0;
-            if (hasQueuedPremoves) {
-              isPremoveExecution.current = true;
-              const played = cg?.playPremove();
-              if (!played) {
-                isPremoveExecution.current = false;
-                setHasPremoves(false);
-              }
+          const cg = cgApiRef.current;
+          const hasQueuedPremoves = hasPremovesRef.current ||
+            (cg?.state?.premovable?.queue?.length ?? 0) > 0;
+          if (hasQueuedPremoves) {
+            isPremoveExecution.current = true;
+            const played = cg?.playPremove();
+            if (!played) {
+              isPremoveExecution.current = false;
+              setHasPremoves(false);
             }
-          }, 50);
+          }
         }
       } catch (error) {
         console.log("Failed to make move", error);
