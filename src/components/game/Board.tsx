@@ -430,7 +430,14 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     return Math.max(minSize, Math.min(maxSize, optimalSize));
   }, []);
 
-  const [boardSize, setBoardSize] = useState(calculateOptimalSize);
+  const [boardSize, setBoardSize] = useState(() => {
+    const saved = localStorage.getItem("board-size");
+    if (saved) {
+      const n = Number(saved);
+      if (!isNaN(n) && n >= 220 && n <= 800) return n;
+    }
+    return calculateOptimalSize();
+  });
   const isResizing = useRef(false);
   const startPos = useRef({ x: 0, size: 0 });
 
@@ -464,6 +471,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     const maxSize = 800;
     const newSize = Math.max(minSize, Math.min(maxSize, startPos.current.size + delta));
     setBoardSize(newSize);
+    localStorage.setItem("board-size", String(newSize));
   }, []);
 
   const handleResizeEnd = useCallback(() => {
@@ -495,6 +503,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       {/* Hide resize handle during active game to avoid interfering with moves */}
       {!(gameId && gameResult === null) && (
         <div
+          data-testid="board-resize-handle"
           onMouseDown={handleResizeStart}
           style={{
             position: "absolute",
