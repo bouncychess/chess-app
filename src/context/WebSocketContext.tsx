@@ -19,6 +19,7 @@ type WebSocketContextType = {
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
 
 const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL;
+const CLIENT_VERSION = "1";
 
 const GUEST_SESSION_KEY = "guest_session_id";
 const IDLE_DISCONNECT_MS = 5 * 60 * 1000; // 5 minutes
@@ -73,13 +74,15 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         // Connect with token (authenticated) or session ID (guest)
         console.log("Connecting to Websocket");
         const url = token
-          ? `${WEBSOCKET_URL}?token=${token}`
-          : `${WEBSOCKET_URL}?sessionId=${getGuestSessionId()}`;
+          ? `${WEBSOCKET_URL}?token=${token}&version=${CLIENT_VERSION}`
+          : `${WEBSOCKET_URL}?sessionId=${getGuestSessionId()}&version=${CLIENT_VERSION}`;
         const socket = new WebSocket(url);
         socketRef.current = socket;
+        let openedSuccessfully = false;
 
         socket.onopen = () => {
           if (cancelled) return;
+          openedSuccessfully = true;
           reconnectAttemptsRef.current = 0;
           setIsConnected(true);
           console.log("WebSocket connected");
@@ -102,6 +105,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         socket.onclose = () => {
           socketRef.current = null;
           setIsConnected(false);
+
+          // If connection was rejected (never opened), stop reconnecting
+          if (!openedSuccessfully) {
+            console.warn("WebSocket connection rejected — not reconnecting");
+            cancelled = true;
+            return;
+          }
+
           console.warn("WebSocket closed");
 
           // Auto-reconnect with exponential backoff (max 30s)
