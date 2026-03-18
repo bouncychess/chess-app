@@ -22,7 +22,7 @@ const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL;
 const CLIENT_VERSION = "1";
 
 const GUEST_SESSION_KEY = "guest_session_id";
-const IDLE_DISCONNECT_MS = 60 * 1000; // 60 seconds
+const IDLE_DISCONNECT_MS = 5 * 60 * 1000; // 5 minutes
 
 function getGuestSessionId(): string {
   let sessionId = sessionStorage.getItem(GUEST_SESSION_KEY);
