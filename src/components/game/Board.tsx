@@ -148,7 +148,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       playMoveSound();
 
       const move = promotion ? `${from}${to}${promotion}` : `${from}${to}`;
-      sendMove(move);
+      if (gameId) sendMove(move);
       const newTurn: PlayerColor = chess.turn() === 'w' ? 'white' : 'black';
       setCurrentTurn(newTurn);
       onTurnChange?.(newTurn);
@@ -217,7 +217,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   // Determine if the player can move
   const getMovableColor = (): PlayerColor | undefined => {
-    if (!gameId || isViewingHistory || gameResult !== null) return undefined;
+    if (isViewingHistory || gameResult !== null) return undefined;
+    if (!gameId) return currentTurn;
     return playerColor;
   };
 
@@ -315,7 +316,6 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         color: movableColor,
         dests: movableColor ? getLegalDests(chessGame) : new Map(),
       },
-
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTurn, gameId, isViewingHistory, gameResult, playerColor, chessPosition]);
