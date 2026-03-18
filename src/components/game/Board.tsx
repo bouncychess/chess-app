@@ -444,8 +444,10 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     requestAnimationFrame(() => cgApiRef.current?.redrawAll());
   }, [boardSize]);
 
-  // Auto-resize on window resize (only if not manually resizing)
+  // Auto-resize on window resize (disabled during active game)
+  const isActiveGame = gameId !== null && gameResult === null;
   useEffect(() => {
+    if (isActiveGame) return;
     const handleWindowResize = () => {
       if (!isResizing.current) {
         setBoardSize(calculateOptimalSize());
@@ -453,7 +455,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     };
     window.addEventListener("resize", handleWindowResize);
     return () => window.removeEventListener("resize", handleWindowResize);
-  }, [calculateOptimalSize]);
+  }, [calculateOptimalSize, isActiveGame]);
 
   const handleResizeMove = useCallback((e: MouseEvent) => {
     if (!isResizing.current) return;
