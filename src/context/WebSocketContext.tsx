@@ -19,8 +19,10 @@ type WebSocketContextType = {
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
 
 const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL;
+const CLIENT_VERSION = "1";
 
 const GUEST_SESSION_KEY = "guest_session_id";
+const IDLE_DISCONNECT_MS = 5 * 60 * 1000; // 5 minutes
 
 function getGuestSessionId(): string {
   let sessionId = sessionStorage.getItem(GUEST_SESSION_KEY);
@@ -36,6 +38,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const listenersRef = useRef<Set<(msg: WebSocketMessage) => void>>(new Set());
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleDisconnectedRef = useRef(false);
   const [isConnected, setIsConnected] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
@@ -75,13 +79,15 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         // Connect with token (authenticated) or session ID (guest)
         console.log("Connecting to Websocket");
         const url = token
-          ? `${WEBSOCKET_URL}?token=${token}`
-          : `${WEBSOCKET_URL}?sessionId=${getGuestSessionId()}`;
+          ? `${WEBSOCKET_URL}?token=${token}&version=${CLIENT_VERSION}`
+          : `${WEBSOCKET_URL}?sessionId=${getGuestSessionId()}&version=${CLIENT_VERSION}`;
         const socket = new WebSocket(url);
         socketRef.current = socket;
+        let openedSuccessfully = false;
 
         socket.onopen = () => {
           if (cancelled) return;
+          openedSuccessfully = true;
           reconnectAttemptsRef.current = 0;
           setIsConnected(true);
           console.log("WebSocket connected");
@@ -106,6 +112,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         socket.onclose = () => {
           socketRef.current = null;
           setIsConnected(false);
+
+          // If connection was rejected (never opened), stop reconnecting
+          if (!openedSuccessfully) {
+            console.warn("WebSocket connection rejected — not reconnecting");
+            cancelled = true;
+            return;
+          }
+
           console.warn("WebSocket closed");
 
           // Auto-reconnect with exponential backoff (max 30s)
@@ -127,8 +141,48 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     connectWebSocket();
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        // Start idle timer — disconnect after 1 hour
+        if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = setTimeout(() => {
+          console.log("Idle disconnect: tab hidden for 1 hour");
+          idleDisconnectedRef.current = true;
+          cancelled = true; // prevent auto-reconnect from onclose
+          if (reconnectTimerRef.current) {
+            clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+          }
+          if (socketRef.current) {
+            socketRef.current.close();
+            socketRef.current = null;
+          }
+        }, IDLE_DISCONNECT_MS);
+      } else if (document.visibilityState === "visible") {
+        // Clear idle timer
+        if (idleTimerRef.current) {
+          clearTimeout(idleTimerRef.current);
+          idleTimerRef.current = null;
+        }
+        // If we were idle-disconnected, reconnect now
+        if (idleDisconnectedRef.current) {
+          console.log("Reconnecting after idle disconnect");
+          idleDisconnectedRef.current = false;
+          cancelled = false;
+          connectWebSocket();
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;

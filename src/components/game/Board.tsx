@@ -152,7 +152,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       playMoveSound();
 
       const move = promotion ? `${from}${to}${promotion}` : `${from}${to}`;
-      sendMove(move);
+      if (gameId) sendMove(move);
       const newTurn: PlayerColor = chess.turn() === 'w' ? 'white' : 'black';
       setCurrentTurn(newTurn);
       onTurnChange?.(newTurn);
@@ -221,7 +221,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   // Determine if the player can move (spectators get 'both' so pieces are draggable but snap back)
   const getMovableColor = (): PlayerColor | 'both' | undefined => {
-    if (!gameId || isViewingHistory || gameResult !== null) return undefined;
+    if (isViewingHistory || gameResult !== null) return undefined;
+    if (!gameId) return currentTurn;
     if (isSpectator) return 'both';
     return playerColor;
   };
@@ -320,7 +321,6 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         color: movableColor,
         dests: (movableColor && !isSpectator) ? getLegalDests(chessGame) : new Map(),
       },
-
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTurn, gameId, isViewingHistory, gameResult, playerColor, chessPosition, isSpectator]);
@@ -351,8 +351,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   }, [premovesEnabled]);
 
   // Handle opponent/spectator moves via WebSocket subscribe callback.
-  // Using subscribe instead of useEffect on lastMessage ensures each message
-  // is processed synchronously before the next arrives (fixes bot game two-ply bug).
+  // Using subscribe ensures each message is processed individually, avoiding
+  // dropped messages that can occur with lastMessage when rapid-fire events arrive.
   useEffect(() => {
     return subscribe((msg) => {
       if (msg.action !== "move" || !msg.move) return;
@@ -434,7 +434,14 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     return Math.max(minSize, Math.min(maxSize, optimalSize));
   }, []);
 
-  const [boardSize, setBoardSize] = useState(calculateOptimalSize);
+  const [boardSize, setBoardSize] = useState(() => {
+    const saved = localStorage.getItem("board-size");
+    if (saved) {
+      const n = Number(saved);
+      if (!isNaN(n) && n >= 220 && n <= 800) return n;
+    }
+    return calculateOptimalSize();
+  });
   const isResizing = useRef(false);
   const startPos = useRef({ x: 0, size: 0 });
 
@@ -448,8 +455,10 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     requestAnimationFrame(() => cgApiRef.current?.redrawAll());
   }, [boardSize]);
 
-  // Auto-resize on window resize (only if not manually resizing)
+  // Auto-resize on window resize (disabled during active game)
+  const isActiveGame = gameId !== null && gameResult === null;
   useEffect(() => {
+    if (isActiveGame) return;
     const handleWindowResize = () => {
       if (!isResizing.current) {
         setBoardSize(calculateOptimalSize());
@@ -457,7 +466,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     };
     window.addEventListener("resize", handleWindowResize);
     return () => window.removeEventListener("resize", handleWindowResize);
-  }, [calculateOptimalSize]);
+  }, [calculateOptimalSize, isActiveGame]);
 
   const handleResizeMove = useCallback((e: MouseEvent) => {
     if (!isResizing.current) return;
@@ -466,6 +475,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     const maxSize = 800;
     const newSize = Math.max(minSize, Math.min(maxSize, startPos.current.size + delta));
     setBoardSize(newSize);
+    localStorage.setItem("board-size", String(newSize));
   }, []);
 
   const handleResizeEnd = useCallback(() => {
@@ -497,6 +507,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       {/* Hide resize handle during active game to avoid interfering with moves */}
       {!(gameId && gameResult === null) && (
         <div
+          data-testid="board-resize-handle"
           onMouseDown={handleResizeStart}
           style={{
             position: "absolute",

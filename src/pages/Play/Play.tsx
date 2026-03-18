@@ -86,7 +86,7 @@ function Play() {
   useEffect(() => {
     return subscribe((msg) => {
       if (msg.action === "startGame") {
-        if (gameStartSoundRef.current) {
+        if (gameStartSoundRef.current && document.visibilityState === "visible") {
           gameStartSoundRef.current.currentTime = 0;
           gameStartSoundRef.current.play().catch(() => {});
         }

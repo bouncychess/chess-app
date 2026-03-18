@@ -254,7 +254,7 @@ function Game() {
     return subscribe((msg) => {
       // Handle startGame — either for this game or a new game (rematch/new game match)
       if (msg.action === "startGame") {
-        if (gameStartSoundRef.current && !pgn) {
+        if (gameStartSoundRef.current && !pgn && document.visibilityState === "visible") {
           gameStartSoundRef.current.currentTime = 0;
           gameStartSoundRef.current.play().catch(() => {});
         }
