@@ -21,6 +21,7 @@ const WebSocketContext = createContext<WebSocketContextType | null>(null);
 const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL;
 
 const GUEST_SESSION_KEY = "guest_session_id";
+const IDLE_DISCONNECT_MS = 5 * 60 * 1000; // 5 minutes
 
 function getGuestSessionId(): string {
   let sessionId = sessionStorage.getItem(GUEST_SESSION_KEY);
@@ -35,6 +36,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleDisconnectedRef = useRef(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
@@ -120,8 +123,48 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     connectWebSocket();
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        // Start idle timer — disconnect after 1 hour
+        if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = setTimeout(() => {
+          console.log("Idle disconnect: tab hidden for 1 hour");
+          idleDisconnectedRef.current = true;
+          cancelled = true; // prevent auto-reconnect from onclose
+          if (reconnectTimerRef.current) {
+            clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+          }
+          if (socketRef.current) {
+            socketRef.current.close();
+            socketRef.current = null;
+          }
+        }, IDLE_DISCONNECT_MS);
+      } else if (document.visibilityState === "visible") {
+        // Clear idle timer
+        if (idleTimerRef.current) {
+          clearTimeout(idleTimerRef.current);
+          idleTimerRef.current = null;
+        }
+        // If we were idle-disconnected, reconnect now
+        if (idleDisconnectedRef.current) {
+          console.log("Reconnecting after idle disconnect");
+          idleDisconnectedRef.current = false;
+          cancelled = false;
+          connectWebSocket();
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
