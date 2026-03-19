@@ -75,6 +75,7 @@ function Game() {
   // Derived values for rematch/new game
   const isPlayer = username !== null && (username === whiteUsername || username === blackUsername);
   const opponentUsername = username === whiteUsername ? blackUsername : whiteUsername;
+  const isBotGame = opponentUsername !== null && opponentUsername.endsWith("_bot");
   const hasOfferedRematch = rematchOfferedBy === username;
   const opponentOfferedRematch = rematchOfferedBy !== null && rematchOfferedBy !== username;
 
@@ -164,6 +165,10 @@ function Game() {
 
   const handleRematch = useCallback(() => {
     if (!gameId) return;
+    if (isBotGame && opponentUsername && initialTime !== null) {
+      sendMessage({ action: "playBot", botUsername: opponentUsername, timeControl: { initialTime, increment } });
+      return;
+    }
     if (hasOfferedRematch) {
       // Cancel own rematch offer
       sendMessage({ action: "offerRematch", gameId });
@@ -177,10 +182,14 @@ function Game() {
         setRematchOfferedBy(username);
       }
     }
-  }, [gameId, hasOfferedRematch, opponentOfferedRematch, username, sendMessage]);
+  }, [gameId, isBotGame, opponentUsername, initialTime, increment, hasOfferedRematch, opponentOfferedRematch, username, sendMessage]);
 
   const handleNewGame = useCallback(() => {
     if (initialTime === null) return;
+    if (isBotGame && opponentUsername) {
+      sendMessage({ action: "playBot", botUsername: opponentUsername, timeControl: { initialTime, increment } });
+      return;
+    }
     if (isWaitingNewGame) {
       // Cancel queue
       sendMessage({ action: "play", cancel: true });
@@ -189,7 +198,7 @@ function Game() {
       sendMessage({ action: "play", timeControl: { initialTime, increment } });
       setIsWaitingNewGame(true);
     }
-  }, [initialTime, increment, isWaitingNewGame, sendMessage]);
+  }, [initialTime, increment, isBotGame, opponentUsername, isWaitingNewGame, sendMessage]);
 
   const handleNavigate = useCallback((direction: "prev" | "next") => {
     if (direction === "prev") {
