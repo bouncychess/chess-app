@@ -270,7 +270,7 @@ function Game() {
         else if (lastMessage.result === "black") setWhiteTime(0);
       }
     }
-    if (lastMessage.action === "move") {
+    if (lastMessage.action === "move" && lastMessage.gameId === gameId) {
       if (lastMessage.turn) {
         handleTurnChange(lastMessage.turn);
       }
@@ -283,7 +283,7 @@ function Game() {
       setPendingDrawOffer(null);
     }
 
-    if (lastMessage.action === "clockSync") {
+    if (lastMessage.action === "clockSync" && lastMessage.gameId === gameId) {
       setWhiteTime(lastMessage.whiteTime);
       setBlackTime(lastMessage.blackTime);
     }
@@ -473,7 +473,12 @@ function Game() {
             </div>
           </div>
           <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: 78}}>
-            <Chat gameId={gameId} initialChat={chatLog} />
+          <Chat 
+            gameId={gameId} 
+            initialChat={chatLog} 
+            gameResult={gameResult}
+            gameEndReason={gameEndReason}
+          />
           </div>
         </div>}
       </div>
@@ -485,7 +490,13 @@ function Game() {
             onMoveClick={handleMoveClick}
             collapsible
           />
-          <Chat gameId={gameId} initialChat={chatLog} collapsible />
+          <Chat 
+            gameId={gameId} 
+            initialChat={chatLog} 
+            collapsible 
+            gameResult={gameResult}
+            gameEndReason={gameEndReason}
+          />
           {gameResult !== null && gameEndReason !== null ? (
             <GameEndDisplay
               gameResult={gameResult}

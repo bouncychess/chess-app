@@ -349,7 +349,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   useEffect(() => {
     if (!lastMessage) return;
 
-    if (lastMessage.action === "move" && lastMessage.move) {
+    if (lastMessage.action === "move" && lastMessage.move && lastMessage.gameId === gameId) {
       // Players skip their own move echoes (already applied locally in executeMove).
       // Spectators never make local moves, so they must apply everything.
       if (!isSpectator) {

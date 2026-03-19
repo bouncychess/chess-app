@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ChatMessage } from "../../../types/chess";
+import type { ChatMessage, GameResult, GameEndReason } from "../../../types/chess";
 import { useWebSocket } from "../../../context/WebSocketContext";
 import { formatGameEndMessage } from "../../../components/game/GameEndDisplay";
 import { theme } from "../../../config/theme";
@@ -9,14 +9,18 @@ interface ChatProps {
     gameId: string;
     initialChat?: ChatMessage[];
     collapsible?: boolean;
+    gameEndReason?: GameEndReason | null;
+    gameResult?: GameResult | null;
 }
 
-function Chat({ gameId, initialChat = [], collapsible = false }: ChatProps) {
+function Chat({ gameId, initialChat = [], collapsible = false, gameEndReason, gameResult }: ChatProps) {
     const { sendMessage, lastMessage, username } = useWebSocket();
     const [chatLog, setChatLog] = useState<ChatMessage[]>(initialChat);
     const [text, setText] = useState<string>('');
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const [lastSeenLength, setLastSeenLength] = useState(initialChat.length);
+    const [endReason, setEndReason] = useState(gameEndReason);
+    const [endResult, setEndResult] = useState(gameResult);
 
     // Sync initial chat when it changes (e.g., gameState loaded)
     useEffect(() => {
@@ -40,19 +44,19 @@ function Chat({ gameId, initialChat = [], collapsible = false }: ChatProps) {
         if (!lastMessage) return;
 
         // Handle chat messages (skip our own - already added optimistically)
-        if (lastMessage.action === "chat" && lastMessage.chat && lastMessage.chat.username !== username) {
+        if (lastMessage.action === "chat" && lastMessage.gameId === gameId && lastMessage.chat && lastMessage.chat.username !== username) {
             setChatLog((prevLog) => [...prevLog, lastMessage.chat]);
         }
 
         // Handle chat that comes with move messages (e.g., from bots)
-        if (lastMessage.action === "move" && lastMessage.chat) {
+        if (lastMessage.action === "move" && lastMessage.gameId === gameId && lastMessage.chat) {
             setChatLog((prevLog) => [...prevLog, lastMessage.chat]);
         }
 
         // Handle game end — show result as system chat
-        if (lastMessage.action === "gameEnd") {
-            const { title, subtitle } = formatGameEndMessage(lastMessage.result, lastMessage.reason);
-            setChatLog((prevLog) => [...prevLog, { username: "", message: `${title} — ${subtitle}`, isSystem: true }]);
+        if (lastMessage.action === "gameEnd" && lastMessage.gameId === gameId) {
+            setEndReason(lastMessage.reason);
+            setEndResult(lastMessage.result);
         }
     }, [lastMessage, username]);
 
@@ -108,7 +112,7 @@ function Chat({ gameId, initialChat = [], collapsible = false }: ChatProps) {
                     marginBottom: 12,
                 }}
             >
-                {chatLog.length === 0 ? (
+                {chatLog.length === 0 && !endReason? (
                     <div style={{ color: theme.colors.placeholder, fontSize: '0.875rem' }}>
                         No messages yet
                     </div>
@@ -136,6 +140,13 @@ function Chat({ gameId, initialChat = [], collapsible = false }: ChatProps) {
                             )}
                         </div>
                     ))
+                )}
+                {endResult && endReason && (
+                    <div style={{ fontSize: '0.875rem', padding: '2px 4px', fontStyle: 'italic' }}>
+                        <span style={{ color: theme.colors.placeholder }}>
+                            {formatGameEndMessage(endResult, endReason).title} — {formatGameEndMessage(endResult, endReason).subtitle}
+                        </span>
+                    </div>
                 )}
             </div>
             <div>
