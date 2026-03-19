@@ -101,10 +101,6 @@ function Play() {
 
       if (msg.action === "players") {
         setPlayers(msg.players);
-        const self = msg.players.find((p: Player) => p.username === username);
-        if (self?.gameId) {
-          navigate(`/game/${self.gameId}`);
-        }
       }
 
       if (msg.action === "challengeDeclined") {
