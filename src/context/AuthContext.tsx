@@ -1,6 +1,13 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { getAuthenticatedUser, type AuthUser } from '../services/auth';
 
+const MOCK_AUTH = import.meta.env.VITE_MOCK_AUTH === 'true';
+
+const MOCK_USER: AuthUser = {
+    username: 'dev-user',
+    userId: 'mock-user-id-12345',
+};
+
 interface AuthContextType {
     user: AuthUser | null;
     isAuthenticated: boolean | null;
@@ -10,10 +17,16 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<AuthUser | null>(null);
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+    const [user, setUser] = useState<AuthUser | null>(MOCK_AUTH ? MOCK_USER : null);
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(MOCK_AUTH ? true : null);
 
     const refreshUser = useCallback(async () => {
+        if (MOCK_AUTH) {
+            setUser(MOCK_USER);
+            setIsAuthenticated(true);
+            return;
+        }
+
         try {
             const authUser = await getAuthenticatedUser();
             setUser(authUser);
