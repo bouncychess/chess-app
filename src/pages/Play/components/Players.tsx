@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import type { Player } from "../../../types/chess";
 import { theme } from "../../../config/theme";
+import { useTheme } from "../../../context/ThemeContext";
 import { ResizableCard } from "../../../components/ResizableCard";
 
 function ChallengeSentButton({ username, onChallenge }: { username: string; onChallenge: (u: string) => void }) {
@@ -57,6 +58,11 @@ interface PlayersProps {
 }
 
 function Players({ players, currentUsername, onPlayBot, onChallenge, challengesSent = new Set() }: PlayersProps) {
+  const { mode } = useTheme();
+  const challengeIcon = mode === "windows"
+    ? "/images/icons/windows/challenge.png"
+    : "/images/icons/normal/challenge.png";
+
   return (
     <ResizableCard style={{ height: "100%", display: "flex", flexDirection: "column", width: 250 }}>
       <h3 style={{ ...theme.cardHeader, flexShrink: 0 }}>Online Players</h3>
@@ -64,76 +70,80 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
         <p style={{ color: theme.colors.placeholder, fontSize: "0.875rem", margin: 0 }}>No players online</p>
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0, flex: 1, overflowY: "auto" }}>
-          {players.map((player) => (
-            <li key={player.username} style={{
-              padding: "4px 8px",
-              display: "flex",
-              justifyContent: "space-between",
-              backgroundColor: player.username === currentUsername ? "rgba(34, 197, 94, 0.3)" : "transparent",
-              borderRadius: 4,
-              fontSize: "0.875rem",
-              color: theme.colors.text,
-            }}>
-              <span style={{ display: 'flex', alignItems: 'center' }}>
-                {!player.isBot && !player.username.startsWith('Guest_') ? (
-                  <Link to={`/user/${player.username}`} style={{ color: theme.colors.link, textDecoration: "none" }}>
-                    {player.username}
-                  </Link>
-                ) : (
-                  player.username
-                )}
-                {player.isBot && <BotIcon />}
-              </span>
-              {player.gameId ? (
-                <Link to={`/game/${player.gameId}`} state={{ spectatingUsername: player.username }} style={{ color: theme.colors.link, textDecoration: "none" }}>
-                  {player.status}
-                </Link>
-              ) : player.isBot && onPlayBot ? (
-                <button
-                  onClick={() => onPlayBot(player.username)}
-                  style={{
-                    background: theme.colors.danger,
-                    border: "none",
-                    borderRadius: 4,
-                    padding: "2px 8px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    color: theme.colors.dangerText,
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  Play
-                </button>
-              ) : !player.isBot && player.username !== currentUsername && player.status === "online" && onChallenge ? (
-                challengesSent.has(player.username) ? (
-                  <ChallengeSentButton username={player.username} onChallenge={onChallenge} />
-                ) : (
-                  <button
-                    onClick={() => onChallenge(player.username)}
-                    style={{
-                      background: theme.colors.primary,
-                      border: "none",
-                      borderRadius: 4,
-                      padding: "2px 8px",
-                      cursor: "pointer",
-                      color: theme.colors.primaryText,
-                      fontSize: "0.75rem",
-                    }}
-                  >
-                    Challenge
-                  </button>
-                )
-              ) : (
-                <span style={{ color: theme.colors.placeholder }}>
-                  {player.status === "waiting" && player.timeControl
-                    ? `waiting ${player.timeControl}`
-                    : player.status}
+          {players.map((player) => {
+            const canChallenge = !player.isBot && player.username !== currentUsername && player.status === "online" && onChallenge;
+            const hasSentChallenge = challengesSent.has(player.username);
+
+            return (
+              <li key={player.username} style={{
+                padding: "4px 8px",
+                display: "flex",
+                alignItems: "center",
+                backgroundColor: player.username === currentUsername ? "rgba(34, 197, 94, 0.3)" : "transparent",
+                borderRadius: 4,
+                fontSize: "0.875rem",
+                color: theme.colors.text,
+              }}>
+                <span style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                  {!player.isBot && !player.username.startsWith('Guest_') ? (
+                    <Link to={`/user/${player.username}`} style={{ color: theme.colors.link, textDecoration: "none" }}>
+                      {player.username}
+                    </Link>
+                  ) : (
+                    player.username
+                  )}
+                  {player.isBot && <BotIcon />}
                 </span>
-              )}
-            </li>
-          ))}
+                <span style={{ color: theme.colors.placeholder, flexShrink: 0, textAlign: "right" }}>
+                  {player.gameId ? (
+                    <Link to={`/game/${player.gameId}`} state={{ spectatingUsername: player.username }} style={{ color: theme.colors.link, textDecoration: "none" }}>
+                      {player.status}
+                    </Link>
+                  ) : player.isBot && onPlayBot ? (
+                    <button
+                      onClick={() => onPlayBot(player.username)}
+                      style={{
+                        background: theme.colors.danger,
+                        border: "none",
+                        borderRadius: 4,
+                        padding: "2px 8px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        color: theme.colors.dangerText,
+                        fontSize: "0.75rem",
+                      }}
+                    >
+                      Play
+                    </button>
+                  ) : (
+                    player.status === "waiting" && player.timeControl
+                      ? `waiting ${player.timeControl}`
+                      : player.status
+                  )}
+                </span>
+                <span style={{ width: 24, flexShrink: 0, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  {canChallenge && (
+                    hasSentChallenge ? (
+                      <ChallengeSentButton username={player.username} onChallenge={onChallenge} />
+                    ) : (
+                      <img
+                        src={challengeIcon}
+                        alt="Challenge"
+                        onClick={() => onChallenge(player.username)}
+                        style={{
+                          width: 18,
+                          height: 18,
+                          cursor: "pointer",
+                        }}
+                      />
+                    )
+                  )}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       )}
     </ResizableCard>
