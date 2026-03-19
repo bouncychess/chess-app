@@ -33,7 +33,15 @@ export type GameAction =
   | "drawDeclined"
   | "offerRematch"
   | "rematchOffer"
-  | "rematchCanceled";
+  | "rematchCanceled"
+  | "spectatePlayer"
+  | "challenge"
+  | "respondChallenge"
+  | "cancelChallenge"
+  | "challengeDeclined"
+  | "challengeCanceled"
+  | "checkGame"
+  | "gameStatus";
 
 export interface Player {
   id: string;
@@ -41,6 +49,7 @@ export interface Player {
   status: string;
   gameId?: string;
   isBot?: boolean;
+  timeControl?: string;
 }
 
 export interface TimeControl {

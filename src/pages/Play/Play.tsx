@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useWebSocket } from "../../context/WebSocketContext";
 import { useTheme } from "../../context/ThemeContext";
 import Board from "../../components/game/Board";
@@ -12,7 +11,6 @@ import { Button } from "../../components/buttons/Button";
 import type { Player } from "../../types/chess";
 
 function Play() {
-  const navigate = useNavigate();
   const { sendMessage, lastMessage, isConnected, username } = useWebSocket();
   const { mode } = useTheme();
   const panelOffset = mode === 'windows' ? 67 : 85;
@@ -26,8 +24,45 @@ function Play() {
     deserialize: (s) => TIME_CONTROLS.find(tc => tc.label === s),
   });
   const [previewTime, setPreviewTime] = useState<number>(selectedTimeControl.initialTime);
+  const [dots, setDots] = useState(1);
+  const [challengesSent, setChallengesSent] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (status !== "waiting") return;
+    setDots(1);
+    const interval = setInterval(() => setDots(d => (d % 3) + 1), 500);
+    return () => clearInterval(interval);
+  }, [status]);
+
   const [boardSize, setBoardSize] = useState(400);
+  const [flipped, setFlipped] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const hasRequestedPlayers = useRef(false);
+  const gameStartSoundRef = useRef<HTMLAudioElement | null>(null);
+  if (!gameStartSoundRef.current) {
+    gameStartSoundRef.current = new Audio("/sounds/game_time.mp3");
+  }
+
+  // Keyboard shortcut to flip board
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement ||
+          event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (event.key === "f") {
+        setFlipped(f => !f);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Request players list on mount and when connection changes
   useEffect(() => {
@@ -47,24 +82,32 @@ function Play() {
     if (!lastMessage) return;
 
     if (lastMessage.action === "startGame") {
-      console.log("startGame received, navigating to game:", lastMessage);
-      navigate(`/game/${lastMessage.gameId}`, {
-        state: {
-          playerColor: lastMessage.color,
-          currentTurn: lastMessage.turn || "white",
-          whiteTime: lastMessage.whiteTime,
-          blackTime: lastMessage.blackTime,
-          whiteUsername: lastMessage.whiteUsername,
-          blackUsername: lastMessage.blackUsername,
-          increment: selectedTimeControl.increment,
-        }
+      if (gameStartSoundRef.current) {
+        gameStartSoundRef.current.currentTime = 0;
+        gameStartSoundRef.current.play().catch(() => {});
+      }
+      // Cancel all outstanding challenges (Layout handles navigation)
+      setChallengesSent((prev) => {
+        prev.forEach((target) => {
+          sendMessage({ action: "cancelChallenge", targetUsername: target });
+        });
+        return new Set();
       });
     }
 
     if (lastMessage.action === "players") {
       setPlayers(lastMessage.players);
     }
-  }, [lastMessage, navigate, selectedTimeControl.increment]);
+
+    if (lastMessage.action === "challengeDeclined") {
+      setChallengesSent((prev) => {
+        const next = new Set(prev);
+        next.delete(lastMessage.declinedBy);
+        return next;
+      });
+    }
+
+  }, [lastMessage, sendMessage]);
 
   const onPlay = () => {
     if (isConnected && selectedTimeControl) {
@@ -100,9 +143,33 @@ function Play() {
     }
   };
 
+  const onChallenge = (targetUsername: string) => {
+    if (!isConnected) return;
+    if (challengesSent.has(targetUsername)) {
+      // Cancel existing challenge
+      sendMessage({ action: "cancelChallenge", targetUsername });
+      setChallengesSent((prev) => {
+        const next = new Set(prev);
+        next.delete(targetUsername);
+        return next;
+      });
+    } else if (selectedTimeControl) {
+      // Send new challenge
+      sendMessage({
+        action: "challenge",
+        targetUsername,
+        timeControl: {
+          initialTime: selectedTimeControl.initialTime,
+          increment: selectedTimeControl.increment,
+        },
+      });
+      setChallengesSent((prev) => new Set(prev).add(targetUsername));
+    }
+  };
+
   return (
-    <div style={{ padding: 20 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
+    <div style={{ padding: isMobile ? 4 : 20 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: isMobile ? 8 : 20, justifyContent: isMobile ? "center" : undefined }}>
         <GameClock
           whiteTime={previewTime}
           blackTime={previewTime}
@@ -110,6 +177,8 @@ function Play() {
           blackName={null}
           activeColor={null}
           playerColor="white"
+          onFlip={() => setFlipped(f => !f)}
+          flipped={flipped}
         >
           <Board
             gameId={null}
@@ -117,6 +186,7 @@ function Play() {
             initialTurn="white"
             onTurnChange={() => {}}
             onSizeChange={setBoardSize}
+            flipped={flipped}
           />
         </GameClock>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + panelOffset }}>
@@ -137,10 +207,18 @@ function Play() {
             }}
           />
           <Button variant="danger" onClick={status === "waiting" ? onCancelPlay : onPlay} disabled={!selectedTimeControl}>
-            {status === "waiting" ? "Waiting for opponent..." : "Play"}
+            {status === "waiting"
+              ? <span style={{ display: "flex", alignItems: "center", width: "100%", position: "relative" }}><span style={{ flex: 1, textAlign: "center" }}>Waiting{".".repeat(dots)}<span style={{ visibility: "hidden" }}>{".".repeat(3 - dots)}</span></span><span style={{ fontWeight: 900, fontSize: "1.0em", position: "absolute", right: 0 }}>✕</span></span>
+              : "Play"}
           </Button>
           <div style={{ flex: 1, minHeight: 0 }}>
-            <Players players={players} currentUsername={username ?? undefined} onPlayBot={onPlayBot} />
+            <Players
+              players={players}
+              currentUsername={username ?? undefined}
+              onPlayBot={onPlayBot}
+              onChallenge={onChallenge}
+              challengesSent={challengesSent}
+            />
           </div>
         </div>
       </div>
