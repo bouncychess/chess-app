@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import type {ReactNode} from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -10,10 +10,12 @@ import ChallengeNotification from '../../pages/Play/components/ChallengeNotifica
 const MOBILE_BREAKPOINT = 768;
 
 export default function Layout({ children }: { children: ReactNode }) {
-    const { isConnected, lastMessage, sendMessage } = useWebSocket();
+    const { isConnected, subscribe, sendMessage } = useWebSocket();
     const { mode, theme } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
+    const locationRef = useRef(location);
+    useEffect(() => { locationRef.current = location; }, [location]);
 
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
     const [pendingChallenges, setPendingChallenges] = useState<{ username: string; timeControl: string }[]>([]);
@@ -25,34 +27,34 @@ export default function Layout({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
-        if (!lastMessage) return;
+        return subscribe((msg) => {
+            if (msg.action === 'challenge') {
+                setPendingChallenges((prev) => {
+                    if (prev.some((c) => c.username === msg.challengerUsername)) return prev;
+                    return [...prev, { username: msg.challengerUsername, timeControl: msg.timeControl }];
+                });
+            }
 
-        if (lastMessage.action === 'challenge') {
-            setPendingChallenges((prev) => {
-                if (prev.some((c) => c.username === lastMessage.challengerUsername)) return prev;
-                return [...prev, { username: lastMessage.challengerUsername, timeControl: lastMessage.timeControl }];
-            });
-        }
+            if (msg.action === 'challengeCanceled') {
+                setPendingChallenges((prev) => prev.filter((c) => c.username !== msg.challengerUsername));
+            }
 
-        if (lastMessage.action === 'challengeCanceled') {
-            setPendingChallenges((prev) => prev.filter((c) => c.username !== lastMessage.challengerUsername));
-        }
-
-        if (lastMessage.action === 'startGame' && !location.pathname.startsWith('/game/')) {
-            setPendingChallenges([]);
-            navigate(`/game/${lastMessage.gameId}`, {
-                state: {
-                    playerColor: lastMessage.color,
-                    currentTurn: lastMessage.turn || 'white',
-                    whiteTime: lastMessage.whiteTime,
-                    blackTime: lastMessage.blackTime,
-                    whiteUsername: lastMessage.whiteUsername,
-                    blackUsername: lastMessage.blackUsername,
-                    increment: lastMessage.increment,
-                },
-            });
-        }
-    }, [lastMessage, navigate, location.pathname]);
+            if (msg.action === 'startGame' && !locationRef.current.pathname.startsWith('/game/')) {
+                setPendingChallenges([]);
+                navigate(`/game/${msg.gameId}`, {
+                    state: {
+                        playerColor: msg.color,
+                        currentTurn: msg.turn || 'white',
+                        whiteTime: msg.whiteTime,
+                        blackTime: msg.blackTime,
+                        whiteUsername: msg.whiteUsername,
+                        blackUsername: msg.blackUsername,
+                        increment: msg.increment,
+                    },
+                });
+            }
+        });
+    }, [subscribe, navigate]);
 
     const onAcceptChallenge = (challengerUsername: string) => {
         sendMessage({ action: 'respondChallenge', challengerUsername, accept: true });
