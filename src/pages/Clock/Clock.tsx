@@ -317,9 +317,6 @@ export default function Clock() {
                       <div style={{ fontSize: "0.875rem", color: theme.colors.placeholder, textAlign: "center" }}>
                         {liters.toFixed(2)}L — about the size of {getFatComparison(fatVolumeCm3)}
                       </div>
-                      <div style={{ fontSize: "0.75rem", color: theme.colors.placeholder, textAlign: "center", maxWidth: 280 }}>
-                        Each glass represents 1 liter of fat volume. Based on {metabolicRate} cal/day metabolic rate and {CALORIES_PER_LB_FAT} calories per lb of fat.
-                      </div>
                     </>
                   );
                 })()}
