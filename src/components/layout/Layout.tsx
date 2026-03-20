@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ConnectingOverlay } from '../ConnectingOverlay';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { useTheme } from '../../context/ThemeContext';
+import { Button } from '../buttons/Button';
 import ChallengeNotification from '../../pages/Play/components/ChallengeNotification';
 
 const MOBILE_BREAKPOINT = 768;
@@ -19,6 +20,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
     const [pendingChallenges, setPendingChallenges] = useState<{ username: string; timeControl: string }[]>([]);
+    const [activeGameId, setActiveGameId] = useState<string | null>(null);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
@@ -28,6 +30,10 @@ export default function Layout({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         return subscribe((msg) => {
+            if (msg.action === 'connected' && msg.gameId) {
+                setActiveGameId(msg.gameId);
+            }
+
             if (msg.action === 'challenge') {
                 setPendingChallenges((prev) => {
                     if (prev.some((c) => c.username === msg.challengerUsername)) return prev;
@@ -39,22 +45,42 @@ export default function Layout({ children }: { children: ReactNode }) {
                 setPendingChallenges((prev) => prev.filter((c) => c.username !== msg.challengerUsername));
             }
 
-            if (msg.action === 'startGame' && !locationRef.current.pathname.startsWith('/game/')) {
-                setPendingChallenges([]);
-                navigate(`/game/${msg.gameId}`, {
-                    state: {
-                        playerColor: msg.color,
-                        currentTurn: msg.turn || 'white',
-                        whiteTime: msg.whiteTime,
-                        blackTime: msg.blackTime,
-                        whiteUsername: msg.whiteUsername,
-                        blackUsername: msg.blackUsername,
-                        increment: msg.increment,
-                    },
-                });
+            if (msg.action === 'startGame') {
+                setActiveGameId(msg.gameId);
+                if (!locationRef.current.pathname.startsWith('/game/')) {
+                    setPendingChallenges([]);
+                    navigate(`/game/${msg.gameId}`, {
+                        state: {
+                            playerColor: msg.color,
+                            currentTurn: msg.turn || 'white',
+                            whiteTime: msg.whiteTime,
+                            blackTime: msg.blackTime,
+                            whiteUsername: msg.whiteUsername,
+                            blackUsername: msg.blackUsername,
+                            increment: msg.increment,
+                        },
+                    });
+                }
+            }
+
+            if (msg.action === 'gameEnd') {
+                setActiveGameId(null);
+            }
+
+            if (msg.action === 'gameStatus' && !msg.active) {
+                setActiveGameId(null);
             }
         });
     }, [subscribe, navigate]);
+
+    // Poll to check if active game has ended (when not on the game page)
+    useEffect(() => {
+        if (!activeGameId || !isConnected || location.pathname.startsWith('/game/')) return;
+        const interval = setInterval(() => {
+            sendMessage({ action: 'checkGame', gameId: activeGameId });
+        }, 10_000);
+        return () => clearInterval(interval);
+    }, [activeGameId, isConnected, location.pathname, sendMessage]);
 
     const onAcceptChallenge = (challengerUsername: string) => {
         sendMessage({ action: 'respondChallenge', challengerUsername, accept: true });
@@ -83,6 +109,14 @@ export default function Layout({ children }: { children: ReactNode }) {
                             <span style={{ fontSize: '18px', color: theme.colors.placeholder }}>Powered by Windows</span>
                         </div>
                     )
+                )}
+                {activeGameId && !location.pathname.startsWith('/game/') && (
+                    <div style={{ position: 'absolute', top: isMobile ? 48 : 8, right: isMobile ? 4 : 16, zIndex: 10, padding: '8px 12px', backgroundColor: '#991b1b', color: '#ffffff', borderRadius: mode === 'windows' ? 0 : 8, display: 'flex', alignItems: 'center', gap: 12, ...(mode === 'windows' ? { boxShadow: theme.card.boxShadow } : { boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }) }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>You have an active game</span>
+                        <Button variant="secondary" size="sm" onClick={() => navigate(`/game/${activeGameId}`)}>
+                            Return to game
+                        </Button>
+                    </div>
                 )}
                 {children}
             </main>

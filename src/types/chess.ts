@@ -40,7 +40,9 @@ export type GameAction =
   | "respondChallenge"
   | "cancelChallenge"
   | "challengeDeclined"
-  | "challengeCanceled";
+  | "challengeCanceled"
+  | "checkGame"
+  | "gameStatus";
 
 export interface Player {
   id: string;

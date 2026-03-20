@@ -355,7 +355,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   // dropped messages that can occur with lastMessage when rapid-fire events arrive.
   useEffect(() => {
     return subscribe((msg) => {
-      if (msg.action !== "move" || !msg.move) return;
+      if (msg.action !== "move" || !msg.move || msg.gameId !== gameIdRef.current) return;
 
       const chess = chessGameRef.current;
       const pColor = playerColorRef.current;

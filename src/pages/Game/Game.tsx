@@ -75,6 +75,7 @@ function Game() {
   // Derived values for rematch/new game
   const isPlayer = username !== null && (username === whiteUsername || username === blackUsername);
   const opponentUsername = username === whiteUsername ? blackUsername : whiteUsername;
+  const isBotGame = opponentUsername !== null && opponentUsername.endsWith("_bot");
   const hasOfferedRematch = rematchOfferedBy === username;
   const opponentOfferedRematch = rematchOfferedBy !== null && rematchOfferedBy !== username;
 
@@ -188,6 +189,10 @@ function Game() {
 
   const handleRematch = useCallback(() => {
     if (!gameId) return;
+    if (isBotGame && opponentUsername && initialTime !== null) {
+      sendMessage({ action: "playBot", botUsername: opponentUsername, timeControl: { initialTime, increment } });
+      return;
+    }
     if (hasOfferedRematch) {
       // Cancel own rematch offer
       sendMessage({ action: "offerRematch", gameId });
@@ -201,10 +206,14 @@ function Game() {
         setRematchOfferedBy(username);
       }
     }
-  }, [gameId, hasOfferedRematch, opponentOfferedRematch, username, sendMessage]);
+  }, [gameId, isBotGame, opponentUsername, initialTime, increment, hasOfferedRematch, opponentOfferedRematch, username, sendMessage]);
 
   const handleNewGame = useCallback(() => {
     if (initialTime === null) return;
+    if (isBotGame && opponentUsername) {
+      sendMessage({ action: "playBot", botUsername: opponentUsername, timeControl: { initialTime, increment } });
+      return;
+    }
     if (isWaitingNewGame) {
       // Cancel queue
       sendMessage({ action: "play", cancel: true });
@@ -213,7 +222,7 @@ function Game() {
       sendMessage({ action: "play", timeControl: { initialTime, increment } });
       setIsWaitingNewGame(true);
     }
-  }, [initialTime, increment, isWaitingNewGame, sendMessage]);
+  }, [initialTime, increment, isBotGame, opponentUsername, isWaitingNewGame, sendMessage]);
 
   const handleNavigate = useCallback((direction: "prev" | "next") => {
     if (direction === "prev") {
@@ -293,7 +302,7 @@ function Game() {
           else if (msg.result === "black") setWhiteTime(0);
         }
       }
-      if (msg.action === "move") {
+      if (msg.action === "move" && msg.gameId === gameId) {
         if (msg.turn) {
           handleTurnChangeRef.current(msg.turn);
         }
@@ -306,7 +315,7 @@ function Game() {
         setPendingDrawOffer(null);
       }
 
-      if (msg.action === "clockSync") {
+      if (msg.action === "clockSync" && msg.gameId === gameId) {
         setWhiteTime(msg.whiteTime);
         setBlackTime(msg.blackTime);
       }
@@ -497,7 +506,12 @@ function Game() {
             </div>
           </div>
           <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: 78}}>
-            <Chat gameId={gameId} initialChat={chatLog} />
+          <Chat 
+            gameId={gameId} 
+            initialChat={chatLog} 
+            gameResult={gameResult}
+            gameEndReason={gameEndReason}
+          />
           </div>
         </div>}
       </div>
@@ -509,7 +523,13 @@ function Game() {
             onMoveClick={handleMoveClick}
             collapsible
           />
-          <Chat gameId={gameId} initialChat={chatLog} collapsible />
+          <Chat 
+            gameId={gameId} 
+            initialChat={chatLog} 
+            collapsible 
+            gameResult={gameResult}
+            gameEndReason={gameEndReason}
+          />
           {gameResult !== null && gameEndReason !== null ? (
             <GameEndDisplay
               gameResult={gameResult}
