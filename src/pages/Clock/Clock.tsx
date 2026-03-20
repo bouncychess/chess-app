@@ -177,7 +177,7 @@ export default function Clock() {
           gap: 16,
         }}
       >
-        <h2 style={{ margin: 0 }}>Stopwatch</h2>
+        <h2 style={{ margin: 0 }}>Diet Tracker</h2>
         {startTime !== null ? (
           <>
             <div style={{ display: "flex", gap: 16, fontFamily: "monospace", textAlign: "center" }}>
