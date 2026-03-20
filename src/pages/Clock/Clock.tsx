@@ -29,15 +29,14 @@ function loadNumber(key: string): number {
   return 0;
 }
 
-function formatElapsed(ms: number): string {
+function formatElapsed(ms: number): { days: number; hours: number; minutes: number; seconds: number } {
   const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const centiseconds = Math.floor((ms % 1000) / 10);
-
-  const pad = (n: number, len = 2) => String(n).padStart(len, "0");
-  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}.${pad(centiseconds)}`;
+  return {
+    days: Math.floor(totalSeconds / 86400),
+    hours: Math.floor((totalSeconds % 86400) / 3600),
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: totalSeconds % 60,
+  };
 }
 
 function toLocalDatetimeString(ts: number): string {
@@ -49,7 +48,7 @@ function toLocalDatetimeString(ts: number): string {
 export default function Clock() {
   const [startTime, setStartTime] = useState<number | null>(loadStartTime);
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [elapsed, setElapsed] = useState("");
+  const [elapsed, setElapsed] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [inputValue, setInputValue] = useState(() => {
     const saved = loadStartTime();
     return saved !== null ? toLocalDatetimeString(saved) : "";
@@ -83,7 +82,7 @@ export default function Clock() {
     localStorage.removeItem(CONSUMED_CALORIES_KEY);
     setStartTime(null);
     setElapsedMs(0);
-    setElapsed("");
+    setElapsed({ days: 0, hours: 0, minutes: 0, seconds: 0 });
     setInputValue("");
     setMetabolicRate(0);
     setConsumedCalories(0);
@@ -181,15 +180,27 @@ export default function Clock() {
         <h2 style={{ margin: 0 }}>Stopwatch</h2>
         {startTime !== null ? (
           <>
-            <div
-              style={{
-                fontFamily: "monospace",
-                fontSize: "3rem",
-                fontWeight: 700,
-                letterSpacing: 2,
-              }}
-            >
-              {elapsed}
+            <div style={{ display: "flex", gap: 16, fontFamily: "monospace", textAlign: "center" }}>
+              {([
+                { value: elapsed.days, label: "Days" },
+                { value: elapsed.hours, label: "Hours" },
+                { value: elapsed.minutes, label: "Minutes" },
+                { value: elapsed.seconds, label: "Seconds" },
+              ] as const).map(({ value, label }) => (
+                <div key={label} style={{
+                  background: theme.colors.cardBackground,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                }}>
+                  <div style={{ fontSize: "3rem", fontWeight: 700 }}>
+                    {String(value).padStart(2, "0")}
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: theme.colors.placeholder }}>
+                    {label}
+                  </div>
+                </div>
+              ))}
             </div>
             <div style={{ display: "flex", gap: 16, alignItems: "flex-end" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
