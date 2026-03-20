@@ -9,6 +9,7 @@ import SignIn from './pages/SignIn/SignIn';
 import Clive from './pages/Clive/Clive';
 import Settings from './pages/Settings/Settings';
 import Layout from './components/layout/Layout';
+import Renderer from './components/Renderer';
 import { WebSocketProvider } from './context/WebSocketContext';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -35,6 +36,7 @@ export default function App() {
                         <Route path="/signin" element={<Layout><SignIn /></Layout>} />
                         <Route path="/articles/:id" element={<Layout><Article /></Layout>} />
                         <Route path="/clive" element={<Layout><Clive /></Layout>} />
+                        <Route path="/renderer" element={<Layout><Renderer></Renderer></Layout>} />
                         <Route path="/settings" element={<Layout><Settings /></Layout>} />
                         <Route path="/logout" element={<Layout><Logout /></Layout>} />
                     </Routes>
