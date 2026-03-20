@@ -156,7 +156,7 @@ export default function Clock() {
     return "an extra-large bean bag chair (50L+)";
   };
 
-  const inputStyle = { ...theme.input, width: 120 };
+  const inputStyle = { ...theme.input, width: 160 };
   const labelStyle = { fontSize: "0.875rem" };
   const statStyle = { fontSize: "1rem", fontFamily: "monospace" };
 
@@ -204,7 +204,7 @@ export default function Clock() {
             </div>
             <div style={{ display: "flex", gap: 16, alignItems: "flex-end" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label style={labelStyle}>Metabolic rate (cal/day)</label>
+                <label style={{ ...labelStyle, maxWidth: 160 }}>Set Your Metabolic rate (cal/day)</label>
                 <input
                   type="number"
                   value={metabolicRate || ""}
@@ -214,7 +214,7 @@ export default function Clock() {
                 />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label style={labelStyle}>Consumed (cal)</label>
+                <label style={{ ...labelStyle, maxWidth: 160 }}>Set total consumed calories over entire diet period (cal)</label>
                 <input
                   type="number"
                   value={consumedCalories || ""}
@@ -338,21 +338,69 @@ export default function Clock() {
             </Button>
           </>
         ) : (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              gap: 8,
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label style={{ fontSize: "0.875rem" }}>Start time</label>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <label style={{ fontSize: "0.875rem" }}>Set a start time for your diet</label>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
               <input
-                type="datetime-local"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                type="date"
+                value={inputValue.split("T")[0] || ""}
+                onChange={(e) => {
+                  const time = inputValue.split("T")[1] || "12:00";
+                  setInputValue(`${e.target.value}T${time}`);
+                }}
                 style={theme.input}
               />
+              <select
+                value={(() => {
+                  const h = parseInt(inputValue.split("T")[1]?.split(":")[0] || "12", 10);
+                  return h === 0 ? 12 : h > 12 ? h - 12 : h;
+                })()}
+                onChange={(e) => {
+                  const date = inputValue.split("T")[0] || "";
+                  const min = inputValue.split("T")[1]?.split(":")[1] || "00";
+                  const h = parseInt(inputValue.split("T")[1]?.split(":")[0] || "12", 10);
+                  const isPM = h >= 12;
+                  let newH = parseInt(e.target.value, 10);
+                  if (isPM) newH = newH === 12 ? 12 : newH + 12;
+                  else newH = newH === 12 ? 0 : newH;
+                  setInputValue(`${date}T${String(newH).padStart(2, "0")}:${min}`);
+                }}
+                style={{ ...theme.input, width: "auto" }}
+              >
+                {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
+                  <option key={h} value={h}>{h}</option>
+                ))}
+              </select>
+              <select
+                value={inputValue.split("T")[1]?.split(":")[1] || "00"}
+                onChange={(e) => {
+                  const date = inputValue.split("T")[0] || "";
+                  const hour = inputValue.split("T")[1]?.split(":")[0] || "12";
+                  setInputValue(`${date}T${hour}:${e.target.value}`);
+                }}
+                style={{ ...theme.input, width: "auto" }}
+              >
+                {Array.from({ length: 60 }, (_, i) => (
+                  <option key={i} value={String(i).padStart(2, "0")}>{String(i).padStart(2, "0")}</option>
+                ))}
+              </select>
+              <select
+                value={parseInt(inputValue.split("T")[1]?.split(":")[0] || "12", 10) >= 12 ? "PM" : "AM"}
+                onChange={(e) => {
+                  const date = inputValue.split("T")[0] || "";
+                  const min = inputValue.split("T")[1]?.split(":")[1] || "00";
+                  let h = parseInt(inputValue.split("T")[1]?.split(":")[0] || "12", 10);
+                  const wasAM = h < 12;
+                  const nowPM = e.target.value === "PM";
+                  if (wasAM && nowPM) h += 12;
+                  else if (!wasAM && !nowPM) h -= 12;
+                  setInputValue(`${date}T${String(h).padStart(2, "0")}:${min}`);
+                }}
+                style={{ ...theme.input, width: "auto" }}
+              >
+                <option value="AM">AM</option>
+                <option value="PM">PM</option>
+              </select>
             </div>
             <Button onClick={handleSet} size="md">
               Set
