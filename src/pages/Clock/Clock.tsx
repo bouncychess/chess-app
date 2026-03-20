@@ -248,8 +248,8 @@ export default function Clock() {
                   const liters = fatVolumeCm3 / 1000;
                   const fullGlasses = Math.floor(liters);
                   const partialFill = liters - fullGlasses;
-                  const glassHeight = 140;
-                  const glassWidth = 64;
+                  const glassHeight = 120;
+                  const glassWidth = Math.round(glassHeight * (48 / 68));
 
                   const BeerGlass = ({ fill }: { fill: number }) => {
                     const f = Math.min(fill, 1);
@@ -260,7 +260,7 @@ export default function Clock() {
                     const foamHeight = f > 0.05 ? (f >= 1 ? 8 : 5) : 0;
                     const uid = `clip-${Math.random().toString(36).slice(2)}`;
                     return (
-                      <svg width={glassWidth} height={glassHeight} viewBox="6 -2 56 62" xmlns="http://www.w3.org/2000/svg">
+                      <svg width={glassWidth} height={glassHeight} viewBox="11 -6 48 68" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
                         <defs>
                           {/* Clip to inside of glass body */}
                           <clipPath id={uid}>
