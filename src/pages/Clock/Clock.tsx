@@ -248,8 +248,8 @@ export default function Clock() {
                   const liters = fatVolumeCm3 / 1000;
                   const fullGlasses = Math.floor(liters);
                   const partialFill = liters - fullGlasses;
-                  const glassHeight = 180;
-                  const glassWidth = 80;
+                  const glassHeight = 110;
+                  const glassWidth = 50;
 
                   const BeerGlass = ({ fill }: { fill: number }) => {
                     const f = Math.min(fill, 1);
@@ -260,7 +260,7 @@ export default function Clock() {
                     const foamHeight = f > 0.05 ? (f >= 1 ? 8 : 5) : 0;
                     const uid = `clip-${Math.random().toString(36).slice(2)}`;
                     return (
-                      <svg width={glassWidth} height={glassHeight} viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                      <svg width={glassWidth} height={glassHeight} viewBox="10 -2 46 62" xmlns="http://www.w3.org/2000/svg">
                         <defs>
                           {/* Clip to inside of glass body */}
                           <clipPath id={uid}>
@@ -305,6 +305,9 @@ export default function Clock() {
 
                   return (
                     <>
+                      <div style={{ fontSize: "0.875rem", color: theme.colors.text, textAlign: "center" }}>
+                        Your fat loss visualized as liters of beer
+                      </div>
                       <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 6, flexWrap: "wrap" }}>
                         {Array.from({ length: fullGlasses }, (_, i) => (
                           <BeerGlass key={`full-${i}`} fill={1} />
