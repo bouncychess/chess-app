@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { useWebSocket } from "../../context/WebSocketContext";
+import { useWebSocket, type WebSocketMessage } from "../../context/WebSocketContext";
 import { useTheme } from "../../context/ThemeContext";
 import Board from "../../components/game/Board";
 import Chat from "./components/Chat";
@@ -261,6 +261,22 @@ function Game() {
 
   useEffect(() => {
     return subscribe((msg) => {
+      // Navigate to a new game (rematch, new match, or followed player's new game)
+      const navigateToNewGame = (msg: WebSocketMessage) => {
+        navigate(`/game/${msg.gameId}`, {
+          state: {
+            playerColor: msg.color,
+            currentTurn: msg.turn || "white",
+            whiteTime: msg.whiteTime,
+            blackTime: msg.blackTime,
+            whiteUsername: msg.whiteUsername,
+            blackUsername: msg.blackUsername,
+            increment: msg.increment ?? 0,
+            spectatingUsername,
+          },
+        });
+      };
+
       // Handle startGame — either for this game or a new game (rematch/new game match)
       if (msg.action === "startGame") {
         if (gameStartSoundRef.current && !pgn && document.visibilityState === "visible") {
@@ -279,20 +295,13 @@ function Game() {
             setInitialTime(msg.whiteTime);
           }
         } else if (msg.gameId) {
-          // New game started (rematch or new game match) — navigate to it
-          navigate(`/game/${msg.gameId}`, {
-            state: {
-              playerColor: msg.color,
-              currentTurn: msg.turn || "white",
-              whiteTime: msg.whiteTime,
-              blackTime: msg.blackTime,
-              whiteUsername: msg.whiteUsername,
-              blackUsername: msg.blackUsername,
-              increment: msg.increment ?? 0,
-              spectatingUsername,
-            },
-          });
+          navigateToNewGame(msg);
         }
+      }
+
+      // Handle spectateGame — followed player started a new game
+      if (msg.action === "spectateGame" && msg.gameId && msg.gameId !== gameId) {
+        navigateToNewGame(msg);
       }
       if (msg.action === "gameEnd" && msg.gameId === gameId) {
         setGameResult(msg.result);
@@ -366,7 +375,7 @@ function Game() {
         }
       }
     });
-  }, [subscribe, gameId, navigate, spectatingUsername]);
+  }, [subscribe, gameId, navigate, spectatingUsername, pgn]);
 
   // Client-side clock countdown using actual elapsed time
   // Only starts ticking after white makes their first move

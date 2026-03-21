@@ -3,7 +3,7 @@ import Sidebar from './Sidebar';
 import type {ReactNode} from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ConnectingOverlay } from '../ConnectingOverlay';
-import { useWebSocket } from '../../context/WebSocketContext';
+import { useWebSocket, type WebSocketMessage } from '../../context/WebSocketContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Button } from '../buttons/Button';
 import ChallengeNotification from '../../pages/Play/components/ChallengeNotification';
@@ -28,6 +28,22 @@ export default function Layout({ children }: { children: ReactNode }) {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    const navigateToGame = (msg: WebSocketMessage) => {
+        if (!locationRef.current.pathname.startsWith('/game/')) {
+            navigate(`/game/${msg.gameId}`, {
+                state: {
+                    playerColor: msg.color,
+                    currentTurn: msg.turn || 'white',
+                    whiteTime: msg.whiteTime,
+                    blackTime: msg.blackTime,
+                    whiteUsername: msg.whiteUsername,
+                    blackUsername: msg.blackUsername,
+                    increment: msg.increment,
+                },
+            });
+        }
+    };
+
     useEffect(() => {
         return subscribe((msg) => {
             if (msg.action === 'connected' && msg.gameId) {
@@ -47,20 +63,12 @@ export default function Layout({ children }: { children: ReactNode }) {
 
             if (msg.action === 'startGame') {
                 setActiveGameId(msg.gameId);
-                if (!locationRef.current.pathname.startsWith('/game/')) {
-                    setPendingChallenges([]);
-                    navigate(`/game/${msg.gameId}`, {
-                        state: {
-                            playerColor: msg.color,
-                            currentTurn: msg.turn || 'white',
-                            whiteTime: msg.whiteTime,
-                            blackTime: msg.blackTime,
-                            whiteUsername: msg.whiteUsername,
-                            blackUsername: msg.blackUsername,
-                            increment: msg.increment,
-                        },
-                    });
-                }
+                setPendingChallenges([]);
+                navigateToGame(msg);
+            }
+
+            if (msg.action === 'spectateGame') {
+                navigateToGame(msg);
             }
 
             if (msg.action === 'gameEnd') {
