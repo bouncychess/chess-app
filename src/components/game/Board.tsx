@@ -404,7 +404,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
                 setHasPremoves(false);
               }
             }
-          }, 50);
+          }, 10);
         }
       } catch (error) {
         console.log("Failed to make move", error);
