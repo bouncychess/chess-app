@@ -14,3 +14,7 @@ npm run dev
 ## License
 
 This project is open source under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html), as it incorporates [chessground](https://github.com/lichess-org/chessground) which is licensed under GPL-3.0.
+
+
+## Todo
+Add promotion
