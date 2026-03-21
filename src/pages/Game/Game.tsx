@@ -45,7 +45,9 @@ function Game() {
 
   // Initialize from navigation state
   const initialState = location.state as (GameState & { spectatingUsername?: string }) | null;
-  const [spectatingUsername] = useState<string | null>(initialState?.spectatingUsername ?? null);
+  const [spectatingUsername, setSpectatingUsername] = useState<string | null>(
+    initialState?.spectatingUsername === username ? null : (initialState?.spectatingUsername ?? null)
+  );
   const [playerColor, setPlayerColor] = useState<PlayerColor>(initialState?.playerColor ?? "white");
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>(initialState?.currentTurn ?? "white");
   const [whiteTime, setWhiteTime] = useState<number>(initialState?.whiteTime ?? 180000);
@@ -360,6 +362,10 @@ function Game() {
         setPgn(msg.pgn ?? null);
         setChatLog(msg.chat ?? []);
         setStatus("playing");
+        // If we're a player in this game, clear spectating state
+        if (username && (username === msg.whiteUsername || username === msg.blackUsername)) {
+          setSpectatingUsername(null);
+        }
         // Handle finished game state
         if (msg.result) {
           setGameResult(msg.result);
@@ -375,7 +381,7 @@ function Game() {
         }
       }
     });
-  }, [subscribe, gameId, navigate, spectatingUsername, pgn]);
+  }, [subscribe, gameId, navigate, spectatingUsername, pgn, username]);
 
   // Client-side clock countdown using actual elapsed time
   // Only starts ticking after white makes their first move
