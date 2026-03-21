@@ -10,7 +10,7 @@ import { GameControls } from "../../components/game/GameControls";
 import { GameEndDisplay } from "../../components/game/GameEndDisplay";
 import { StatusBadge } from "../../components/StatusBadge";
 import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
-import type { PlayerColor, ChatMessage, GameResult, GameEndReason } from "../../types/chess";
+import type { PlayerColor, ChatMessage, GameResult, GameEndReason, Player } from "../../types/chess";
 
 interface GameState {
   playerColor: PlayerColor;
@@ -313,6 +313,21 @@ function Game() {
     // Handle draw declined notification (received by the player who offered)
     if (lastMessage.action === "drawDeclined" && lastMessage.gameId === gameId) {
       setHasOfferedDraw(false);
+    }
+
+    if (lastMessage.action === "players") {
+      // If spectating, follow the player to their next game
+      if (spectatingUsername) {
+        const spectatedPlayer = lastMessage.players.find(
+          (p: Player) => p.username === spectatingUsername
+        );
+        if (spectatedPlayer?.gameId && spectatedPlayer.gameId !== gameId) {
+          navigate(`/game/${spectatedPlayer.gameId}`, {
+            state: { spectatingUsername },
+            replace: true,
+          });
+        }
+      }
     }
 
     // Handle gameState response when loading game directly
