@@ -14,7 +14,8 @@ interface ChatProps {
 }
 
 function Chat({ gameId, initialChat = [], collapsible = false, gameEndReason, gameResult }: ChatProps) {
-    const { sendMessage, lastMessage, username } = useWebSocket();
+    const { sendMessage, subscribe, username } = useWebSocket();
+    const usernameRef = useRef(username);
     const [chatLog, setChatLog] = useState<ChatMessage[]>(initialChat);
     const [text, setText] = useState<string>('');
     const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -40,25 +41,27 @@ function Chat({ gameId, initialChat = [], collapsible = false, gameEndReason, ga
         }
     }, [chatLog.length, lastSeenLength]);
 
+    useEffect(() => { usernameRef.current = username; }, [username]);
+
     useEffect(() => {
-        if (!lastMessage) return;
+        return subscribe((msg) => {
+            // Handle chat messages (skip our own - already added optimistically)
+            if (msg.action === "chat" && msg.gameId === gameId && msg.chat && msg.chat.username !== usernameRef.current) {
+                setChatLog((prevLog) => [...prevLog, msg.chat]);
+            }
 
-        // Handle chat messages (skip our own - already added optimistically)
-        if (lastMessage.action === "chat" && lastMessage.gameId === gameId && lastMessage.chat && lastMessage.chat.username !== username) {
-            setChatLog((prevLog) => [...prevLog, lastMessage.chat]);
-        }
+            // Handle chat that comes with move messages (e.g., from bots)
+            if (msg.action === "move" && msg.gameId === gameId && msg.chat) {
+                setChatLog((prevLog) => [...prevLog, msg.chat]);
+            }
 
-        // Handle chat that comes with move messages (e.g., from bots)
-        if (lastMessage.action === "move" && lastMessage.gameId === gameId && lastMessage.chat) {
-            setChatLog((prevLog) => [...prevLog, lastMessage.chat]);
-        }
-
-        // Handle game end — show result as system chat
-        if (lastMessage.action === "gameEnd" && lastMessage.gameId === gameId) {
-            setEndReason(lastMessage.reason);
-            setEndResult(lastMessage.result);
-        }
-    }, [lastMessage, username]);
+            // Handle game end — update result state for rendering
+            if (msg.action === "gameEnd" && msg.gameId === gameId) {
+                setEndReason(msg.reason);
+                setEndResult(msg.result);
+            }
+        });
+    }, [subscribe, gameId]);
 
     // Auto-scroll to bottom when new messages are added
     useEffect(() => {

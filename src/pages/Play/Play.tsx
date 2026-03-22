@@ -11,7 +11,7 @@ import { Button } from "../../components/buttons/Button";
 import type { Player } from "../../types/chess";
 
 function Play() {
-  const { sendMessage, lastMessage, isConnected, username } = useWebSocket();
+  const { sendMessage, subscribe, isConnected, username } = useWebSocket();
   const { mode } = useTheme();
   const panelOffset = mode === 'windows' ? 67 : 85;
 
@@ -79,35 +79,34 @@ function Play() {
   }, [isConnected, sendMessage]);
 
   useEffect(() => {
-    if (!lastMessage) return;
-
-    if (lastMessage.action === "startGame") {
-      if (gameStartSoundRef.current) {
-        gameStartSoundRef.current.currentTime = 0;
-        gameStartSoundRef.current.play().catch(() => {});
-      }
-      // Cancel all outstanding challenges (Layout handles navigation)
-      setChallengesSent((prev) => {
-        prev.forEach((target) => {
-          sendMessage({ action: "cancelChallenge", targetUsername: target });
+    return subscribe((msg) => {
+      if (msg.action === "startGame") {
+        if (gameStartSoundRef.current && document.visibilityState === "visible") {
+          gameStartSoundRef.current.currentTime = 0;
+          gameStartSoundRef.current.play().catch(() => {});
+        }
+        // Cancel all outstanding challenges (Layout handles navigation)
+        setChallengesSent((prev) => {
+          prev.forEach((target) => {
+            sendMessage({ action: "cancelChallenge", targetUsername: target });
+          });
+          return new Set();
         });
-        return new Set();
-      });
-    }
+      }
 
-    if (lastMessage.action === "players") {
-      setPlayers(lastMessage.players);
-    }
+      if (msg.action === "players") {
+        setPlayers(msg.players);
+      }
 
-    if (lastMessage.action === "challengeDeclined") {
-      setChallengesSent((prev) => {
-        const next = new Set(prev);
-        next.delete(lastMessage.declinedBy);
-        return next;
-      });
-    }
-
-  }, [lastMessage, sendMessage]);
+      if (msg.action === "challengeDeclined") {
+        setChallengesSent((prev) => {
+          const next = new Set(prev);
+          next.delete(msg.declinedBy);
+          return next;
+        });
+      }
+    });
+  }, [subscribe, sendMessage]);
 
   const onPlay = () => {
     if (isConnected && selectedTimeControl) {
