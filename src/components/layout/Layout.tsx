@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import type {ReactNode} from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ConnectingOverlay } from '../ConnectingOverlay';
-import { useWebSocket } from '../../context/WebSocketContext';
+import { useWebSocket, type WebSocketMessage } from '../../context/WebSocketContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Button } from '../buttons/Button';
 import ChallengeNotification from '../../pages/Play/components/ChallengeNotification';
@@ -11,14 +11,32 @@ import ChallengeNotification from '../../pages/Play/components/ChallengeNotifica
 const MOBILE_BREAKPOINT = 768;
 
 export default function Layout({ children }: { children: ReactNode }) {
-    const { isConnected, lastMessage, sendMessage, username } = useWebSocket();
+    const { isConnected, subscribe, sendMessage } = useWebSocket();
     const { mode, theme } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
+    const locationRef = useRef(location);
+    useEffect(() => { locationRef.current = location; }, [location]);
 
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
     const [pendingChallenges, setPendingChallenges] = useState<{ username: string; timeControl: string }[]>([]);
     const [activeGameId, setActiveGameId] = useState<string | null>(null);
+
+    const navigateToGame = (msg: WebSocketMessage) => {
+        if (!locationRef.current.pathname.startsWith('/game/')) {
+            navigate(`/game/${msg.gameId}`, {
+                state: {
+                    playerColor: msg.color,
+                    currentTurn: msg.turn || 'white',
+                    whiteTime: msg.whiteTime,
+                    blackTime: msg.blackTime,
+                    whiteUsername: msg.whiteUsername,
+                    blackUsername: msg.blackUsername,
+                    increment: msg.increment,
+                },
+            });
+        }
+    };
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
@@ -27,49 +45,37 @@ export default function Layout({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
-        if (!lastMessage) return;
+        return subscribe((msg) => {
+            if (msg.action === 'connected' && msg.gameId) {
+                setActiveGameId(msg.gameId);
+            }
 
-        if (lastMessage.action === 'connected' && lastMessage.gameId) {
-            setActiveGameId(lastMessage.gameId);
-        }
-
-        if (lastMessage.action === 'challenge') {
-            setPendingChallenges((prev) => {
-                if (prev.some((c) => c.username === lastMessage.challengerUsername)) return prev;
-                return [...prev, { username: lastMessage.challengerUsername, timeControl: lastMessage.timeControl }];
-            });
-        }
-
-        if (lastMessage.action === 'challengeCanceled') {
-            setPendingChallenges((prev) => prev.filter((c) => c.username !== lastMessage.challengerUsername));
-        }
-
-        if (lastMessage.action === 'startGame' && (lastMessage.whiteUsername === username || lastMessage.blackUsername === username)) {
-            setActiveGameId(lastMessage.gameId);
-            if (!location.pathname.startsWith('/game/')) {
-                setPendingChallenges([]);
-                navigate(`/game/${lastMessage.gameId}`, {
-                    state: {
-                        playerColor: lastMessage.color,
-                        currentTurn: lastMessage.turn || 'white',
-                        whiteTime: lastMessage.whiteTime,
-                        blackTime: lastMessage.blackTime,
-                        whiteUsername: lastMessage.whiteUsername,
-                        blackUsername: lastMessage.blackUsername,
-                        increment: lastMessage.increment,
-                    },
+            if (msg.action === 'challenge') {
+                setPendingChallenges((prev) => {
+                    if (prev.some((c) => c.username === msg.challengerUsername)) return prev;
+                    return [...prev, { username: msg.challengerUsername, timeControl: msg.timeControl }];
                 });
             }
-        }
 
-        if (lastMessage.action === 'gameEnd') {
-            setActiveGameId(null);
-        }
+            if (msg.action === 'challengeCanceled') {
+                setPendingChallenges((prev) => prev.filter((c) => c.username !== msg.challengerUsername));
+            }
 
-        if (lastMessage.action === 'gameStatus' && !lastMessage.active) {
-            setActiveGameId(null);
-        }
-    }, [lastMessage, navigate, location.pathname]);
+            if (msg.action === 'startGame') {
+                setActiveGameId(msg.gameId);
+                setPendingChallenges([]);
+                navigateToGame(msg);
+            }
+
+            if (msg.action === 'gameEnd') {
+                setActiveGameId(null);
+            }
+
+            if (msg.action === 'gameStatus' && !msg.active) {
+                setActiveGameId(null);
+            }
+        });
+    }, [subscribe, navigate]);
 
     // Poll to check if active game has ended (when not on the game page)
     useEffect(() => {
