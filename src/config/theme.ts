@@ -155,6 +155,6 @@ export const themes = { normal: normalTheme, windows: windowsTheme };
 // Default export for backwards compatibility — will be overridden by context
 export let theme = normalTheme;
 
-export function setActiveTheme(mode: ThemeMode) {
-    theme = themes[mode];
+export function setActiveTheme(modeOrTheme: ThemeMode | Theme) {
+    theme = typeof modeOrTheme === 'string' ? themes[modeOrTheme] : modeOrTheme;
 }

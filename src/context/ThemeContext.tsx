@@ -1,18 +1,26 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { themes, setActiveTheme, type Theme, type ThemeMode } from '../config/theme';
+import { generateDarkTheme } from '../utils/darkThemeGenerator';
 
 interface ThemeContextType {
     mode: ThemeMode;
     theme: Theme;
     toggleMode: () => void;
+    isDark: boolean;
+    toggleDark: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
 const STORAGE_KEY = 'theme_mode';
+const DARK_STORAGE_KEY = 'dark_mode';
 
-function applyCssVariables(mode: ThemeMode) {
-    const t = themes[mode];
+function computeEffectiveTheme(mode: ThemeMode, isDark: boolean): Theme {
+    const base = themes[mode];
+    return isDark ? generateDarkTheme(base, 1) : base;
+}
+
+function applyCssVariables(t: Theme) {
     const root = document.documentElement;
     root.style.setProperty('font-family', t.css.fontFamily);
     if (t.css.fontSize) {
@@ -45,29 +53,44 @@ function getInitialMode(): ThemeMode {
     return 'windows';
 }
 
+function getInitialDark(): boolean {
+    return localStorage.getItem(DARK_STORAGE_KEY) === 'true';
+}
+
 // Initialize on load so the first render has the right theme
 const initialMode = getInitialMode();
-setActiveTheme(initialMode);
-applyCssVariables(initialMode);
+const initialDark = getInitialDark();
+const initialTheme = computeEffectiveTheme(initialMode, initialDark);
+setActiveTheme(initialTheme);
+applyCssVariables(initialTheme);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
     const [mode, setMode] = useState<ThemeMode>(initialMode);
+    const [isDark, setIsDark] = useState<boolean>(initialDark);
 
     useEffect(() => {
-        setActiveTheme(mode);
-        applyCssVariables(mode);
+        const effective = computeEffectiveTheme(mode, isDark);
+        setActiveTheme(effective);
+        applyCssVariables(effective);
         localStorage.setItem(STORAGE_KEY, mode);
-    }, [mode]);
+        localStorage.setItem(DARK_STORAGE_KEY, String(isDark));
+    }, [mode, isDark]);
 
     const toggleMode = useCallback(() => {
         setMode(prev => prev === 'normal' ? 'windows' : 'normal');
     }, []);
 
-    // Key the children on mode so all components remount with the updated
+    const toggleDark = useCallback(() => {
+        setIsDark(prev => !prev);
+    }, []);
+
+    const effective = computeEffectiveTheme(mode, isDark);
+
+    // Key on mode+isDark so all components remount with the updated
     // static `theme` import after setActiveTheme has run.
     return (
-        <ThemeContext.Provider value={{ mode, theme: themes[mode], toggleMode }}>
-            <div key={mode} style={{ display: 'contents' }}>
+        <ThemeContext.Provider value={{ mode, theme: effective, toggleMode, isDark, toggleDark }}>
+            <div key={`${mode}-${isDark}`} style={{ display: 'contents' }}>
                 {children}
             </div>
         </ThemeContext.Provider>
