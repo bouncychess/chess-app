@@ -4,7 +4,7 @@ import { ResizableCard } from '../../components/ResizableCard';
 import { ToggleSwitch } from '../../components/ToggleSwitch';
 
 export default function Settings() {
-    const { mode, toggleMode } = useTheme();
+    const { mode, toggleMode, isDark, toggleDark } = useTheme();
     const { premovesEnabled, togglePremoves } = useSettings();
 
     return (
@@ -21,6 +21,19 @@ export default function Settings() {
                     onToggle={toggleMode}
                 />
             </ResizableCard>
+            <div style={{ marginTop: 16 }}>
+                <ResizableCard>
+                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Brightness</div>
+                    <ToggleSwitch
+                        options={[
+                            { label: 'Light', value: 'light' },
+                            { label: 'Dark', value: 'dark' },
+                        ]}
+                        selected={isDark ? 'dark' : 'light'}
+                        onToggle={toggleDark}
+                    />
+                </ResizableCard>
+            </div>
             <div style={{ marginTop: 16 }}>
                 <ResizableCard>
                     <div style={{ fontWeight: 600, marginBottom: 8 }}>Gameplay</div>

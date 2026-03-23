@@ -57,13 +57,13 @@ const PixelCrossedSwordsIcon = () => (
 
 const ChallengeIcon = ({ isWindows }: { isWindows: boolean }) => isWindows ? <PixelCrossedSwordsIcon /> : <CrossedSwordsIcon />;
 
-const BotIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={theme.colors.danger} strokeWidth="2" style={{ marginLeft: 4, flexShrink: 0 }}>
+const BotIcon = ({ color }: { color: string }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={{ marginLeft: 4, flexShrink: 0 }}>
     <rect x="3" y="11" width="18" height="10" rx="2" />
     <circle cx="12" cy="5" r="2" />
     <path d="M12 7v4" />
-    <circle cx="8" cy="16" r="1" fill={theme.colors.danger} />
-    <circle cx="16" cy="16" r="1" fill={theme.colors.danger} />
+    <circle cx="8" cy="16" r="1" fill={color} />
+    <circle cx="16" cy="16" r="1" fill={color} />
   </svg>
 );
 
@@ -113,7 +113,7 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
                   ) : (
                     player.username
                   )}
-                  {player.isBot && <BotIcon />}
+                  {player.isBot && <BotIcon color={theme.colors.botIcon} />}
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   {canChallenge && (
