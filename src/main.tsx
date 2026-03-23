@@ -5,6 +5,12 @@ import App from './App.tsx'
 import { configureAuth } from './config/auth'
 
 configureAuth()
+
+if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+  const link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
+  if (link) link.href = '/rook-local.svg';
+}
+
 import { theme } from './config/theme'
 
 // Set CSS variables from theme
