@@ -266,7 +266,7 @@ export default function Clock() {
               </div>
               <div style={{ position: "relative", alignSelf: "flex-end" }}>
                 <Button onClick={() => setShowApplyPopup(true)} size="md" disabled={consumedCalories <= 0}>
-                  Apply
+                  Save
                 </Button>
                 {showApplyPopup && (
                   <div style={{
@@ -307,6 +307,7 @@ export default function Clock() {
               </div>
             </div>
             {calorieLog.length > 0 && (
+              <div style={{ maxHeight: calorieLog.length > 5 ? 180 : "none", overflowY: calorieLog.length > 5 ? "auto" : "visible", width: "100%", paddingRight: calorieLog.length > 5 ? 12 : 0 }}>
               <table style={{ borderCollapse: "collapse", fontSize: "0.875rem", width: "100%" }}>
                 <thead>
                   <tr>
@@ -336,6 +337,7 @@ export default function Clock() {
                   </tr>
                 </tbody>
               </table>
+              </div>
             )}
             {metabolicRate > 0 && (
               <>
@@ -432,7 +434,7 @@ export default function Clock() {
                       <div style={{ fontSize: "0.875rem", color: theme.colors.text, textAlign: "center" }}>
                         Your fat loss visualized in beer
                       </div>
-                      <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 6, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 6, flexWrap: "wrap", maxWidth: 350 }}>
                         {Array.from({ length: fullGlasses }, (_, i) => (
                           <BeerGlass key={`full-${i}`} fill={1} />
                         ))}
