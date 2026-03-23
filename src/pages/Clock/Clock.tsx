@@ -6,7 +6,14 @@ import { theme } from "../../config/theme";
 const STORAGE_KEY = "clock-start-time";
 const METABOLIC_RATE_KEY = "clock-metabolic-rate";
 const CONSUMED_CALORIES_KEY = "clock-consumed-calories";
+const CALORIE_LOG_KEY = "clock-calorie-log";
 const UNIT_KEY = "clock-unit";
+
+interface CalorieLogEntry {
+  label: string;
+  calories: number;
+  date: string;
+}
 const CALORIES_PER_LB_FAT = 3500;
 const LBS_PER_KG = 2.20462;
 const MS_PER_DAY = 86400000;
@@ -56,6 +63,11 @@ export default function Clock() {
   const [metabolicRate, setMetabolicRate] = useState(() => loadNumber(METABOLIC_RATE_KEY));
   const [consumedCalories, setConsumedCalories] = useState(() => loadNumber(CONSUMED_CALORIES_KEY));
   const [unit, setUnit] = useState<"lbs" | "kg">(() => (localStorage.getItem(UNIT_KEY) === "kg" ? "kg" : "lbs"));
+  const [calorieLog, setCalorieLog] = useState<CalorieLogEntry[]>(() => {
+    try { return JSON.parse(localStorage.getItem(CALORIE_LOG_KEY) || "[]"); } catch { return []; }
+  });
+  const [showApplyPopup, setShowApplyPopup] = useState(false);
+  const [applyLabel, setApplyLabel] = useState("");
 
   useEffect(() => {
     if (startTime === null) return;
@@ -80,12 +92,16 @@ export default function Clock() {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(METABOLIC_RATE_KEY);
     localStorage.removeItem(CONSUMED_CALORIES_KEY);
+    localStorage.removeItem(CALORIE_LOG_KEY);
     setStartTime(null);
     setElapsedMs(0);
     setElapsed({ days: 0, hours: 0, minutes: 0, seconds: 0 });
     setInputValue("");
     setMetabolicRate(0);
     setConsumedCalories(0);
+    setCalorieLog([]);
+    setApplyLabel("");
+    setShowApplyPopup(false);
   };
 
   const handleMetabolicRateChange = (value: string) => {
@@ -93,6 +109,28 @@ export default function Clock() {
     if (isNaN(n)) return;
     setMetabolicRate(n);
     localStorage.setItem(METABOLIC_RATE_KEY, String(n));
+  };
+
+  const handleApplyCalories = () => {
+    if (consumedCalories <= 0 || !applyLabel.trim()) return;
+    const entry: CalorieLogEntry = {
+      label: applyLabel.trim(),
+      calories: consumedCalories,
+      date: new Date().toLocaleDateString(),
+    };
+    const updated = [...calorieLog, entry];
+    setCalorieLog(updated);
+    localStorage.setItem(CALORIE_LOG_KEY, JSON.stringify(updated));
+    setConsumedCalories(0);
+    localStorage.setItem(CONSUMED_CALORIES_KEY, "0");
+    setApplyLabel("");
+    setShowApplyPopup(false);
+  };
+
+  const handleDeleteLogEntry = (index: number) => {
+    const updated = calorieLog.filter((_, i) => i !== index);
+    setCalorieLog(updated);
+    localStorage.setItem(CALORIE_LOG_KEY, JSON.stringify(updated));
   };
 
   const handleConsumedCaloriesChange = (value: string) => {
@@ -103,7 +141,9 @@ export default function Clock() {
   };
 
   const caloriesBurned = metabolicRate * (elapsedMs / MS_PER_DAY);
-  const netCalories = caloriesBurned - consumedCalories;
+  const appliedCalories = calorieLog.reduce((sum, e) => sum + e.calories, 0);
+  const totalConsumed = consumedCalories + appliedCalories;
+  const netCalories = caloriesBurned - totalConsumed;
   const fatLostLbs = netCalories / CALORIES_PER_LB_FAT;
   const fatLostDisplay = unit === "kg" ? fatLostLbs / LBS_PER_KG : fatLostLbs;
   const fatVolumeCm3 = fatLostLbs * 468; // 1 lb fat ~ 468 cm³
@@ -156,7 +196,7 @@ export default function Clock() {
     return "an extra-large bean bag chair (50L+)";
   };
 
-  const inputStyle = { ...theme.input, width: 160 };
+  const inputStyle = { ...theme.input, width: 110 };
   const labelStyle = { fontSize: "0.875rem" };
   const statStyle = { fontSize: "1rem", fontFamily: "monospace" };
 
@@ -175,6 +215,7 @@ export default function Clock() {
           flexDirection: "column",
           alignItems: "center",
           gap: 16,
+          overflow: "visible",
         }}
       >
         <h2 style={{ margin: 0 }}>Diet Tracker</h2>
@@ -204,7 +245,7 @@ export default function Clock() {
             </div>
             <div style={{ display: "flex", gap: 16, alignItems: "flex-end" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label style={{ ...labelStyle, maxWidth: 160 }}>Set Your Metabolic rate (cal/day)</label>
+                <label style={{ ...labelStyle, maxWidth: 160 }}>Metabolic Rate</label>
                 <input
                   type="number"
                   value={metabolicRate || ""}
@@ -214,7 +255,7 @@ export default function Clock() {
                 />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label style={{ ...labelStyle, maxWidth: 160 }}>Set total consumed calories over entire diet period (cal)</label>
+                <label style={{ ...labelStyle, maxWidth: 160 }}>Consumed Calories</label>
                 <input
                   type="number"
                   value={consumedCalories || ""}
@@ -223,7 +264,81 @@ export default function Clock() {
                   style={inputStyle}
                 />
               </div>
+              <div style={{ position: "relative", alignSelf: "flex-end" }}>
+                <Button onClick={() => setShowApplyPopup(true)} size="md" disabled={consumedCalories <= 0}>
+                  Add Item
+                </Button>
+                {showApplyPopup && (
+                  <div style={{
+                    position: "absolute",
+                    bottom: "100%",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    marginBottom: 8,
+                    ...theme.card,
+                    padding: 12,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    zIndex: 10,
+                    minWidth: 200,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                  }}>
+                    <label style={labelStyle}>Label this entry</label>
+                    <input
+                      type="text"
+                      value={applyLabel}
+                      onChange={(e) => setApplyLabel(e.target.value)}
+                      placeholder="Week 1"
+                      autoFocus
+                      onKeyDown={(e) => { if (e.key === "Enter" && applyLabel.trim()) handleApplyCalories(); }}
+                      style={inputStyle}
+                    />
+                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                      <Button onClick={() => { setShowApplyPopup(false); setApplyLabel(""); }} size="sm" variant="secondary">
+                        Cancel
+                      </Button>
+                      <Button onClick={handleApplyCalories} size="sm" disabled={!applyLabel.trim()}>
+                        Save
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+            {calorieLog.length > 0 && (
+              <div style={{ maxHeight: calorieLog.length > 5 ? 180 : "none", overflowY: calorieLog.length > 5 ? "auto" : "visible", width: "100%", paddingRight: calorieLog.length > 5 ? 12 : 0 }}>
+              <table style={{ borderCollapse: "collapse", fontSize: "0.875rem", width: "100%" }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: "left", padding: "4px 8px", borderBottom: `1px solid ${theme.colors.border}` }}>Label</th>
+                    <th style={{ textAlign: "right", padding: "4px 8px", borderBottom: `1px solid ${theme.colors.border}` }}>Calories</th>
+                    <th style={{ textAlign: "right", padding: "4px 8px", borderBottom: `1px solid ${theme.colors.border}` }}>Date</th>
+                    <th style={{ padding: "4px 8px", borderBottom: `1px solid ${theme.colors.border}` }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {calorieLog.map((entry, i) => (
+                    <tr key={i}>
+                      <td style={{ padding: "4px 8px" }}>{entry.label}</td>
+                      <td style={{ padding: "4px 8px", textAlign: "right", fontFamily: "monospace" }}>{entry.calories}</td>
+                      <td style={{ padding: "4px 8px", textAlign: "right", color: theme.colors.placeholder }}>{entry.date}</td>
+                      <td style={{ padding: "4px 8px", textAlign: "center" }}>
+                        <span onClick={() => handleDeleteLogEntry(i)} style={{ cursor: "pointer", color: theme.colors.placeholder, fontSize: "0.75rem" }}>✕</span>
+                      </td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td style={{ padding: "4px 8px", borderTop: `1px solid ${theme.colors.border}`, fontWeight: 600 }}>Total</td>
+                    <td style={{ padding: "4px 8px", borderTop: `1px solid ${theme.colors.border}`, textAlign: "right", fontFamily: "monospace", fontWeight: 600 }}>
+                      {appliedCalories}
+                    </td>
+                    <td colSpan={2} style={{ borderTop: `1px solid ${theme.colors.border}` }}></td>
+                  </tr>
+                </tbody>
+              </table>
+              </div>
+            )}
             {metabolicRate > 0 && (
               <>
                 <div style={{ display: "flex", gap: 24, textAlign: "center" }}>
@@ -319,7 +434,7 @@ export default function Clock() {
                       <div style={{ fontSize: "0.875rem", color: theme.colors.text, textAlign: "center" }}>
                         Your fat loss visualized in beer
                       </div>
-                      <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 6, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 6, flexWrap: "wrap", maxWidth: 350 }}>
                         {Array.from({ length: fullGlasses }, (_, i) => (
                           <BeerGlass key={`full-${i}`} fill={1} />
                         ))}
