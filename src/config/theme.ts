@@ -88,7 +88,7 @@ const windowsTheme = {
         primaryText: '#000000',
         secondary: '#c0c0c0',
         secondaryText: '#000000',
-        danger: '#991b1b',
+        danger: '#c0c0c0',
         dangerText: '#000000',
         buttonHoverBorder: '#ffffff',
         border: '#808080',
