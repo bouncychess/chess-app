@@ -14,6 +14,7 @@ const COLOR_ROLES: Record<string, string> = {
     primary: 'accent',
     secondary: 'accent',
     danger: 'accent',
+    botIcon: 'accent',
 
     // Text → target very light for contrast
     text: 'text',

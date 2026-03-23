@@ -65,7 +65,7 @@ export function hslToHex(h: number, s: number, l: number): string {
 // Target lightness values for different roles at full dark (amount=1).
 // Colors interpolate from their original lightness toward these targets.
 const ROLE_TARGETS: Record<string, number> = {
-    background: 0.06,     // very dark backgrounds
+    background: 0.07,     // very dark backgrounds
     text: 0.92,           // very light text for readability
     accent: 0.40,         // colored buttons/icons — visible on dark, not washed out
     link: 0.65,           // links stay visible on dark
