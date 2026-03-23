@@ -266,7 +266,7 @@ export default function Clock() {
               </div>
               <div style={{ position: "relative", alignSelf: "flex-end" }}>
                 <Button onClick={() => setShowApplyPopup(true)} size="md" disabled={consumedCalories <= 0}>
-                  Save
+                  Add Item
                 </Button>
                 {showApplyPopup && (
                   <div style={{
