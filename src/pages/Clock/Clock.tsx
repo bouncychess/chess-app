@@ -434,7 +434,7 @@ export default function Clock() {
                   return (
                     <>
                       <div style={{ fontSize: "0.875rem", color: theme.colors.text, textAlign: "center" }}>
-                        Your fat loss visualized in beer
+                        The volume of fat you lost poured into beer
                       </div>
                       <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 6, flexWrap: "wrap", maxWidth: 350 }}>
                         {Array.from({ length: fullGlasses }, (_, i) => (
