@@ -1,6 +1,8 @@
 import type { TimeControl } from "../../../types/chess";
 import { TIME_CONTROLS } from "../../../constants/timeControls";
 import { theme } from "../../../config/theme";
+import { useTheme } from "../../../context/ThemeContext";
+import { transformColor } from "../../../utils/colorTransform";
 import { ResizableCard } from "../../../components/ResizableCard";
 
 interface TimeControlSelectorProps {
@@ -9,6 +11,11 @@ interface TimeControlSelectorProps {
 }
 
 export function TimeControlSelector({ selected, onSelect }: TimeControlSelectorProps) {
+  const { isDark } = useTheme();
+  const darkAmount = isDark ? 1 : 0;
+  const selectedBorder = transformColor("#22c55e", darkAmount, 'accent');
+  const selectedBg = transformColor("#dcfce7", darkAmount, 'background');
+
   return (
     <ResizableCard style={{width: 250}}>
       <h3 style={theme.cardHeader}>Time Control</h3>
@@ -27,9 +34,9 @@ export function TimeControlSelector({ selected, onSelect }: TimeControlSelectorP
               onClick={() => onSelect(tc)}
               style={{
                 padding: "12px 8px",
-                border: `2px solid ${isSelected ? "#22c55e" : theme.colors.border}`,
+                border: `2px solid ${isSelected ? selectedBorder : theme.colors.border}`,
                 borderRadius: 8,
-                backgroundColor: isSelected ? "#dcfce7" : theme.colors.cardBackground,
+                backgroundColor: isSelected ? selectedBg : theme.colors.cardBackground,
                 cursor: "pointer",
                 fontWeight: 600,
                 fontSize: "0.875rem",
