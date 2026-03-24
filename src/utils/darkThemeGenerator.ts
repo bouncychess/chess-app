@@ -8,7 +8,7 @@ const SKIP_COLOR_KEYS = new Set(['sidebarBackground', 'sidebarText', 'squareHigh
 const COLOR_ROLES: Record<string, string> = {
     // Backgrounds → target very dark
     background: 'background',
-    cardBackground: 'background',
+    cardBackground: 'cardBackground',
 
     // Accents — used as both button backgrounds AND icon fills, must stay visible
     primary: 'accent',
@@ -54,7 +54,7 @@ export function generateDarkTheme(theme: Theme, amount: number): Theme {
         colors: colors as Theme['colors'],
         card: {
             ...theme.card,
-            backgroundColor: transformColor(theme.card.backgroundColor, amount, 'background'),
+            backgroundColor: transformColor(theme.card.backgroundColor, amount, 'cardBackground'),
             boxShadow: transformBoxShadow(theme.card.boxShadow, amount) ?? theme.card.boxShadow,
         },
         cardHeader: {
