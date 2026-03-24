@@ -60,8 +60,8 @@ export default function Clock() {
     const saved = loadStartTime();
     return saved !== null ? toLocalDatetimeString(saved) : "";
   });
-  const [metabolicRate, setMetabolicRate] = useState(() => loadNumber(METABOLIC_RATE_KEY));
-  const [consumedCalories, setConsumedCalories] = useState(() => loadNumber(CONSUMED_CALORIES_KEY));
+  const [metabolicRate, setMetabolicRate] = useState(() => Math.min(loadNumber(METABOLIC_RATE_KEY), 50000));
+  const [consumedCalories, setConsumedCalories] = useState(() => Math.min(loadNumber(CONSUMED_CALORIES_KEY), 10000));
   const [unit, setUnit] = useState<"lbs" | "kg">(() => (localStorage.getItem(UNIT_KEY) === "kg" ? "kg" : "lbs"));
   const [calorieLog, setCalorieLog] = useState<CalorieLogEntry[]>(() => {
     try { return JSON.parse(localStorage.getItem(CALORIE_LOG_KEY) || "[]"); } catch { return []; }
@@ -107,7 +107,6 @@ export default function Clock() {
   const handleMetabolicRateChange = (value: string) => {
     const n = value === "" ? 0 : Number(value);
     if (isNaN(n)) return;
-    if (n > 50000) return;
     setMetabolicRate(n);
     localStorage.setItem(METABOLIC_RATE_KEY, String(n));
   };
@@ -137,7 +136,6 @@ export default function Clock() {
   const handleConsumedCaloriesChange = (value: string) => {
     const n = value === "" ? 0 : Number(value);
     if (isNaN(n)) return;
-    if (n > 10000) return;
     setConsumedCalories(n);
     localStorage.setItem(CONSUMED_CALORIES_KEY, String(n));
   };
