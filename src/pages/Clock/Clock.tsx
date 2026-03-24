@@ -107,6 +107,7 @@ export default function Clock() {
   const handleMetabolicRateChange = (value: string) => {
     const n = value === "" ? 0 : Number(value);
     if (isNaN(n)) return;
+    if (n > 50000) return;
     setMetabolicRate(n);
     localStorage.setItem(METABOLIC_RATE_KEY, String(n));
   };
@@ -136,6 +137,7 @@ export default function Clock() {
   const handleConsumedCaloriesChange = (value: string) => {
     const n = value === "" ? 0 : Number(value);
     if (isNaN(n)) return;
+    if (n > 10000) return;
     setConsumedCalories(n);
     localStorage.setItem(CONSUMED_CALORIES_KEY, String(n));
   };
