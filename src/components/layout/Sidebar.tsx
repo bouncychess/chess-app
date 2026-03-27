@@ -42,18 +42,6 @@ const LogoutIcon = () => (
     </svg>
 );
 
-const ChevronLeftIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <polyline points="15 18 9 12 15 6" />
-    </svg>
-);
-
-const ChevronRightIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <polyline points="9 18 15 12 9 6" />
-    </svg>
-);
-
 const HamburgerIcon = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <line x1="3" y1="6" x2="21" y2="6" />
@@ -63,13 +51,9 @@ const HamburgerIcon = () => (
 );
 
 const MOBILE_BREAKPOINT = 768;
+const COLLAPSE_BREAKPOINT = 1100;
 
-function SidebarContent({ collapsed, onCollapse, onExpand, showToggle = true }: {
-    collapsed: boolean;
-    onCollapse: () => void;
-    onExpand: () => void;
-    showToggle?: boolean;
-}) {
+function SidebarContent({ collapsed }: { collapsed: boolean }) {
     const { user } = useAuth();
 
     const linkStyle = {
@@ -85,50 +69,6 @@ function SidebarContent({ collapsed, onCollapse, onExpand, showToggle = true }: 
 
     return (
         <>
-            {!collapsed && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                    <Link to="/play" style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <h2 style={{ margin: 0, cursor: 'pointer' }}>BouncyChess</h2>
-                    </Link>
-                    {showToggle && (
-                        <button
-                            onClick={onCollapse}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                color: theme.colors.sidebarText,
-                                cursor: 'pointer',
-                                padding: 4,
-                                display: 'flex',
-                                alignItems: 'center',
-                            }}
-                            aria-label="Collapse sidebar"
-                        >
-                            <ChevronLeftIcon />
-                        </button>
-                    )}
-                </div>
-            )}
-
-            {collapsed && showToggle && (
-                <button
-                    onClick={onExpand}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        color: theme.colors.sidebarText,
-                        cursor: 'pointer',
-                        padding: '8px 0',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        marginBottom: '0.5rem',
-                    }}
-                    aria-label="Expand sidebar"
-                >
-                    <ChevronRightIcon />
-                </button>
-            )}
-
             <nav style={{ flex: 1 }}>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                     <li>
@@ -193,6 +133,7 @@ function SidebarContent({ collapsed, onCollapse, onExpand, showToggle = true }: 
                     </Link>
                 )}
             </div>
+
         </>
     );
 }
@@ -205,9 +146,10 @@ export default function Sidebar() {
 
     useEffect(() => {
         const handleResize = () => {
-            const mobile = window.innerWidth < MOBILE_BREAKPOINT;
+            const width = window.innerWidth;
+            const mobile = width < MOBILE_BREAKPOINT;
             setIsMobile(mobile);
-            if (mobile) setCollapsed(true);
+            setCollapsed(width < COLLAPSE_BREAKPOINT);
             if (!mobile) setMenuOpen(false);
         };
 
@@ -272,11 +214,7 @@ export default function Sidebar() {
                     transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)',
                     transition: 'transform 0.2s ease',
                 }}>
-                    <SidebarContent
-                        collapsed={false}
-                        onCollapse={() => setMenuOpen(false)}
-                        onExpand={() => {}}
-                    />
+                    <SidebarContent collapsed={false} />
                 </aside>
             </>
         );
@@ -294,11 +232,7 @@ export default function Sidebar() {
             boxSizing: 'border-box',
             transition: 'width 0.2s ease',
         }}>
-            <SidebarContent
-                collapsed={collapsed}
-                onCollapse={() => setCollapsed(true)}
-                onExpand={() => setCollapsed(false)}
-            />
+            <SidebarContent collapsed={collapsed} />
         </aside>
     );
 }
