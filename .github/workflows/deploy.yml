@@ -7,8 +7,8 @@ on:
 
 env:
   ENVIRONMENT: dev
-  NAME: chess
-  DOMAIN: chesstard.biz
+  NAME: bouncychess
+  DOMAIN: bouncychess.com
   NODE_ENV: staging
 
 jobs:
@@ -33,11 +33,11 @@ jobs:
         id: cfn-deploy
         run: |
           # Check if certificate exists and get ARN
-          CERT_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}'].CertificateArn" --output text)
+          CERT_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='${{ env.DOMAIN }}'].CertificateArn" --output text)
 
           if [ -z "$CERT_ARN" ]; then
-            echo "Error: No ACM certificate found for ${{ env.ENVIRONMENT }}.${{ env.DOMAIN }} in us-east-1"
-            echo "Please create a certificate in ACM for ${{ env.ENVIRONMENT }}.${{ env.DOMAIN }} before deploying"
+            echo "Error: No ACM certificate found for ${{ env.DOMAIN }} in us-east-1"
+            echo "Please create a certificate in ACM for ${{ env.DOMAIN }} before deploying"
             exit 1
           fi
 
@@ -57,7 +57,7 @@ jobs:
 
           aws cloudformation deploy \
             --template-file infra/template.yml \
-            --stack-name chess-app-stack \
+            --stack-name bouncychess-app-stack \
             --capabilities CAPABILITY_IAM \
             --no-fail-on-empty-changeset \
             --parameter-overrides \
@@ -71,22 +71,22 @@ jobs:
         id: stack-outputs
         run: |
           BUCKET_NAME=$(aws cloudformation describe-stacks \
-            --stack-name chess-app-stack \
+            --stack-name bouncychess-app-stack \
             --query "Stacks[0].Outputs[?OutputKey=='WebsiteBucketName'].OutputValue" \
             --output text)
 
           DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
-            --stack-name chess-app-stack \
+            --stack-name bouncychess-app-stack \
             --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
             --output text)
 
           COGNITO_USER_POOL_ID=$(aws cloudformation describe-stacks \
-            --stack-name chess-app-stack \
+            --stack-name bouncychess-app-stack \
             --query "Stacks[0].Outputs[?OutputKey=='CognitoUserPoolId'].OutputValue" \
             --output text)
 
           COGNITO_CLIENT_ID=$(aws cloudformation describe-stacks \
-            --stack-name chess-app-stack \
+            --stack-name bouncychess-app-stack \
             --query "Stacks[0].Outputs[?OutputKey=='CognitoUserPoolClientId'].OutputValue" \
             --output text)
 
@@ -131,4 +131,4 @@ jobs:
       - name: Output Website URL
         run: |
           echo "🚀 Deployment complete!"
-          echo "Website URL: https://${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}"
+          echo "Website URL: https://${{ env.DOMAIN }}"
