@@ -88,7 +88,7 @@ function SidebarContent({ collapsed, onCollapse, onExpand, showToggle = true }: 
             {!collapsed && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <Link to="/play" style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <h2 style={{ margin: 0, cursor: 'pointer' }}>Chess</h2>
+                        <h2 style={{ margin: 0, cursor: 'pointer' }}>Bouncy Chess</h2>
                     </Link>
                     {showToggle && (
                         <button
