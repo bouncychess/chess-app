@@ -117,7 +117,7 @@ Resources:
   CognitoUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: !Sub ${Environment}-${Name}-users
+      UserPoolName: !Sub ${Name}-users
       AutoVerifiedAttributes:
         - email
       UsernameConfiguration:
@@ -129,6 +129,10 @@ Resources:
           RequireNumbers: true
           RequireSymbols: false
           RequireUppercase: true
+        SignInPolicy:
+          AllowedFirstAuthFactors:
+            - EMAIL_OTP
+            - PASSWORD
       Schema:
         - Name: email
           AttributeDataType: String
