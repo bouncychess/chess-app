@@ -204,6 +204,22 @@ export default function SignIn() {
                 <p style={{ marginTop: 20, textAlign: 'center' }}>
                     <button
                         type="button"
+                        onClick={async () => {
+                            try {
+                                await requestSignInCode(email);
+                                setCode('');
+                                setError(null);
+                            } catch (err) {
+                                setError(err instanceof Error ? err.message : 'Failed to resend code');
+                            }
+                        }}
+                        style={{ background: 'none', border: 'none', color: theme.colors.link, cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                        Resend code
+                    </button>
+                    {' | '}
+                    <button
+                        type="button"
                         onClick={() => {
                             setMode('signIn');
                             setCode('');
@@ -211,7 +227,7 @@ export default function SignIn() {
                         }}
                         style={{ background: 'none', border: 'none', color: theme.colors.link, cursor: 'pointer', textDecoration: 'underline' }}
                     >
-                        Use a different email
+                        Back to Sign In
                     </button>
                 </p>
             )}
