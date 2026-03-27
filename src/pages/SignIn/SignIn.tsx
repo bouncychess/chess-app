@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/buttons/Button';
 import { TextInput } from '../../components/input/TextInput';
-import { requestSignInCode, confirmSignInCode, register, confirmRegistration } from '../../services/auth';
+import { requestSignInCode, confirmSignInCode, register, confirmRegistration, resendConfirmationCode } from '../../services/auth';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../config/theme';
 
@@ -218,6 +218,21 @@ export default function SignIn() {
 
             {mode === 'confirmEmail' && (
                 <p style={{ marginTop: 20, textAlign: 'center' }}>
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            try {
+                                await resendConfirmationCode(username);
+                                setError(null);
+                            } catch (err) {
+                                setError(err instanceof Error ? err.message : 'Failed to resend code');
+                            }
+                        }}
+                        style={{ background: 'none', border: 'none', color: theme.colors.link, cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                        Resend code
+                    </button>
+                    {' | '}
                     <button
                         type="button"
                         onClick={() => {

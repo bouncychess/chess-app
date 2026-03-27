@@ -1,4 +1,4 @@
-import { signIn, signUp, signOut, getCurrentUser, confirmSignUp, confirmSignIn } from 'aws-amplify/auth';
+import { signIn, signUp, signOut, getCurrentUser, confirmSignUp, confirmSignIn, resendSignUpCode } from 'aws-amplify/auth';
 
 export type AuthUser = {
     username: string;
@@ -68,6 +68,10 @@ export async function register(username: string, email: string): Promise<{ needs
 
 export async function confirmRegistration(username: string, code: string): Promise<void> {
     await confirmSignUp({ username, confirmationCode: code });
+}
+
+export async function resendConfirmationCode(username: string): Promise<void> {
+    await resendSignUpCode({ username });
 }
 
 export async function logout(): Promise<void> {
