@@ -132,6 +132,7 @@ Resources:
         SignInPolicy:
           AllowedFirstAuthFactors:
             - EMAIL_OTP
+            - PASSWORD
       Schema:
         - Name: email
           AttributeDataType: String
