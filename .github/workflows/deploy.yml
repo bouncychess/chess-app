@@ -29,15 +29,23 @@ jobs:
           if [ "$BRANCH" = "main" ]; then
             ENV="dev"
             SUFFIX=""
+            SITE_DOMAIN="chesstard.biz"
+            REDIRECT_DOMAIN="dev.chesstard.biz"
+            WS_DOMAIN="ws.dev.chesstard.biz"
           else
             ENV="$BRANCH"
             SUFFIX="-$BRANCH"
+            SITE_DOMAIN="${BRANCH}.chesstard.biz"
+            REDIRECT_DOMAIN=""
+            WS_DOMAIN="ws-${BRANCH}.chesstard.biz"
           fi
           echo "ENVIRONMENT=$ENV" >> $GITHUB_ENV
+          echo "SITE_DOMAIN=$SITE_DOMAIN" >> $GITHUB_ENV
+          echo "REDIRECT_DOMAIN=$REDIRECT_DOMAIN" >> $GITHUB_ENV
           echo "STACK_NAME=chess-app${SUFFIX}-stack" >> $GITHUB_ENV
           echo "LIVE_STACK=chess-live${SUFFIX}-stack" >> $GITHUB_ENV
           echo "SERVICE_STACK=chess-service${SUFFIX}-stack" >> $GITHUB_ENV
-          echo "WS_DOMAIN=ws.${ENV}.chesstard.biz" >> $GITHUB_ENV
+          echo "WS_DOMAIN=$WS_DOMAIN" >> $GITHUB_ENV
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v2
@@ -48,15 +56,15 @@ jobs:
       - name: Deploy CloudFormation Stack
         id: cfn-deploy
         run: |
-          # Check if certificate exists — try exact match first, then wildcard
-          CERT_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}'].CertificateArn" --output text)
+          # Find ACM certificate — try site domain first, then base domain
+          CERT_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='${{ env.SITE_DOMAIN }}'].CertificateArn" --output text)
 
           if [ -z "$CERT_ARN" ]; then
             CERT_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='${{ env.DOMAIN }}'].CertificateArn" --output text)
           fi
 
           if [ -z "$CERT_ARN" ]; then
-            echo "Error: No ACM certificate found for ${{ env.ENVIRONMENT }}.${{ env.DOMAIN }} or ${{ env.DOMAIN }} in us-east-1"
+            echo "Error: No ACM certificate found for ${{ env.SITE_DOMAIN }} or ${{ env.DOMAIN }} in us-east-1"
             exit 1
           fi
 
@@ -82,8 +90,10 @@ jobs:
             --parameter-overrides \
               Name=${{ env.NAME }} \
               DomainName=${{ env.DOMAIN }} \
+              SiteDomain=${{ env.SITE_DOMAIN }} \
               CertificateArn=$CERT_ARN \
               Environment=${{ env.ENVIRONMENT }} \
+              RedirectDomain=${{ env.REDIRECT_DOMAIN }} \
               HostedZoneId=$HOSTED_ZONE_ID
 
       - name: Get Stack Outputs
@@ -162,4 +172,4 @@ jobs:
       - name: Output Website URL
         run: |
           echo "Deployment complete!"
-          echo "Website URL: https://${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}"
+          echo "Website URL: https://${{ env.SITE_DOMAIN }}"
