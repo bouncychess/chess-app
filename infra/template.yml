@@ -5,11 +5,11 @@ Parameters:
   Name:
     Type: String
     Default: chess
-    Description: The root name of the AWS resources 
+    Description: The root name of the AWS resources
 
   DomainName:
     Type: String
-    Description: The domain name for the website
+    Description: Base domain for Route53 hosted zone lookup (e.g., chesstard.biz or bouncychess.com)
 
   CertificateArn:
     Type: String
@@ -17,7 +17,7 @@ Parameters:
 
   SiteDomain:
     Type: String
-    Description: Full domain for the site (e.g., chesstard.biz or develop.chesstard.biz)
+    Description: Full domain for the site (e.g., chesstard.biz or bouncychess.com)
 
   Environment:
     Type: String

@@ -50,11 +50,13 @@ function applyCssVariables(t: Theme) {
 function getInitialMode(): ThemeMode {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'normal' || stored === 'windows') return stored;
-    return 'windows';
+    return 'normal';
 }
 
 function getInitialDark(): boolean {
-    return localStorage.getItem(DARK_STORAGE_KEY) === 'true';
+    const stored = localStorage.getItem(DARK_STORAGE_KEY);
+    if (stored !== null) return stored === 'true';
+    return true;
 }
 
 // Initialize on load so the first render has the right theme

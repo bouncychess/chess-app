@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
-import News from './pages/News/News';
 import Play from './pages/Play/Play';
 import Game from './pages/Game/Game';
 import Logout from './pages/Logout/Logout';
@@ -31,7 +30,6 @@ export default function App() {
                         <Route path="/" element={<Navigate to="/play" replace />} />
                         <Route path="/play" element={<Layout><Play /></Layout>} />
                         <Route path="/game/:gameId" element={<Layout><GameWrapper /></Layout>} />
-                        <Route path="/news" element={<Layout><News /></Layout>} />
                         <Route path="/user/:username" element={<Layout><Profile /></Layout>} />
                         <Route path="/signin" element={<Layout><SignIn /></Layout>} />
                         <Route path="/articles/:id" element={<Layout><Article /></Layout>} />

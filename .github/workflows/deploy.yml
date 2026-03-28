@@ -4,13 +4,12 @@ on:
   push:
     branches:
       - develop
+      - bouncychess
   release:
     types: [published]
   workflow_dispatch:
 
 env:
-  NAME: chess
-  DOMAIN: chesstard.biz
   NODE_ENV: staging
 
 jobs:
@@ -36,17 +35,31 @@ jobs:
           if [ "$BRANCH" = "main" ]; then
             ENV="dev"
             SUFFIX=""
+            NAME="chess"
+            DOMAIN="chesstard.biz"
             SITE_DOMAIN="chesstard.biz"
             REDIRECT_DOMAIN="dev.chesstard.biz"
             WS_DOMAIN="ws-dev.chesstard.biz"
+          elif [ "$BRANCH" = "bouncychess" ]; then
+            ENV="bouncychess"
+            SUFFIX="-bouncychess"
+            NAME="chess"
+            DOMAIN="bouncychess.com"
+            SITE_DOMAIN="bouncychess.com"
+            REDIRECT_DOMAIN=""
+            WS_DOMAIN="ws.bouncychess.com"
           else
             ENV="$BRANCH"
             SUFFIX="-$BRANCH"
+            NAME="chess"
+            DOMAIN="chesstard.biz"
             SITE_DOMAIN="${BRANCH}.chesstard.biz"
             REDIRECT_DOMAIN=""
             WS_DOMAIN="ws-${BRANCH}.chesstard.biz"
           fi
           echo "ENVIRONMENT=$ENV" >> $GITHUB_ENV
+          echo "NAME=$NAME" >> $GITHUB_ENV
+          echo "DOMAIN=$DOMAIN" >> $GITHUB_ENV
           echo "SITE_DOMAIN=$SITE_DOMAIN" >> $GITHUB_ENV
           echo "REDIRECT_DOMAIN=$REDIRECT_DOMAIN" >> $GITHUB_ENV
           echo "STACK_NAME=chess-app${SUFFIX}-stack" >> $GITHUB_ENV
