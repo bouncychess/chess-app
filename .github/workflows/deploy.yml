@@ -3,8 +3,9 @@ name: Deploy Frontend to S3 and CloudFront
 on:
   push:
     branches:
-      - main
       - develop
+  release:
+    types: [published]
 
 env:
   NAME: chess
@@ -25,7 +26,12 @@ jobs:
 
       - name: Set environment variables
         run: |
-          BRANCH="${{ github.ref_name }}"
+          # Releases use tag name, not branch — treat releases as main
+          if [ "${{ github.event_name }}" = "release" ]; then
+            BRANCH="main"
+          else
+            BRANCH="${{ github.ref_name }}"
+          fi
           if [ "$BRANCH" = "main" ]; then
             ENV="dev"
             SUFFIX=""
