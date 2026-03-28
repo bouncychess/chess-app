@@ -9,12 +9,12 @@ import elfIncident from './elf-incident';
 import crabIncident from './crab-incident';
 
 const articles: Record<string, ArticleData> = {
-    '1': bloatedMess,
-    '2': bewareOfCoach,
-    '3': healthyBody,
-    '4': headSize,
-    '5': tacticalPatterns,
-    '6': analyzeGames,
+    'bloated_mess': bloatedMess,
+    'beware_of_coach': bewareOfCoach,
+    'mike_ohearn': healthyBody,
+    'head_size': headSize,
+    'tactical_patterns': tacticalPatterns,
+    'analyze_games': analyzeGames,
     'elf_incident': elfIncident,
     'crab_incident': crabIncident,
 };
