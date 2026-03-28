@@ -1,6 +1,6 @@
 # Chess App
 
-A real-time multiplayer chess application built with React, TypeScript, and [chessground](https://github.com/lichess-org/chessground).
+A real-time multiplayer chess application built with React, TypeScript, and [chessground](https://github.com/lichess-org/chessground). This is bouncychess branch.
 
 ## Setup
 
