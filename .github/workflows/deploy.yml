@@ -1,4 +1,4 @@
-name: Deploy Frontend to S3 and CloudFront
+name: Manual Deploy
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - develop
   release:
     types: [published]
+  workflow_dispatch:
 
 env:
   NAME: chess
@@ -37,7 +38,7 @@ jobs:
             SUFFIX=""
             SITE_DOMAIN="chesstard.biz"
             REDIRECT_DOMAIN="dev.chesstard.biz"
-            WS_DOMAIN="ws.dev.chesstard.biz"
+            WS_DOMAIN="ws-dev.chesstard.biz"
           else
             ENV="$BRANCH"
             SUFFIX="-$BRANCH"
