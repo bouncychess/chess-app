@@ -25,19 +25,19 @@ jobs:
 
       - name: Set environment variables
         run: |
-          if [ "${{ github.ref_name }}" = "main" ]; then
-            echo "ENVIRONMENT=dev" >> $GITHUB_ENV
-            echo "STACK_NAME=chess-app-stack" >> $GITHUB_ENV
-            echo "LIVE_STACK=chess-live-stack" >> $GITHUB_ENV
-            echo "SERVICE_STACK=chess-service-stack" >> $GITHUB_ENV
-            echo "WS_DOMAIN=ws.dev.chesstard.biz" >> $GITHUB_ENV
+          BRANCH="${{ github.ref_name }}"
+          if [ "$BRANCH" = "main" ]; then
+            ENV="dev"
+            SUFFIX=""
           else
-            echo "ENVIRONMENT=develop" >> $GITHUB_ENV
-            echo "STACK_NAME=chess-app-develop-stack" >> $GITHUB_ENV
-            echo "LIVE_STACK=chess-live-develop-stack" >> $GITHUB_ENV
-            echo "SERVICE_STACK=chess-service-develop-stack" >> $GITHUB_ENV
-            echo "WS_DOMAIN=ws.develop.chesstard.biz" >> $GITHUB_ENV
+            ENV="$BRANCH"
+            SUFFIX="-$BRANCH"
           fi
+          echo "ENVIRONMENT=$ENV" >> $GITHUB_ENV
+          echo "STACK_NAME=chess-app${SUFFIX}-stack" >> $GITHUB_ENV
+          echo "LIVE_STACK=chess-live${SUFFIX}-stack" >> $GITHUB_ENV
+          echo "SERVICE_STACK=chess-service${SUFFIX}-stack" >> $GITHUB_ENV
+          echo "WS_DOMAIN=ws.${ENV}.chesstard.biz" >> $GITHUB_ENV
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v2
