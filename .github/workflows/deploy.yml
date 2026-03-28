@@ -4,9 +4,9 @@ on:
   push:
     branches:
       - main
+      - develop
 
 env:
-  ENVIRONMENT: dev
   NAME: chess
   DOMAIN: chesstard.biz
   NODE_ENV: staging
@@ -22,6 +22,22 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Set environment variables
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+            echo "STACK_NAME=chess-app-stack" >> $GITHUB_ENV
+            echo "LIVE_STACK=chess-live-stack" >> $GITHUB_ENV
+            echo "SERVICE_STACK=chess-service-stack" >> $GITHUB_ENV
+            echo "WS_DOMAIN=ws.dev.chesstard.biz" >> $GITHUB_ENV
+          else
+            echo "ENVIRONMENT=develop" >> $GITHUB_ENV
+            echo "STACK_NAME=chess-app-develop-stack" >> $GITHUB_ENV
+            echo "LIVE_STACK=chess-live-develop-stack" >> $GITHUB_ENV
+            echo "SERVICE_STACK=chess-service-develop-stack" >> $GITHUB_ENV
+            echo "WS_DOMAIN=ws.develop.chesstard.biz" >> $GITHUB_ENV
+          fi
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v2
@@ -57,7 +73,7 @@ jobs:
 
           aws cloudformation deploy \
             --template-file infra/template.yml \
-            --stack-name chess-app-stack \
+            --stack-name ${{ env.STACK_NAME }} \
             --capabilities CAPABILITY_IAM \
             --no-fail-on-empty-changeset \
             --parameter-overrides \
@@ -71,22 +87,22 @@ jobs:
         id: stack-outputs
         run: |
           BUCKET_NAME=$(aws cloudformation describe-stacks \
-            --stack-name chess-app-stack \
+            --stack-name ${{ env.STACK_NAME }} \
             --query "Stacks[0].Outputs[?OutputKey=='WebsiteBucketName'].OutputValue" \
             --output text)
 
           DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
-            --stack-name chess-app-stack \
+            --stack-name ${{ env.STACK_NAME }} \
             --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
             --output text)
 
           COGNITO_USER_POOL_ID=$(aws cloudformation describe-stacks \
-            --stack-name chess-app-stack \
+            --stack-name ${{ env.STACK_NAME }} \
             --query "Stacks[0].Outputs[?OutputKey=='CognitoUserPoolId'].OutputValue" \
             --output text)
 
           COGNITO_CLIENT_ID=$(aws cloudformation describe-stacks \
-            --stack-name chess-app-stack \
+            --stack-name ${{ env.STACK_NAME }} \
             --query "Stacks[0].Outputs[?OutputKey=='CognitoUserPoolClientId'].OutputValue" \
             --output text)
 
@@ -94,6 +110,16 @@ jobs:
           echo "DISTRIBUTION_ID=$DISTRIBUTION_ID" >> $GITHUB_OUTPUT
           echo "COGNITO_USER_POOL_ID=$COGNITO_USER_POOL_ID" >> $GITHUB_OUTPUT
           echo "COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID" >> $GITHUB_OUTPUT
+
+      - name: Get API URLs from backend stacks
+        run: |
+          SERVICE_API_ID=$(aws cloudformation describe-stacks \
+            --stack-name ${{ env.SERVICE_STACK }} \
+            --query "Stacks[0].Outputs[?OutputKey=='HttpApiId'].OutputValue" \
+            --output text)
+
+          echo "VITE_WEBSOCKET_URL=wss://${{ env.WS_DOMAIN }}" >> $GITHUB_ENV
+          echo "VITE_PROFILE_API_URL=https://$SERVICE_API_ID.execute-api.us-east-1.amazonaws.com/dev" >> $GITHUB_ENV
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -110,6 +136,8 @@ jobs:
           NODE_ENV: ${{ env.NODE_ENV }}
           VITE_COGNITO_USER_POOL_ID: ${{ steps.stack-outputs.outputs.COGNITO_USER_POOL_ID }}
           VITE_COGNITO_CLIENT_ID: ${{ steps.stack-outputs.outputs.COGNITO_CLIENT_ID }}
+          VITE_WEBSOCKET_URL: ${{ env.VITE_WEBSOCKET_URL }}
+          VITE_PROFILE_API_URL: ${{ env.VITE_PROFILE_API_URL }}
 
       - name: Sync build to S3
         run: |
@@ -130,5 +158,5 @@ jobs:
 
       - name: Output Website URL
         run: |
-          echo "🚀 Deployment complete!"
+          echo "Deployment complete!"
           echo "Website URL: https://${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}"
