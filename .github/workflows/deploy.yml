@@ -4,9 +4,9 @@ on:
   push:
     branches:
       - main
+      - develop
 
 env:
-  ENVIRONMENT: dev
   NAME: chess
   DOMAIN: chesstard.biz
   NODE_ENV: staging
@@ -23,6 +23,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Set environment variables
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          if [ "$BRANCH" = "main" ]; then
+            ENV="dev"
+            SUFFIX=""
+            SITE_DOMAIN="chesstard.biz"
+            REDIRECT_DOMAIN="dev.chesstard.biz"
+            WS_DOMAIN="ws.dev.chesstard.biz"
+          else
+            ENV="$BRANCH"
+            SUFFIX="-$BRANCH"
+            SITE_DOMAIN="${BRANCH}.chesstard.biz"
+            REDIRECT_DOMAIN=""
+            WS_DOMAIN="ws-${BRANCH}.chesstard.biz"
+          fi
+          echo "ENVIRONMENT=$ENV" >> $GITHUB_ENV
+          echo "SITE_DOMAIN=$SITE_DOMAIN" >> $GITHUB_ENV
+          echo "REDIRECT_DOMAIN=$REDIRECT_DOMAIN" >> $GITHUB_ENV
+          echo "STACK_NAME=chess-app${SUFFIX}-stack" >> $GITHUB_ENV
+          echo "LIVE_STACK=chess-live${SUFFIX}-stack" >> $GITHUB_ENV
+          echo "SERVICE_STACK=chess-service${SUFFIX}-stack" >> $GITHUB_ENV
+          echo "WS_DOMAIN=$WS_DOMAIN" >> $GITHUB_ENV
+
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -32,12 +56,15 @@ jobs:
       - name: Deploy CloudFormation Stack
         id: cfn-deploy
         run: |
-          # Check if certificate exists and get ARN
-          CERT_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}'].CertificateArn" --output text)
+          # Find ACM certificate — try site domain first, then base domain
+          CERT_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='${{ env.SITE_DOMAIN }}'].CertificateArn" --output text)
 
           if [ -z "$CERT_ARN" ]; then
-            echo "Error: No ACM certificate found for ${{ env.ENVIRONMENT }}.${{ env.DOMAIN }} in us-east-1"
-            echo "Please create a certificate in ACM for ${{ env.ENVIRONMENT }}.${{ env.DOMAIN }} before deploying"
+            CERT_ARN=$(aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='${{ env.DOMAIN }}'].CertificateArn" --output text)
+          fi
+
+          if [ -z "$CERT_ARN" ]; then
+            echo "Error: No ACM certificate found for ${{ env.SITE_DOMAIN }} or ${{ env.DOMAIN }} in us-east-1"
             exit 1
           fi
 
@@ -57,36 +84,38 @@ jobs:
 
           aws cloudformation deploy \
             --template-file infra/template.yml \
-            --stack-name chess-app-stack \
+            --stack-name ${{ env.STACK_NAME }} \
             --capabilities CAPABILITY_IAM \
             --no-fail-on-empty-changeset \
             --parameter-overrides \
               Name=${{ env.NAME }} \
               DomainName=${{ env.DOMAIN }} \
+              SiteDomain=${{ env.SITE_DOMAIN }} \
               CertificateArn=$CERT_ARN \
               Environment=${{ env.ENVIRONMENT }} \
+              RedirectDomain=${{ env.REDIRECT_DOMAIN }} \
               HostedZoneId=$HOSTED_ZONE_ID
 
       - name: Get Stack Outputs
         id: stack-outputs
         run: |
           BUCKET_NAME=$(aws cloudformation describe-stacks \
-            --stack-name chess-app-stack \
+            --stack-name ${{ env.STACK_NAME }} \
             --query "Stacks[0].Outputs[?OutputKey=='WebsiteBucketName'].OutputValue" \
             --output text)
 
           DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
-            --stack-name chess-app-stack \
+            --stack-name ${{ env.STACK_NAME }} \
             --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
             --output text)
 
           COGNITO_USER_POOL_ID=$(aws cloudformation describe-stacks \
-            --stack-name chess-app-stack \
+            --stack-name ${{ env.STACK_NAME }} \
             --query "Stacks[0].Outputs[?OutputKey=='CognitoUserPoolId'].OutputValue" \
             --output text)
 
           COGNITO_CLIENT_ID=$(aws cloudformation describe-stacks \
-            --stack-name chess-app-stack \
+            --stack-name ${{ env.STACK_NAME }} \
             --query "Stacks[0].Outputs[?OutputKey=='CognitoUserPoolClientId'].OutputValue" \
             --output text)
 
@@ -94,6 +123,16 @@ jobs:
           echo "DISTRIBUTION_ID=$DISTRIBUTION_ID" >> $GITHUB_OUTPUT
           echo "COGNITO_USER_POOL_ID=$COGNITO_USER_POOL_ID" >> $GITHUB_OUTPUT
           echo "COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID" >> $GITHUB_OUTPUT
+
+      - name: Get API URLs from backend stacks
+        run: |
+          SERVICE_API_ID=$(aws cloudformation describe-stacks \
+            --stack-name ${{ env.SERVICE_STACK }} \
+            --query "Stacks[0].Outputs[?OutputKey=='HttpApiId'].OutputValue" \
+            --output text)
+
+          echo "VITE_WEBSOCKET_URL=wss://${{ env.WS_DOMAIN }}" >> $GITHUB_ENV
+          echo "VITE_PROFILE_API_URL=https://$SERVICE_API_ID.execute-api.us-east-1.amazonaws.com/dev" >> $GITHUB_ENV
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -110,6 +149,8 @@ jobs:
           NODE_ENV: ${{ env.NODE_ENV }}
           VITE_COGNITO_USER_POOL_ID: ${{ steps.stack-outputs.outputs.COGNITO_USER_POOL_ID }}
           VITE_COGNITO_CLIENT_ID: ${{ steps.stack-outputs.outputs.COGNITO_CLIENT_ID }}
+          VITE_WEBSOCKET_URL: ${{ env.VITE_WEBSOCKET_URL }}
+          VITE_PROFILE_API_URL: ${{ env.VITE_PROFILE_API_URL }}
 
       - name: Sync build to S3
         run: |
@@ -130,5 +171,5 @@ jobs:
 
       - name: Output Website URL
         run: |
-          echo "🚀 Deployment complete!"
-          echo "Website URL: https://${{ env.ENVIRONMENT }}.${{ env.DOMAIN }}"
+          echo "Deployment complete!"
+          echo "Website URL: https://${{ env.SITE_DOMAIN }}"
