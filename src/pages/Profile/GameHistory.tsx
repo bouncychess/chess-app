@@ -31,8 +31,9 @@ function formatTimeControl(initialTime: number, increment: number): string {
 
 export default function GameHistory({ username }: { username: string }) {
     const { mode } = useTheme();
-    const { role } = useAuth();
-    const canPurify = role === 'admin' || role === 'staff';
+    const { role, user } = useAuth();
+    const isOwnProfile = user?.username === username;
+    const canPurify = isOwnProfile && (role === 'admin' || role === 'staff');
     const rowHeight = mode === 'windows' ? 32.5 : 37;
     const [games, setGames] = useState<GameHistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
