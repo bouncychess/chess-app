@@ -2,19 +2,22 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '../../components/buttons/Button';
 import { theme } from '../../config/theme';
-import { getUserProfile, updateUserProfile, type UserProfile } from '../../services/profile';
+import { getUserProfile, updateUserProfile, assignUserRole, type UserProfile, type UserRole } from '../../services/profile';
 import { useAuth } from '../../context/AuthContext';
+import { RoleBadge } from '../../components/RoleBadge';
 import GameHistory from './GameHistory';
 
 export default function Profile() {
     const { username: profileUsername } = useParams<{ username: string }>();
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editedDetails, setEditedDetails] = useState('');
     const [saving, setSaving] = useState(false);
+    const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+    const [roleLoading, setRoleLoading] = useState(false);
 
     const currentUsername = user?.username ?? null;
     const isOwnProfile = currentUsername === profileUsername;
@@ -32,6 +35,7 @@ export default function Profile() {
                 const data = await getUserProfile(profileUsername);
                 setProfile(data);
                 setEditedDetails(data.profile_details || '');
+                setSelectedRole(data.role);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load profile');
             } finally {
@@ -93,6 +97,7 @@ export default function Profile() {
         <div style={{ padding: '16px 20px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 8 }}>
                 <h2 style={{ margin: 0, fontSize: '1.75rem' }}>{profile?.username}</h2>
+                <RoleBadge role={profile?.role ?? null} />
                 <span style={{ color: theme.colors.placeholder, fontSize: '0.875rem' }}>
                     Rating: <span style={{ color: theme.colors.text, fontWeight: 600 }}>{profile?.rating ?? 0}</span>
                 </span>
@@ -171,6 +176,44 @@ export default function Profile() {
                     </div>
                 )}
             </div>
+
+            {isAdmin && !isOwnProfile && profile && (
+                <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <select
+                        value={selectedRole ?? ''}
+                        onChange={(e) => setSelectedRole(e.target.value === '' ? null : e.target.value as UserRole)}
+                        style={{
+                            padding: '4px 8px',
+                            fontSize: '0.875rem',
+                            border: `1px solid ${theme.colors.border}`,
+                            borderRadius: 4,
+                            backgroundColor: theme.colors.cardBackground,
+                            color: theme.colors.text,
+                        }}
+                    >
+                        <option value="">No Role</option>
+                        <option value="staff">Staff</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <Button
+                        size="sm"
+                        disabled={roleLoading || selectedRole === (profile.role ?? null)}
+                        onClick={async () => {
+                            setRoleLoading(true);
+                            try {
+                                const updated = await assignUserRole(profile.username, selectedRole);
+                                setProfile(updated);
+                            } catch (err) {
+                                setError(err instanceof Error ? err.message : 'Failed to assign role');
+                            } finally {
+                                setRoleLoading(false);
+                            }
+                        }}
+                    >
+                        {roleLoading ? 'Saving...' : 'Set Role'}
+                    </Button>
+                </div>
+            )}
 
             {profile && <GameHistory key={profile.username} username={profile.username} />}
         </div>
