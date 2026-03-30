@@ -4,7 +4,8 @@ import { theme } from '../../config/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { TextInput } from '../../components/input/TextInput';
 import { Button } from '../../components/buttons/Button';
-import { getUserGames, type GameHistoryItem } from '../../services/games';
+import { getUserGames, hideGame, type GameHistoryItem } from '../../services/games';
+import { useAuth } from '../../context/AuthContext';
 
 const PAGE_SIZE = 10;
 
@@ -30,6 +31,8 @@ function formatTimeControl(initialTime: number, increment: number): string {
 
 export default function GameHistory({ username }: { username: string }) {
     const { mode } = useTheme();
+    const { role } = useAuth();
+    const canPurify = role === 'admin' || role === 'staff';
     const rowHeight = mode === 'windows' ? 32.5 : 37;
     const [games, setGames] = useState<GameHistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -95,11 +98,11 @@ export default function GameHistory({ username }: { username: string }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', color: theme.colors.text, tableLayout: 'fixed' }}>
                     <colgroup>
                         <col style={{ width: '15%' }} />
-                        <col style={{ width: '30%' }} />
-                        <col style={{ width: '15%' }} />
-                        <col style={{ width: '15%' }} />
-                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '28%' }} />
                         <col style={{ width: '13%' }} />
+                        <col style={{ width: '13%' }} />
+                        <col style={{ width: '13%' }} />
+                        <col style={{ width: '18%' }} />
                     </colgroup>
                     <thead>
                         <tr style={{ backgroundColor: theme.colors.background }}>
@@ -141,10 +144,26 @@ export default function GameHistory({ username }: { username: string }) {
                                         {result}
                                     </td>
                                     <td style={cellStyle}>{formatTimeControl(game.initial_time, game.increment)}</td>
-                                    <td style={cellStyle}>
+                                    <td style={{ ...cellStyle, display: 'flex', gap: 8, alignItems: 'center' }}>
                                         <Link to={`/game/${game.game_id}`} style={{ color: theme.colors.link }}>
                                             View
                                         </Link>
+                                        {canPurify && (result === 'Loss' || result === 'Draw') && (
+                                            <Button
+                                                size="sm"
+                                                variant="success"
+                                                onClick={async () => {
+                                                    try {
+                                                        await hideGame(game.game_id);
+                                                        setGames(prev => prev.filter(g => g.game_id !== game.game_id));
+                                                    } catch (err) {
+                                                        console.error('Failed to hide game:', err);
+                                                    }
+                                                }}
+                                            >
+                                                Purify
+                                            </Button>
+                                        )}
                                     </td>
                                 </tr>
                             );
