@@ -149,7 +149,7 @@ export default function GameHistory({ username }: { username: string }) {
                                         <Link to={`/game/${game.game_id}`} style={{ color: theme.colors.link }}>
                                             View
                                         </Link>
-                                        {canPurify && (result === 'Loss' || result === 'Draw') && (
+                                        {canPurify && (result === 'Loss' || result === 'Draw') && (opponent.endsWith('_bot')) && (
                                             <Button
                                                 size="sm"
                                                 variant="success"
