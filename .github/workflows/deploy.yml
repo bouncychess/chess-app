@@ -52,6 +52,7 @@ jobs:
           echo "STACK_NAME=chess-app${SUFFIX}-stack" >> $GITHUB_ENV
           echo "LIVE_STACK=chess-live${SUFFIX}-stack" >> $GITHUB_ENV
           echo "SERVICE_STACK=chess-service${SUFFIX}-stack" >> $GITHUB_ENV
+          echo "PLAY_STACK=chess-play${SUFFIX}-stack" >> $GITHUB_ENV
           echo "WS_DOMAIN=$WS_DOMAIN" >> $GITHUB_ENV
 
       - name: Configure AWS credentials via OIDC
@@ -138,7 +139,20 @@ jobs:
             --query "Stacks[0].Outputs[?OutputKey=='HttpApiId'].OutputValue" \
             --output text)
 
-          echo "VITE_WEBSOCKET_URL=wss://${{ env.WS_DOMAIN }}" >> $GITHUB_ENV
+          # Try chess-play EC2 stack first, fall back to chess-live custom domain
+          PLAY_IP=$(aws cloudformation describe-stacks \
+            --stack-name ${{ env.PLAY_STACK }} \
+            --query "Stacks[0].Outputs[?OutputKey=='InstancePublicIp'].OutputValue" \
+            --output text 2>/dev/null || echo "")
+
+          if [ -n "$PLAY_IP" ] && [ "$PLAY_IP" != "None" ]; then
+            echo "Using chess-play EC2: $PLAY_IP"
+            echo "VITE_WEBSOCKET_URL=ws://$PLAY_IP:8080/ws" >> $GITHUB_ENV
+          else
+            echo "chess-play stack not found, using chess-live"
+            echo "VITE_WEBSOCKET_URL=wss://${{ env.WS_DOMAIN }}" >> $GITHUB_ENV
+          fi
+
           echo "VITE_PROFILE_API_URL=https://$SERVICE_API_ID.execute-api.us-east-1.amazonaws.com/dev" >> $GITHUB_ENV
 
       - name: Set up Node.js
