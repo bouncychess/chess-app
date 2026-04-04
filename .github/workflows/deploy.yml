@@ -139,7 +139,19 @@ jobs:
             --query "Stacks[0].Outputs[?OutputKey=='HttpApiId'].OutputValue" \
             --output text)
 
-          echo "VITE_WEBSOCKET_URL=wss://${{ env.WS_DOMAIN }}" >> $GITHUB_ENV
+          # Try chess-play domain first, fall back to chess-live custom domain
+          PLAY_DOMAIN=$(aws cloudformation describe-stacks \
+            --stack-name ${{ env.PLAY_STACK }} \
+            --query "Stacks[0].Outputs[?OutputKey=='PlayDomain'].OutputValue" \
+            --output text 2>/dev/null || echo "")
+
+          if [ -n "$PLAY_DOMAIN" ] && [ "$PLAY_DOMAIN" != "None" ] && [ "$PLAY_DOMAIN" != "" ]; then
+            echo "Using chess-play: $PLAY_DOMAIN"
+            echo "VITE_WEBSOCKET_URL=wss://$PLAY_DOMAIN/ws" >> $GITHUB_ENV
+          else
+            echo "Using chess-live: ${{ env.WS_DOMAIN }}"
+            echo "VITE_WEBSOCKET_URL=wss://${{ env.WS_DOMAIN }}" >> $GITHUB_ENV
+          fi
 
           echo "VITE_PROFILE_API_URL=https://$SERVICE_API_ID.execute-api.us-east-1.amazonaws.com/dev" >> $GITHUB_ENV
 
