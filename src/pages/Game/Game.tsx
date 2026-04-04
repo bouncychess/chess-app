@@ -409,15 +409,17 @@ function Game() {
         sound.currentTime = 0;
         sound.volume = 1.0;
         sound.play().catch(() => {});
-        const fadeInterval = setInterval(() => {
-          if (sound.volume > 0.05) {
-            sound.volume = Math.max(0, sound.volume - 0.05);
-          } else {
-            sound.volume = 0;
-            sound.pause();
-            clearInterval(fadeInterval);
-          }
-        }, 100);
+        setTimeout(() => {
+          const fadeInterval = setInterval(() => {
+            if (sound.volume > 0.03) {
+              sound.volume = Math.max(0, sound.volume - 0.03);
+            } else {
+              sound.volume = 0;
+              sound.pause();
+              clearInterval(fadeInterval);
+            }
+          }, 100);
+        }, 3000);
       }
     }
   }, [whiteTime, blackTime, playerColor, gameResult, isPlayer, gameStarted, lowTimeWarning]);
