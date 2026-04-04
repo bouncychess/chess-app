@@ -407,7 +407,7 @@ function Game() {
       const sound = lowTimeSoundRef.current;
       if (sound) {
         sound.currentTime = 0;
-        sound.volume = 1.0;
+        sound.volume = 0.5;
         sound.play().catch(() => {});
         setTimeout(() => {
           const fadeInterval = setInterval(() => {
