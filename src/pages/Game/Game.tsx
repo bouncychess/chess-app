@@ -10,6 +10,7 @@ import { GameControls } from "../../components/game/GameControls";
 import { GameEndDisplay } from "../../components/game/GameEndDisplay";
 import { StatusBadge } from "../../components/StatusBadge";
 import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
+import { useSettings } from "../../context/SettingsContext";
 import type { PlayerColor, ChatMessage, GameResult, GameEndReason, Player } from "../../types/chess";
 
 interface GameState {
@@ -31,6 +32,7 @@ function Game() {
   const location = useLocation();
   const { sendMessage, subscribe, isConnected, username } = useWebSocket();
   const { mode } = useTheme();
+  const { lowTimeWarning } = useSettings();
   const navigate = useNavigate();
   const [boardSize, setBoardSize] = useState(400);
   const [flipped, setFlipped] = useState(false);
@@ -400,7 +402,7 @@ function Game() {
   useEffect(() => {
     if (gameResult !== null || !isPlayer || !gameStarted) return;
     const myTime = playerColor === "white" ? whiteTime : blackTime;
-    if (myTime <= 15000 && myTime > 0 && !hasPlayedLowTimeSound.current) {
+    if (myTime <= lowTimeWarning * 1000 && myTime > 0 && !hasPlayedLowTimeSound.current) {
       hasPlayedLowTimeSound.current = true;
       const sound = lowTimeSoundRef.current;
       if (sound) {
@@ -418,7 +420,7 @@ function Game() {
         }, 100);
       }
     }
-  }, [whiteTime, blackTime, playerColor, gameResult, isPlayer, gameStarted]);
+  }, [whiteTime, blackTime, playerColor, gameResult, isPlayer, gameStarted, lowTimeWarning]);
 
   // Detect timeout and notify server
   useEffect(() => {
