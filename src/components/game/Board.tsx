@@ -75,8 +75,12 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [hasPremoves, setHasPremoves] = useState(false);
   const moveSoundRef = useRef<HTMLAudioElement | null>(null);
+  const checkSoundRef = useRef<HTMLAudioElement | null>(null);
   if (!moveSoundRef.current) {
     moveSoundRef.current = new Audio("/sounds/move.mp3");
+  }
+  if (!checkSoundRef.current) {
+    checkSoundRef.current = new Audio("/sounds/check.mp3");
   }
 
   const boardRef = useRef<HTMLDivElement>(null);
@@ -103,8 +107,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   useEffect(() => { isSpectatorRef.current = isSpectator; }, [isSpectator]);
   useEffect(() => { onPgnChangeRef.current = onPgnChange; }, [onPgnChange]);
 
-  const playMoveSound = () => {
-    const sound = moveSoundRef.current;
+  const playMoveSound = (isCheck = false) => {
+    const sound = isCheck ? checkSoundRef.current : moveSoundRef.current;
     if (!sound) return;
     sound.currentTime = 0;
     sound.volume = 0.5;
@@ -149,7 +153,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       const newFen = chess.fen();
       setChessPosition(newFen);
       setLastMove({ from, to });
-      playMoveSound();
+      playMoveSound(chess.inCheck());
 
       const move = promotion ? `${from}${to}${promotion}` : `${from}${to}`;
       if (gameId) sendMove(move);
@@ -377,7 +381,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         const newFen = chess.fen();
         setChessPosition(newFen);
         setLastMove({ from, to });
-        playMoveSound();
+        playMoveSound(chess.inCheck());
         const newTurn = msg.turn as PlayerColor;
         setCurrentTurn(newTurn);
         onPgnChangeRef.current?.(chess.pgn());

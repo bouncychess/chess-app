@@ -67,9 +67,14 @@ function Game() {
   const [isWaitingNewGame, setIsWaitingNewGame] = useState(false);
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
+  const hasPlayedLowTimeSound = useRef(false);
   const gameStartSoundRef = useRef<HTMLAudioElement | null>(null);
+  const lowTimeSoundRef = useRef<HTMLAudioElement | null>(null);
   if (!gameStartSoundRef.current) {
     gameStartSoundRef.current = new Audio("/sounds/game_time.mp3");
+  }
+  if (!lowTimeSoundRef.current) {
+    lowTimeSoundRef.current = new Audio("/sounds/low_time.mp3");
   }
 
   // Derived values for rematch/new game
@@ -390,6 +395,30 @@ function Game() {
 
     return () => clearInterval(interval);
   }, [status, currentTurn, gameStarted, gameResult]);
+
+  // Play low time sound when the player's clock drops below 20 seconds
+  useEffect(() => {
+    if (gameResult !== null || !isPlayer || !gameStarted) return;
+    const myTime = playerColor === "white" ? whiteTime : blackTime;
+    if (myTime <= 15000 && myTime > 0 && !hasPlayedLowTimeSound.current) {
+      hasPlayedLowTimeSound.current = true;
+      const sound = lowTimeSoundRef.current;
+      if (sound) {
+        sound.currentTime = 0;
+        sound.volume = 1.0;
+        sound.play().catch(() => {});
+        const fadeInterval = setInterval(() => {
+          if (sound.volume > 0.05) {
+            sound.volume = Math.max(0, sound.volume - 0.05);
+          } else {
+            sound.volume = 0;
+            sound.pause();
+            clearInterval(fadeInterval);
+          }
+        }, 100);
+      }
+    }
+  }, [whiteTime, blackTime, playerColor, gameResult, isPlayer, gameStarted]);
 
   // Detect timeout and notify server
   useEffect(() => {
