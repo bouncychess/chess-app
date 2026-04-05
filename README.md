@@ -17,5 +17,5 @@ This project is open source under the [GNU General Public License v3.0](https://
 
 
 ## Todo
-- Add promotions
+- Add promotions (And setting for queen only)
 - ~~Fix premove castle~~
