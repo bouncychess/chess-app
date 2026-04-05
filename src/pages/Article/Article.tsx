@@ -1,126 +1,129 @@
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import articles from './articles';
+import DOMPurify from 'dompurify';
 import Comments from './components/Comments';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import { Button } from '../../components/buttons/Button';
+import { getArticle, type ArticleDetail } from '../../services/articles';
 
 export default function Article() {
     const { id } = useParams<{ id: string }>();
-    const article = id ? articles[id] : null;
+    const { role, user } = useAuth();
+    const { theme } = useTheme();
+    const [article, setArticle] = useState<ArticleDetail | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const contentRef = useRef<HTMLDivElement>(null);
 
-    if (!article) {
+    useEffect(() => {
+        if (!id) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const data = await getArticle(id);
+                if (!cancelled) setArticle(data);
+            } catch {
+                if (!cancelled) setError(true);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [id]);
+
+    // Add lazy loading to all images in article content
+    useEffect(() => {
+        if (contentRef.current) {
+            contentRef.current.querySelectorAll('img').forEach((img) => {
+                img.loading = 'lazy';
+            });
+        }
+    }, [article]);
+
+    if (loading) {
+        return <div style={{ padding: 32, color: theme.colors.text }}>Loading...</div>;
+    }
+
+    if (error || !article) {
         return (
             <div>
                 <h1>Article not found</h1>
-                <Link to="/news" style={{ color: '#007bff' }}>Back to News</Link>
+                <Link to="/news" style={{ color: theme.colors.link }}>Back to News</Link>
             </div>
         );
     }
 
+    const cleanHtml = DOMPurify.sanitize(article.content, {
+        ADD_TAGS: ['img'],
+        ADD_ATTR: ['src', 'alt', 'style', 'class', 'href', 'target'],
+    });
+
+    const publishedDate = new Date(article.created_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+
     return (
         <div style={{ maxWidth: 800 }}>
-            <Link to="/news" style={{ color: '#007bff', textDecoration: 'none', marginBottom: 16, display: 'inline-block' }}>
-                ← Back to News
-            </Link>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Link to="/news" style={{ color: theme.colors.link, textDecoration: 'none' }}>
+                    &larr; Back to News
+                </Link>
+                {(role === 'admin' || (role === 'staff' && user?.username === article.author_username)) && (
+                    <Link to={`/articles/editor/${article.article_id}`} style={{ textDecoration: 'none' }}>
+                        <Button variant="secondary" size="sm">Edit</Button>
+                    </Link>
+                )}
+            </div>
+
             <h1 style={{
                 marginTop: 16,
-                marginBottom: 24,
+                marginBottom: 8,
                 fontFamily: '"Playfair Display", "Georgia", "Times New Roman", serif',
                 fontWeight: 900,
-            }}>{article.title}</h1>
-            <hr style={{
-                border: 'none',
-                borderTop: '2px solid currentColor',
+                color: theme.colors.text,
+            }}>
+                {article.title}
+            </h1>
+
+            <div style={{
+                fontSize: '0.85rem',
+                color: theme.colors.placeholder,
                 marginBottom: 24,
-            }} />
-            {article.sections.map((section, i) => (
-                <div key={i} style={{ marginBottom: 24 }}>
-                    {section.images && (
-                        <div style={{ display: 'flex', gap: 16, justifyContent: 'center', alignItems: 'flex-start' }}>
-                            {section.images.map((img, j) => (
-                                <figure key={j} style={{ margin: 0, flex: 1, maxWidth: `${100 / section.images!.length}%` }}>
-                                    <img
-                                        src={img.src}
-                                        alt={img.caption ?? article.title}
-                                        style={{ width: '100%', height: 350, objectFit: 'contain', borderRadius: 8 }}
-                                    />
-                                    {img.caption && (
-                                        <figcaption style={{
-                                            fontSize: '0.85rem',
-                                            fontStyle: 'italic',
-                                            opacity: 0.7,
-                                            marginTop: 6,
-                                            textAlign: 'center',
-                                        }}>
-                                            {img.caption}
-                                        </figcaption>
-                                    )}
-                                </figure>
-                            ))}
-                        </div>
-                    )}
-                    {section.image && (
-                        <figure style={{ margin: 0, marginBottom: 8 }}>
-                            <img
-                                src={section.image.src}
-                                alt={section.image.caption ?? article.title}
-                                style={{ width: '60%', borderRadius: 8, display: 'block', margin: '0 auto' }}
-                            />
-                            {section.image.caption && (
-                                <figcaption style={{
-                                    fontSize: '0.85rem',
-                                    fontStyle: 'italic',
-                                    opacity: 0.7,
-                                    marginTop: 6,
-                                    textAlign: 'center',
-                                }}>
-                                    {section.image.caption}
-                                </figcaption>
-                            )}
-                        </figure>
-                    )}
-                    {section.text && (
-                        <p style={{ fontSize: '1.1rem', lineHeight: 1.6, margin: 0 }}>
-                            {section.text}
-                        </p>
-                    )}
-                    {section.html && (
-                        <p
-                            style={{ fontSize: '1.1rem', lineHeight: 1.6, margin: 0 }}
-                            dangerouslySetInnerHTML={{ __html: section.html }}
-                        />
-                    )}
-                </div>
-            ))}
-            {article.author && (
-                <div style={{
-                    marginTop: 40,
-                    paddingTop: 16,
-                    borderTop: '1px solid rgba(128,128,128,0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    gap: 12,
-                }}>
-                    {article.authorImage && (
-                        <img
-                            src={article.authorImage}
-                            alt={article.author}
-                            style={{
-                                width: 48,
-                                height: 48,
-                                borderRadius: '50%',
-                                objectFit: 'cover',
-                            }}
-                        />
-                    )}
+            }}>
+                By <Link to={`/user/${article.author_username}`} style={{ color: theme.colors.link }}>{article.author_username}</Link> &middot; {publishedDate}
+                {article.status === 'draft' && (
                     <span style={{
-                        fontFamily: '"Playfair Display", "Georgia", "Times New Roman", serif',
-                        fontStyle: 'italic',
-                        fontSize: '1.1rem',
+                        marginLeft: 12,
+                        backgroundColor: '#f59e0b',
+                        color: '#fff',
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
                     }}>
-                        — {article.author}
+                        Draft
                     </span>
-                </div>
-            )}
+                )}
+            </div>
+
+            <hr style={{ border: 'none', borderTop: '2px solid currentColor', marginBottom: 24 }} />
+
+            {/* Rendered article content */}
+            <div
+                ref={contentRef}
+                className="article-content"
+                style={{
+                    fontSize: '1.1rem',
+                    lineHeight: 1.7,
+                    color: theme.colors.text,
+                }}
+                dangerouslySetInnerHTML={{ __html: cleanHtml }}
+            />
+
             {id && <Comments articleId={id} />}
         </div>
     );

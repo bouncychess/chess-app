@@ -77,3 +77,57 @@ button:focus-visible {
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* TipTap Editor Styles */
+.tiptap {
+  outline: none;
+}
+.tiptap p {
+  margin: 0.5em 0;
+}
+.tiptap h1, .tiptap h2, .tiptap h3 {
+  font-family: "Playfair Display", "Georgia", "Times New Roman", serif;
+  font-weight: 700;
+  margin: 0.8em 0 0.4em;
+}
+.tiptap img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 12px 0;
+  display: block;
+}
+.tiptap ul, .tiptap ol {
+  padding-left: 1.5em;
+}
+.tiptap a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+.tiptap img.ProseMirror-selectednode {
+  outline: 3px solid #3b82f6;
+  border-radius: 8px;
+}
+
+/* Article Content Display */
+.article-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 16px 0;
+  display: block;
+}
+.article-content h1, .article-content h2, .article-content h3 {
+  font-family: "Playfair Display", "Georgia", "Times New Roman", serif;
+  font-weight: 700;
+}
+.article-content a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+.article-content ul, .article-content ol {
+  padding-left: 1.5em;
+}
+.article-content p {
+  margin: 0.6em 0;
+}
