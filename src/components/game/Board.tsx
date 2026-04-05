@@ -84,6 +84,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   }
 
   const boardRef = useRef<HTMLDivElement>(null);
+  const skipNextFenEffect = useRef(false);
   const cgApiRef = useRef<Api | null>(null);
 
   // Store callbacks in refs so chessground event handler always has latest values
@@ -299,11 +300,14 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   // Update position when it changes (own moves, opponent moves, history navigation)
   useEffect(() => {
+    if (skipNextFenEffect.current) {
+      skipNextFenEffect.current = false;
+      return;
+    }
     const fen = overridePosition ?? chessPosition;
     cgApiRef.current?.set({
       fen,
       lastMove: (lastMove && !isViewingHistory) ? [lastMove.from as Key, lastMove.to as Key] : undefined,
-
     });
   }, [chessPosition, overridePosition, lastMove, isViewingHistory, chessGame]);
 
@@ -386,7 +390,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         setCurrentTurn(newTurn);
         onPgnChangeRef.current?.(chess.pgn());
 
-        // Update chessground
+        // Update chessground — skip the useEffect FEN sync since we're setting it here
+        skipNextFenEffect.current = true;
         cgApiRef.current?.set({
           fen: newFen,
           lastMove: [from as Key, to as Key],
