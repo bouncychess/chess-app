@@ -1,24 +1,43 @@
-import ArticleCard, { type Article } from '../../components/ArticleCard';
-
-
-const featuredArticles: Article[] = [
-    { id: 'elf_incident', title: 'The "Elf Incident"', thumbnail: '/images/articles/clive_elf.png' },
-    { id: 'crab_incident', title: 'The "Crab Incident"', thumbnail: '/images/articles/crab_incident.png' },
-];
-
-// Sample articles - replace with real data later
-const articles: Article[] = [
-    { id: '1', title: 'A Bloated Mess', thumbnail: '/images/articles/bloated_mess.png' },
-    { id: '5', title: 'Tactical Patterns Every Player Should Know', thumbnail: 'https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=400' },
-    { id: '2', title: 'Beware of "Coach"', thumbnail: '/images/articles/homeless_bouncy.png' },
-    { id: '3', title: 'Healthy Body, Healthy Mind', thumbnail: '/images/articles/mike.png' },
-    { id: '6', title: 'How to Analyze Your Games', thumbnail: 'https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=400' },
-    { id: '4', title: 'Head Size Closely Linked to Intelligence', thumbnail: '/images/articles/clive_head.jpg' },
-];
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import ArticleCard from '../../components/ArticleCard';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import { Button } from '../../components/buttons/Button';
+import { getArticles, type ArticleSummary } from '../../services/articles';
 
 export default function News() {
+    const { role } = useAuth();
+    const { theme } = useTheme();
+    const [articles, setArticles] = useState<ArticleSummary[]>([]);
+    const [loading, setLoading] = useState(true);
+    const isStaffOrAdmin = role === 'admin' || role === 'staff';
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const data = await getArticles();
+                if (!cancelled) setArticles(data);
+            } catch (err) {
+                console.error('Failed to load articles:', err);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, []);
+
+    const published = articles.filter(a => a.status === 'published');
+    const drafts = articles.filter(a => a.status === 'draft');
+
     return (
-        <div>
+        <div style={{ position: 'relative' }}>
+            {isStaffOrAdmin && (
+                <Link to="/articles/editor" style={{ textDecoration: 'none', position: 'absolute', top: 0, right: 0 }}>
+                    <Button variant="danger">Author</Button>
+                </Link>
+            )}
             <div style={{ textAlign: 'center', marginBottom: 32 }}>
                 <h1 style={{
                     marginTop: 0,
@@ -43,27 +62,73 @@ export default function News() {
                     All the news that&apos;s fit to print
                 </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 24 }}>
-                {featuredArticles.map((article) => (
-                    <div key={article.id} style={{ width: 'calc((100% - 40px) / 3)' }}>
-                        <ArticleCard article={article} />
-                    </div>
-                ))}
-            </div>
-            <hr style={{
-                border: 'none',
-                borderTop: '2px solid currentColor',
-                marginBottom: 24,
-            }} />
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 20,
-            }}>
-                {articles.map((article) => (
-                    <ArticleCard key={article.id} article={article} />
-                ))}
-            </div>
+
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: 48, color: theme.colors.placeholder }}>
+                    Loading articles...
+                </div>
+            ) : (
+                <>
+                    {/* Drafts section for staff/admin */}
+                    {isStaffOrAdmin && drafts.length > 0 && (
+                        <>
+                            <h2 style={{
+                                fontSize: '1.2rem',
+                                fontFamily: '"Georgia", "Times New Roman", serif',
+                                marginBottom: 16,
+                                color: theme.colors.placeholder,
+                            }}>
+                                Your Drafts
+                            </h2>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(3, 1fr)',
+                                gap: 20,
+                                marginBottom: 32,
+                            }}>
+                                {drafts.map((article) => (
+                                    <ArticleCard
+                                        key={article.article_id}
+                                        article={{
+                                            id: article.article_id,
+                                            slug: article.slug,
+                                            title: article.title,
+                                            thumbnail: article.preview_image_url || '/images/articles/placeholder.png',
+                                        }}
+                                        isDraft
+                                    />
+                                ))}
+                            </div>
+                            <hr style={{ border: 'none', borderTop: '2px solid currentColor', marginBottom: 24 }} />
+                        </>
+                    )}
+
+                    {/* Published articles */}
+                    {published.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: 48, color: theme.colors.placeholder }}>
+                            No articles yet.
+                        </div>
+                    ) : (
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(3, 1fr)',
+                            gap: 20,
+                        }}>
+                            {published.map((article) => (
+                                <ArticleCard
+                                    key={article.article_id}
+                                    article={{
+                                        id: article.article_id,
+                                        slug: article.slug,
+                                        title: article.title,
+                                        thumbnail: article.preview_image_url || '',
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </>
+            )}
         </div>
     );
 }
