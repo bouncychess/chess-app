@@ -48,7 +48,7 @@ export default function News() {
                     letterSpacing: '0.04em',
                     textTransform: 'uppercase',
                 }}>
-                    The Daily Tard
+                    Daily Tard
                 </h1>
                 <div style={{
                     borderTop: '3px double currentColor',
