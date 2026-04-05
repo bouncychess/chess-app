@@ -19,5 +19,4 @@ This project is open source under the [GNU General Public License v3.0](https://
 ## Todo
 - Add promotions
 - Fix premove castle
-- Get Go backend working
 
