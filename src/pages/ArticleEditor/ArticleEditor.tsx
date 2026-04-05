@@ -38,7 +38,6 @@ export default function ArticleEditor() {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(isEditing);
     const [articleId, setArticleId] = useState<string | undefined>(id);
-    const [authorUsername, setAuthorUsername] = useState<string | null>(null);
 
     const editor = useEditor({
         extensions: [
@@ -78,7 +77,6 @@ export default function ArticleEditor() {
                 setTitle(article.title);
                 setStatus(article.status);
                 setArticleId(article.article_id);
-                setAuthorUsername(article.author_username);
                 editor?.commands.setContent(article.content);
             } catch {
                 if (!cancelled) setError('Failed to load article');
