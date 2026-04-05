@@ -84,6 +84,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   }
 
   const boardRef = useRef<HTMLDivElement>(null);
+  const skipNextFenEffect = useRef(false);
   const cgApiRef = useRef<Api | null>(null);
 
   // Store callbacks in refs so chessground event handler always has latest values
@@ -270,6 +271,51 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         enabled: premovesEnabled,
         maxQueue: 10,
         showDests: false,
+        additionalPremoveRequirements: (ctx) => {
+          // Never allow capturing your own king
+          const destPiece = ctx.allPieces.get(ctx.dest.key);
+          if (destPiece && destPiece.color === ctx.color && destPiece.role === 'king') return false;
+
+          // Only filter castling — allow all other premoves
+          if (ctx.role !== 'king') return true;
+          const fileDiff = Math.abs(ctx.dest.pos[0] - ctx.orig.pos[0]);
+          if (fileDiff <= 1) return true; // Normal king move, not castling
+
+          // Castling attempt — check FEN castling rights
+          const fen = chessGameRef.current.fen();
+          const rights = fen.split(' ')[2] || '-';
+          const isKingside = ctx.dest.pos[0] > ctx.orig.pos[0];
+          if (ctx.color === 'white') {
+            if (isKingside && !rights.includes('K')) return false;
+            if (!isKingside && !rights.includes('Q')) return false;
+          } else {
+            if (isKingside && !rights.includes('k')) return false;
+            if (!isKingside && !rights.includes('q')) return false;
+          }
+
+          const rank = ctx.color === 'white' ? '1' : '8';
+          const kingStart = ('e' + rank) as Key;
+          const rookStart = ((isKingside ? 'h' : 'a') + rank) as Key;
+
+          // Check if king or relevant rook ever moved in the premove queue
+          const queue = cgApiRef.current?.state?.premovable?.queue ?? [];
+          for (const [orig] of queue) {
+            if (orig === kingStart) return false; // King moved from starting square
+            if (orig === rookStart) return false; // Rook moved from starting square
+          }
+
+          // Check rook is still on its starting square in visual state
+          const rook = ctx.allPieces.get(rookStart);
+          if (!rook || rook.role !== 'rook' || rook.color !== ctx.color) return false;
+
+          // Check empty squares between king and rook
+          if (isKingside) {
+            if (ctx.allPieces.has(('f' + rank) as Key) || ctx.allPieces.has(('g' + rank) as Key)) return false;
+          } else {
+            if (ctx.allPieces.has(('b' + rank) as Key) || ctx.allPieces.has(('c' + rank) as Key) || ctx.allPieces.has(('d' + rank) as Key)) return false;
+          }
+          return true;
+        },
         events: {
           set: () => setHasPremoves(true),
           unset: () => setHasPremoves(false),
@@ -299,11 +345,14 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   // Update position when it changes (own moves, opponent moves, history navigation)
   useEffect(() => {
+    if (skipNextFenEffect.current) {
+      skipNextFenEffect.current = false;
+      return;
+    }
     const fen = overridePosition ?? chessPosition;
     cgApiRef.current?.set({
       fen,
       lastMove: (lastMove && !isViewingHistory) ? [lastMove.from as Key, lastMove.to as Key] : undefined,
-
     });
   }, [chessPosition, overridePosition, lastMove, isViewingHistory, chessGame]);
 
@@ -386,7 +435,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         setCurrentTurn(newTurn);
         onPgnChangeRef.current?.(chess.pgn());
 
-        // Update chessground
+        // Update chessground — skip the useEffect FEN sync since we're setting it here
+        skipNextFenEffect.current = true;
         cgApiRef.current?.set({
           fen: newFen,
           lastMove: [from as Key, to as Key],
