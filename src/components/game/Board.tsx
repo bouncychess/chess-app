@@ -271,6 +271,33 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         enabled: premovesEnabled,
         maxQueue: 10,
         showDests: false,
+        additionalPremoveRequirements: (ctx) => {
+          // Only filter castling — allow all other premoves
+          if (ctx.role !== 'king') return true;
+          const fileDiff = Math.abs(ctx.dest.pos[0] - ctx.orig.pos[0]);
+          if (fileDiff <= 1) return true; // Normal king move, not castling
+
+          // Castling attempt — check FEN castling rights
+          const fen = chessGameRef.current.fen();
+          const rights = fen.split(' ')[2] || '-';
+          const isKingside = ctx.dest.pos[0] > ctx.orig.pos[0];
+          if (ctx.color === 'white') {
+            if (isKingside && !rights.includes('K')) return false;
+            if (!isKingside && !rights.includes('Q')) return false;
+          } else {
+            if (isKingside && !rights.includes('k')) return false;
+            if (!isKingside && !rights.includes('q')) return false;
+          }
+
+          // Check empty squares between king and rook
+          const rank = ctx.color === 'white' ? '1' : '8';
+          if (isKingside) {
+            if (ctx.allPieces.has(('f' + rank) as Key) || ctx.allPieces.has(('g' + rank) as Key)) return false;
+          } else {
+            if (ctx.allPieces.has(('b' + rank) as Key) || ctx.allPieces.has(('c' + rank) as Key) || ctx.allPieces.has(('d' + rank) as Key)) return false;
+          }
+          return true;
+        },
         events: {
           set: () => setHasPremoves(true),
           unset: () => setHasPremoves(false),
