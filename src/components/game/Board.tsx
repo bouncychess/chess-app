@@ -272,6 +272,10 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         maxQueue: 10,
         showDests: false,
         additionalPremoveRequirements: (ctx) => {
+          // Never allow capturing your own king
+          const destPiece = ctx.allPieces.get(ctx.dest.key);
+          if (destPiece && destPiece.color === ctx.color && destPiece.role === 'king') return false;
+
           // Only filter castling — allow all other premoves
           if (ctx.role !== 'king') return true;
           const fileDiff = Math.abs(ctx.dest.pos[0] - ctx.orig.pos[0]);
