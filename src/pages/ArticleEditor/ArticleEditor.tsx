@@ -207,10 +207,10 @@ export default function ArticleEditor() {
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                 <Button
                     variant="secondary"
-                    onClick={() => handleSave('draft')}
+                    onClick={() => handleSave(status)}
                     disabled={saving}
                 >
-                    {saving && status === 'draft' ? 'Saving...' : 'Save Draft'}
+                    {saving ? 'Saving...' : status === 'published' ? 'Save' : 'Save Draft'}
                 </Button>
                 {status === 'published' ? (
                     <Button
