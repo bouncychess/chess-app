@@ -289,8 +289,22 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
             if (!isKingside && !rights.includes('q')) return false;
           }
 
-          // Check empty squares between king and rook
           const rank = ctx.color === 'white' ? '1' : '8';
+          const kingStart = ('e' + rank) as Key;
+          const rookStart = ((isKingside ? 'h' : 'a') + rank) as Key;
+
+          // Check if king or relevant rook ever moved in the premove queue
+          const queue = cgApiRef.current?.state?.premovable?.queue ?? [];
+          for (const [orig] of queue) {
+            if (orig === kingStart) return false; // King moved from starting square
+            if (orig === rookStart) return false; // Rook moved from starting square
+          }
+
+          // Check rook is still on its starting square in visual state
+          const rook = ctx.allPieces.get(rookStart);
+          if (!rook || rook.role !== 'rook' || rook.color !== ctx.color) return false;
+
+          // Check empty squares between king and rook
           if (isKingside) {
             if (ctx.allPieces.has(('f' + rank) as Key) || ctx.allPieces.has(('g' + rank) as Key)) return false;
           } else {
