@@ -83,7 +83,7 @@ export default function Article() {
                 color: theme.colors.placeholder,
                 marginBottom: 24,
             }}>
-                By {article.author_username} &middot; {publishedDate}
+                By <Link to={`/user/${article.author_username}`} style={{ color: theme.colors.link }}>{article.author_username}</Link> &middot; {publishedDate}
                 {article.status === 'draft' && (
                     <span style={{
                         marginLeft: 12,
