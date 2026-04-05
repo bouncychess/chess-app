@@ -157,6 +157,40 @@ Resources:
               StringEquals:
                 AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${WebsiteCloudFront}
 
+  # S3 Bucket for article content and images
+  ArticlesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub cta-${Environment}-articles
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - PUT
+              - GET
+            AllowedOrigins:
+              - "*"
+            MaxAge: 300
+
+  # Public read policy for article images
+  ArticlesBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ArticlesBucket
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadArticleImages
+            Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource: !Sub ${ArticlesBucket.Arn}/articles/*/images/*
+
   # Cognito User Pool
   CognitoUserPool:
     Type: AWS::Cognito::UserPool
@@ -260,3 +294,15 @@ Outputs:
     Value: !Ref AWS::Region
     Export:
       Name: !Sub ${AWS::StackName}-CognitoRegion
+
+  ArticlesBucketName:
+    Description: Name of the articles S3 bucket
+    Value: !Ref ArticlesBucket
+    Export:
+      Name: !Sub ${AWS::StackName}-ArticlesBucketName
+
+  ArticlesBucketArn:
+    Description: ARN of the articles S3 bucket
+    Value: !GetAtt ArticlesBucket.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-ArticlesBucketArn

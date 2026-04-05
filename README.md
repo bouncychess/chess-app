@@ -19,4 +19,5 @@ This project is open source under the [GNU General Public License v3.0](https://
 ## Todo
 - Add promotions - setting for queen only
 - You are forgiven sound when purified
+- measure spite checks
 - ~~Fix premove castle~~
