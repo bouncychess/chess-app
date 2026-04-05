@@ -32,13 +32,13 @@ export default function News() {
     const drafts = articles.filter(a => a.status === 'draft');
 
     return (
-        <div style={{ position: 'relative' }}>
-            {isStaffOrAdmin && (
-                <Link to="/articles/editor" style={{ textDecoration: 'none', position: 'absolute', top: 8, left: 8 }}>
-                    <Button variant="danger">Author Article</Button>
-                </Link>
-            )}
-            <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div>
+            <div style={{ textAlign: 'center', marginBottom: 32, position: 'relative' }}>
+                {isStaffOrAdmin && (
+                    <Link to="/articles/editor" style={{ textDecoration: 'none', position: 'absolute', top: 0, left: 0 }}>
+                        <Button variant="danger" size="sm"><span style={{ fontSize: '2.3rem', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', top: -3 }}>+</span></Button>
+                    </Link>
+                )}
                 <h1 style={{
                     marginTop: 0,
                     marginBottom: 4,
