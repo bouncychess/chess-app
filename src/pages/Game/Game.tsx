@@ -10,6 +10,7 @@ import { GameControls } from "../../components/game/GameControls";
 import { GameEndDisplay } from "../../components/game/GameEndDisplay";
 import { StatusBadge } from "../../components/StatusBadge";
 import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
+import { useSettings } from "../../context/SettingsContext";
 import type { PlayerColor, ChatMessage, GameResult, GameEndReason, Player } from "../../types/chess";
 
 interface GameState {
@@ -31,6 +32,7 @@ function Game() {
   const location = useLocation();
   const { sendMessage, subscribe, isConnected, username } = useWebSocket();
   const { mode } = useTheme();
+  const { lowTimeWarning } = useSettings();
   const navigate = useNavigate();
   const [boardSize, setBoardSize] = useState(400);
   const [flipped, setFlipped] = useState(false);
@@ -67,9 +69,14 @@ function Game() {
   const [isWaitingNewGame, setIsWaitingNewGame] = useState(false);
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
+  const hasPlayedLowTimeSound = useRef(false);
   const gameStartSoundRef = useRef<HTMLAudioElement | null>(null);
+  const lowTimeSoundRef = useRef<HTMLAudioElement | null>(null);
   if (!gameStartSoundRef.current) {
     gameStartSoundRef.current = new Audio("/sounds/game_time.mp3");
+  }
+  if (!lowTimeSoundRef.current) {
+    lowTimeSoundRef.current = new Audio("/sounds/low_time.mp3");
   }
 
   // Derived values for rematch/new game
@@ -390,6 +397,32 @@ function Game() {
 
     return () => clearInterval(interval);
   }, [status, currentTurn, gameStarted, gameResult]);
+
+  // Play low time sound when the player's clock drops below 20 seconds
+  useEffect(() => {
+    if (gameResult !== null || !isPlayer || !gameStarted) return;
+    const myTime = playerColor === "white" ? whiteTime : blackTime;
+    if (myTime <= lowTimeWarning * 1000 && myTime > 0 && !hasPlayedLowTimeSound.current) {
+      hasPlayedLowTimeSound.current = true;
+      const sound = lowTimeSoundRef.current;
+      if (sound) {
+        sound.currentTime = 0;
+        sound.volume = 0.5;
+        sound.play().catch(() => {});
+        setTimeout(() => {
+          const fadeInterval = setInterval(() => {
+            if (sound.volume > 0.03) {
+              sound.volume = Math.max(0, sound.volume - 0.03);
+            } else {
+              sound.volume = 0;
+              sound.pause();
+              clearInterval(fadeInterval);
+            }
+          }, 100);
+        }, 3000);
+      }
+    }
+  }, [whiteTime, blackTime, playerColor, gameResult, isPlayer, gameStarted, lowTimeWarning]);
 
   // Detect timeout and notify server
   useEffect(() => {
