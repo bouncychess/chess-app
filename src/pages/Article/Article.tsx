@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import Comments from './components/Comments';
@@ -14,6 +14,7 @@ export default function Article() {
     const [article, setArticle] = useState<ArticleDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const contentRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!id) return;
@@ -30,6 +31,15 @@ export default function Article() {
         })();
         return () => { cancelled = true; };
     }, [id]);
+
+    // Add lazy loading to all images in article content
+    useEffect(() => {
+        if (contentRef.current) {
+            contentRef.current.querySelectorAll('img').forEach((img) => {
+                img.loading = 'lazy';
+            });
+        }
+    }, [article]);
 
     if (loading) {
         return <div style={{ padding: 32, color: theme.colors.text }}>Loading...</div>;
@@ -104,6 +114,7 @@ export default function Article() {
 
             {/* Rendered article content */}
             <div
+                ref={contentRef}
                 className="article-content"
                 style={{
                     fontSize: '1.1rem',

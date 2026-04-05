@@ -67,6 +67,7 @@ export default function ArticleCard({ article, isDraft }: ArticleCardProps) {
                     <img
                         src={article.thumbnail}
                         alt={article.title}
+                        loading="lazy"
                         style={{
                             position: 'absolute',
                             top: 0,

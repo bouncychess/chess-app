@@ -30,6 +30,7 @@ class ResizableImageView implements NodeView {
             this.img.style.width = node.attrs.width;
         }
         this.img.draggable = false;
+        this.img.loading = 'lazy';
 
         // Invisible resize handle (bottom-right corner, cursor only)
         this.handle = document.createElement('div');
