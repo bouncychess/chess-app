@@ -150,9 +150,17 @@ export default function GameHistory({ username }: { username: string }) {
                                             View
                                         </Link>
                                         {canPurify && (result === 'Loss' || result === 'Draw') && (opponent.endsWith('_bot')) && (
-                                            <Button
-                                                size="sm"
-                                                variant="success"
+                                            <button
+                                                style={{
+                                                    padding: '4px 10px',
+                                                    borderRadius: '4px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600,
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    backgroundColor: '#7dd3fc',
+                                                    color: '#0c4a6e',
+                                                }}
                                                 onClick={async () => {
                                                     try {
                                                         await hideGame(game.game_id);
@@ -163,7 +171,7 @@ export default function GameHistory({ username }: { username: string }) {
                                                 }}
                                             >
                                                 Purify
-                                            </Button>
+                                            </button>
                                         )}
                                     </td>
                                 </tr>
