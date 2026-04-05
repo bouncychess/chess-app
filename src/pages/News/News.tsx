@@ -36,7 +36,7 @@ export default function News() {
             <div style={{ textAlign: 'center', marginBottom: 32, position: 'relative' }}>
                 {isStaffOrAdmin && (
                     <Link to="/articles/editor" style={{ textDecoration: 'none', position: 'absolute', top: 0, left: 0 }}>
-                        <Button variant="danger" size="md"><span style={{lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>Author Article</span></Button>
+                        <Button variant="danger" size="md"><span style={{lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>Author</span></Button>
                     </Link>
                 )}
                 <h1 style={{
