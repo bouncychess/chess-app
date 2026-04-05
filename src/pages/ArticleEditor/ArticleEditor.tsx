@@ -154,17 +154,7 @@ export default function ArticleEditor() {
     if (!editor) return null;
 
     return (
-        <div style={{ maxWidth: 900, margin: '0 auto' }}>
-            <h1 style={{
-                marginTop: 0,
-                marginBottom: 16,
-                fontFamily: '"Playfair Display", "Georgia", "Times New Roman", serif',
-                fontWeight: 900,
-                color: theme.colors.text,
-            }}>
-                {isEditing ? 'Edit Article' : 'New Article'}
-            </h1>
-
+        <div style={{ maxWidth: 900, margin: '0 auto', marginTop: 24 }}>
             {error && (
                 <div style={{
                     padding: '10px 16px',

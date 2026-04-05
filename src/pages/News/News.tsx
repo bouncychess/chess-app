@@ -35,7 +35,7 @@ export default function News() {
         <div style={{ position: 'relative' }}>
             {isStaffOrAdmin && (
                 <Link to="/articles/editor" style={{ textDecoration: 'none', position: 'absolute', top: 0, right: 0 }}>
-                    <Button variant="success">New Article</Button>
+                    <Button variant="danger">Author</Button>
                 </Link>
             )}
             <div style={{ textAlign: 'center', marginBottom: 32 }}>
