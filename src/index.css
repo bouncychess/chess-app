@@ -131,3 +131,35 @@ button:focus-visible {
 .article-content p {
   margin: 0.6em 0;
 }
+
+/* YouTube embeds in editor */
+.tiptap div[data-youtube-video] {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  margin: 16px 0;
+  cursor: pointer;
+}
+.tiptap div[data-youtube-video] iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border: 0;
+  border-radius: 8px;
+}
+.tiptap div[data-youtube-video].ProseMirror-selectednode iframe {
+  outline: 3px solid #3b82f6;
+  border-radius: 8px;
+}
+
+/* YouTube embeds in article view */
+.article-content iframe[src*="youtube"] {
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border: 0;
+  border-radius: 8px;
+  margin: 16px 0;
+  display: block;
+}

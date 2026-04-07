@@ -1,6 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import DOMPurify from 'dompurify';
+
+// Restrict iframes to YouTube domains only
+DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+    if (data.tagName === 'iframe') {
+        const src = node.getAttribute('src') || '';
+        if (
+            !src.startsWith('https://www.youtube.com/embed/') &&
+            !src.startsWith('https://www.youtube-nocookie.com/embed/')
+        ) {
+            node.parentNode?.removeChild(node);
+        }
+    }
+});
 import Comments from './components/Comments';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -55,8 +68,9 @@ export default function Article() {
     }
 
     const cleanHtml = DOMPurify.sanitize(article.content, {
-        ADD_TAGS: ['img'],
-        ADD_ATTR: ['src', 'alt', 'style', 'class', 'href', 'target'],
+        ADD_TAGS: ['img', 'iframe'],
+        ADD_ATTR: ['src', 'alt', 'style', 'class', 'href', 'target',
+            'width', 'height', 'allowfullscreen', 'frameborder', 'allow'],
     });
 
     const publishedDate = new Date(article.created_at).toLocaleDateString('en-US', {
