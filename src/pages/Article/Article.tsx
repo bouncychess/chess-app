@@ -4,7 +4,7 @@ import DOMPurify from 'dompurify';
 
 // Restrict iframes to YouTube domains only
 DOMPurify.addHook('uponSanitizeElement', (node, data) => {
-    if (data.tagName === 'iframe') {
+    if (data.tagName === 'iframe' && node instanceof HTMLElement) {
         const src = node.getAttribute('src') || '';
         if (
             !src.startsWith('https://www.youtube.com/embed/') &&
