@@ -8,6 +8,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
+import Youtube from '@tiptap/extension-youtube';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Button } from '../../components/buttons/Button';
@@ -48,6 +49,12 @@ export default function ArticleEditor() {
             Underline,
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
             Link.configure({ openOnClick: false }),
+            Youtube.configure({
+                controls: true,
+                nocookie: true,
+                allowFullscreen: true,
+                autoplay: false,
+            }),
         ],
         content: '',
         editorProps: {
