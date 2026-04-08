@@ -2,31 +2,36 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/buttons/Button';
 import { TextInput } from '../../components/input/TextInput';
-import { login, register, confirmRegistration, forgotPassword, forgotPasswordSubmit } from '../../services/auth';
+import { requestSignInCode, confirmSignInCode, register, confirmRegistration, resendConfirmationCode } from '../../services/auth';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../config/theme';
 
-type Mode = 'login' | 'register' | 'confirm' | 'forgotPassword' | 'resetPassword';
+type Mode = 'signIn' | 'signInCode' | 'register' | 'confirmEmail';
 
 export default function SignIn() {
     const navigate = useNavigate();
     const { refreshUser } = useAuth();
-    const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmationCode, setConfirmationCode] = useState('');
-    const [newPassword, setNewPassword] = useState('');
+    const [username, setUsername] = useState('');
+    const [code, setCode] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const [mode, setMode] = useState<Mode>('login');
+    const [mode, setMode] = useState<Mode>('signIn');
 
     const handleLoginSuccess = async () => {
         await refreshUser();
         navigate('/play');
     };
 
-    const handleLogin = async () => {
-        await login(username, password);
+    const handleRequestCode = async () => {
+        await requestSignInCode(email);
+        setMode('signInCode');
+        setCode('');
+        setError(null);
+    };
+
+    const handleConfirmCode = async () => {
+        await confirmSignInCode(code);
         await handleLoginSuccess();
     };
 
@@ -38,33 +43,20 @@ export default function SignIn() {
         if (usernameLower.endsWith('_bot')) {
             throw new Error('Username cannot end with "_bot"');
         }
-        const result = await register(username, email, password);
+        const result = await register(username, email);
         if (result.needsConfirmation) {
-            setMode('confirm');
+            setMode('confirmEmail');
+            setCode('');
             setError(null);
-        } else {
-            await handleLogin();
         }
     };
 
-    const handleConfirm = async () => {
-        await confirmRegistration(username, confirmationCode);
-        await login(username, password);
-        await handleLoginSuccess();
-    };
-
-    const handleForgotPassword = async () => {
-        await forgotPassword(username);
-        setMode('resetPassword');
-        setError(null);
-    };
-
-    const handleResetPassword = async () => {
-        await forgotPasswordSubmit(username, confirmationCode, newPassword);
-        setMode('login');
-        setPassword('');
-        setNewPassword('');
-        setConfirmationCode('');
+    const handleConfirmEmail = async () => {
+        await confirmRegistration(username, code);
+        // After confirming, sign them in via OTP
+        await requestSignInCode(email);
+        setMode('signInCode');
+        setCode('');
         setError(null);
     };
 
@@ -73,16 +65,14 @@ export default function SignIn() {
         setError(null);
         setLoading(true);
         try {
-            if (mode === 'login') {
-                await handleLogin();
+            if (mode === 'signIn') {
+                await handleRequestCode();
+            } else if (mode === 'signInCode') {
+                await handleConfirmCode();
             } else if (mode === 'register') {
                 await handleRegister();
-            } else if (mode === 'confirm') {
-                await handleConfirm();
-            } else if (mode === 'forgotPassword') {
-                await handleForgotPassword();
-            } else if (mode === 'resetPassword') {
-                await handleResetPassword();
+            } else if (mode === 'confirmEmail') {
+                await handleConfirmEmail();
             }
         } catch (err) {
             console.error('Auth error:', err);
@@ -94,30 +84,27 @@ export default function SignIn() {
 
     const getTitle = () => {
         switch (mode) {
-            case 'login': return 'Sign In';
+            case 'signIn': return 'Sign In';
+            case 'signInCode': return 'Enter Code';
             case 'register': return 'Register';
-            case 'confirm': return 'Confirm Email';
-            case 'forgotPassword': return 'Forgot Password';
-            case 'resetPassword': return 'Reset Password';
+            case 'confirmEmail': return 'Confirm Email';
         }
     };
 
     const getButtonText = () => {
         if (loading) {
             switch (mode) {
-                case 'login': return 'Signing in...';
+                case 'signIn': return 'Sending code...';
+                case 'signInCode': return 'Signing in...';
                 case 'register': return 'Registering...';
-                case 'confirm': return 'Confirming...';
-                case 'forgotPassword': return 'Sending code...';
-                case 'resetPassword': return 'Resetting...';
+                case 'confirmEmail': return 'Confirming...';
             }
         }
         switch (mode) {
-            case 'login': return 'Sign In';
+            case 'signIn': return 'Send Code';
+            case 'signInCode': return 'Sign In';
             case 'register': return 'Register';
-            case 'confirm': return 'Confirm';
-            case 'forgotPassword': return 'Send Reset Code';
-            case 'resetPassword': return 'Reset Password';
+            case 'confirmEmail': return 'Confirm';
         }
     };
 
@@ -127,82 +114,65 @@ export default function SignIn() {
                 {getTitle()}
             </h2>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {mode === 'confirm' ? (
+                {mode === 'signIn' && (
+                    <TextInput
+                        label="Email"
+                        type="email"
+                        value={email}
+                        onChange={setEmail}
+                        placeholder="Enter your email"
+                        required
+                    />
+                )}
+
+                {mode === 'signInCode' && (
                     <>
                         <p style={{ margin: 0, textAlign: 'center', color: theme.colors.placeholder }}>
-                            We sent a confirmation code to your email.
+                            We sent a code to {email}
                         </p>
                         <TextInput
-                            label="Confirmation Code"
+                            label="Code"
                             type="text"
-                            value={confirmationCode}
-                            onChange={setConfirmationCode}
+                            value={code}
+                            onChange={setCode}
                             placeholder="Enter the code"
                             required
                         />
                     </>
-                ) : mode === 'forgotPassword' ? (
+                )}
+
+                {mode === 'register' && (
                     <>
-                        <p style={{ margin: 0, textAlign: 'center', color: theme.colors.placeholder }}>
-                            Enter your username and we'll send you a code to reset your password.
-                        </p>
+                        <TextInput
+                            label="Email"
+                            type="email"
+                            value={email}
+                            onChange={setEmail}
+                            placeholder="Enter your email"
+                            required
+                        />
                         <TextInput
                             label="Username"
                             type="text"
                             value={username}
                             onChange={setUsername}
-                            placeholder="Enter your username"
+                            placeholder="Choose a username"
                             required
                         />
                     </>
-                ) : mode === 'resetPassword' ? (
+                )}
+
+                {mode === 'confirmEmail' && (
                     <>
                         <p style={{ margin: 0, textAlign: 'center', color: theme.colors.placeholder }}>
-                            Enter the code we sent to your email and your new password.
+                            We sent a confirmation code to {email}
                         </p>
                         <TextInput
-                            label="Confirmation Code"
+                            label="Code"
                             type="text"
-                            value={confirmationCode}
-                            onChange={setConfirmationCode}
+                            value={code}
+                            onChange={setCode}
                             placeholder="Enter the code"
-                            required
-                        />
-                        <TextInput
-                            label="New Password"
-                            type="password"
-                            value={newPassword}
-                            onChange={setNewPassword}
-                            placeholder="Enter your new password"
-                            required
-                        />
-                    </>
-                ) : (
-                    <>
-                        {mode === 'register' && (
-                            <TextInput
-                                label="Email"
-                                type="email"
-                                value={email}
-                                onChange={setEmail}
-                                placeholder="Enter your email"
-                                required
-                            />
-                        )}
-                        <TextInput
-                            label="Username"
-                            type="text"
-                            value={username}
-                            onChange={setUsername}
-                            placeholder="Enter your username"
-                            required
-                        />
-                        <TextInput
-                            label="Password"
-                            type="password"
-                            value={password}
-                            onChange={setPassword}
-                            placeholder="Enter your password"
                             required
                         />
                     </>
@@ -214,13 +184,13 @@ export default function SignIn() {
                 {error && <p style={{ color: '#ff6b6b', margin: 0, textAlign: 'center' }}>{error}</p>}
             </form>
 
-            {(mode === 'login' || mode === 'register') && (
+            {(mode === 'signIn' || mode === 'register') && (
                 <p style={{ marginTop: 20, textAlign: 'center' }}>
                     {mode === 'register' ? 'Already have an account? ' : "Don't have an account? "}
                     <button
                         type="button"
                         onClick={() => {
-                            setMode(mode === 'login' ? 'register' : 'login');
+                            setMode(mode === 'signIn' ? 'register' : 'signIn');
                             setError(null);
                         }}
                         style={{ background: 'none', border: 'none', color: theme.colors.link, cursor: 'pointer', textDecoration: 'underline' }}
@@ -230,49 +200,65 @@ export default function SignIn() {
                 </p>
             )}
 
-            {mode === 'login' && (
-                <p style={{ marginTop: 8, textAlign: 'center' }}>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setMode('forgotPassword');
-                            setError(null);
-                        }}
-                        style={{ background: 'none', border: 'none', color: theme.colors.link, cursor: 'pointer', textDecoration: 'underline' }}
-                    >
-                        Forgot Password?
-                    </button>
-                </p>
-            )}
-
-            {mode === 'confirm' && (
+            {mode === 'signInCode' && (
                 <p style={{ marginTop: 20, textAlign: 'center' }}>
                     <button
                         type="button"
-                        onClick={() => {
-                            setMode('register');
-                            setError(null);
+                        onClick={async () => {
+                            try {
+                                await requestSignInCode(email);
+                                setCode('');
+                                setError(null);
+                            } catch (err) {
+                                setError(err instanceof Error ? err.message : 'Failed to resend code');
+                            }
                         }}
                         style={{ background: 'none', border: 'none', color: theme.colors.link, cursor: 'pointer', textDecoration: 'underline' }}
                     >
-                        Back to Register
+                        Resend code
                     </button>
-                </p>
-            )}
-
-            {(mode === 'forgotPassword' || mode === 'resetPassword') && (
-                <p style={{ marginTop: 20, textAlign: 'center' }}>
+                    {' | '}
                     <button
                         type="button"
                         onClick={() => {
-                            setMode('login');
-                            setConfirmationCode('');
-                            setNewPassword('');
+                            setMode('signIn');
+                            setCode('');
                             setError(null);
                         }}
                         style={{ background: 'none', border: 'none', color: theme.colors.link, cursor: 'pointer', textDecoration: 'underline' }}
                     >
                         Back to Sign In
+                    </button>
+                </p>
+            )}
+
+            {mode === 'confirmEmail' && (
+                <p style={{ marginTop: 20, textAlign: 'center' }}>
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            try {
+                                await resendConfirmationCode(username);
+                                setError(null);
+                            } catch (err) {
+                                setError(err instanceof Error ? err.message : 'Failed to resend code');
+                            }
+                        }}
+                        style={{ background: 'none', border: 'none', color: theme.colors.link, cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                        Resend code
+                    </button>
+                    {' | '}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setMode('register');
+                            setCode('');
+                            setError(null);
+                        }}
+                        style={{ background: 'none', border: 'none', color: theme.colors.link, cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                        Back to Register
                     </button>
                 </p>
             )}
