@@ -374,6 +374,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         dests: movableColor ? getLegalDests(chessGame) : new Map(),
       },
     });
+    if (gameResult !== null) {
+      cgApiRef.current?.cancelPremove();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTurn, gameId, isViewingHistory, gameResult, playerColor, chessPosition]);
 
