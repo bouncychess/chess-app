@@ -324,11 +324,12 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       drawable: {
         enabled: true,
         visible: true,
+        defaultSnapToValidMove: false,
         brushes: {
-          green: { key: 'green', color: '#20b2aa', opacity: 0.5, lineWidth: 10 },
-          red: { key: 'red', color: '#e74c3c', opacity: 0.5, lineWidth: 10 },
-          blue: { key: 'blue', color: '#3498db', opacity: 0.5, lineWidth: 10 },
-          yellow: { key: 'yellow', color: '#f1c40f', opacity: 0.5, lineWidth: 10 },
+          green: { key: 'green', color: '#098d4e', opacity: 0.8, lineWidth: 10 },
+          red: { key: 'red', color: '#ff1744', opacity: 0.8, lineWidth: 10 },
+          blue: { key: 'blue', color: '#d500f9', opacity: 0.8, lineWidth: 10 },
+          yellow: { key: 'yellow', color: '#ffea00', opacity: 0.8, lineWidth: 10 },
         },
       },
     });
@@ -374,6 +375,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         dests: movableColor ? getLegalDests(chessGame) : new Map(),
       },
     });
+    if (gameResult !== null) {
+      cgApiRef.current?.cancelPremove();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTurn, gameId, isViewingHistory, gameResult, playerColor, chessPosition]);
 
