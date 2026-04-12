@@ -11,6 +11,8 @@ class SoundManagerClass {
   private ctx: AudioContext | null = null;
   private buffers = new Map<SoundName, AudioBuffer>();
   private unlocked = false;
+  private preloaded = false;
+  private rawData = new Map<SoundName, ArrayBuffer>();
   private activeSources = new Map<SoundName, { source: AudioBufferSourceNode; gain: GainNode }>();
 
   private getContext(): AudioContext {
@@ -20,9 +22,43 @@ class SoundManagerClass {
     return this.ctx;
   }
 
+  /** Fetch raw audio data (does not require AudioContext to be unlocked). */
+  async fetchAll() {
+    const entries = Object.entries(SOUND_URLS) as [SoundName, string][];
+    await Promise.all(
+      entries.map(async ([name, url]) => {
+        try {
+          const res = await fetch(url);
+          this.rawData.set(name, await res.arrayBuffer());
+        } catch {
+          // Non-critical — sound will be unavailable
+        }
+      })
+    );
+  }
+
+  /** Decode all fetched audio data into playable buffers. Requires an unlocked AudioContext. */
+  private async decodeAll() {
+    if (this.preloaded) return;
+    this.preloaded = true;
+    const ctx = this.getContext();
+    await Promise.all(
+      Array.from(this.rawData.entries()).map(async ([name, data]) => {
+        try {
+          // decodeAudioData detaches the ArrayBuffer, so clone it
+          const audioBuf = await ctx.decodeAudioData(data.slice(0));
+          this.buffers.set(name, audioBuf);
+        } catch {
+          // Non-critical
+        }
+      })
+    );
+  }
+
   /** Call on first user gesture (click/touch) to unlock audio on mobile browsers. */
   unlock() {
     if (this.unlocked) return;
+    this.unlocked = true;
     const ctx = this.getContext();
     if (ctx.state === "suspended") {
       ctx.resume();
@@ -33,25 +69,8 @@ class SoundManagerClass {
     src.buffer = buf;
     src.connect(ctx.destination);
     src.start(0);
-    this.unlocked = true;
-  }
-
-  /** Fetch and decode all game sounds. Call once at app startup. */
-  async preloadAll() {
-    const ctx = this.getContext();
-    const entries = Object.entries(SOUND_URLS) as [SoundName, string][];
-    await Promise.all(
-      entries.map(async ([name, url]) => {
-        try {
-          const res = await fetch(url);
-          const arrayBuf = await res.arrayBuffer();
-          const audioBuf = await ctx.decodeAudioData(arrayBuf);
-          this.buffers.set(name, audioBuf);
-        } catch {
-          // Sound will be unavailable — non-critical
-        }
-      })
-    );
+    // Now that context is unlocked, decode the pre-fetched audio data
+    this.decodeAll();
   }
 
   /** Play a preloaded sound with near-zero latency. */
