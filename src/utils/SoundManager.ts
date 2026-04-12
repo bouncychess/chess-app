@@ -18,6 +18,10 @@ class SoundManagerClass {
   private getContext(): AudioContext {
     if (!this.ctx) {
       this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // "ambient" mixes with background audio (music, podcasts) instead of interrupting it
+      if ("audioSession" in navigator) {
+        (navigator as any).audioSession.type = "ambient";
+      }
     }
     return this.ctx;
   }
