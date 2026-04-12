@@ -8,6 +8,7 @@ import { useSettings } from "../../context/SettingsContext";
 import type { PlayerColor, GameResult } from "../../types/chess";
 import { theme } from "../../config/theme";
 import PromotionPicker, { type PromotionPiece } from "./PromotionPicker";
+import { SoundManager } from "../../utils/SoundManager";
 
 interface BoardProps {
   gameId: string | null;
@@ -74,15 +75,6 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [hasPremoves, setHasPremoves] = useState(false);
-  const moveSoundRef = useRef<HTMLAudioElement | null>(null);
-  const checkSoundRef = useRef<HTMLAudioElement | null>(null);
-  if (!moveSoundRef.current) {
-    moveSoundRef.current = new Audio("/sounds/move.mp3");
-  }
-  if (!checkSoundRef.current) {
-    checkSoundRef.current = new Audio("/sounds/check.mp3");
-  }
-
   const boardRef = useRef<HTMLDivElement>(null);
   const skipNextFenEffect = useRef(false);
   const cgApiRef = useRef<Api | null>(null);
@@ -109,12 +101,7 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   useEffect(() => { onPgnChangeRef.current = onPgnChange; }, [onPgnChange]);
 
   const playMoveSound = (isCheck = false) => {
-    const sound = isCheck ? checkSoundRef.current : moveSoundRef.current;
-    if (!sound) return;
-    sound.currentTime = 0;
-    sound.volume = 0.5;
-    sound.playbackRate = 1;
-    sound.play().catch(() => {});
+    SoundManager.play(isCheck ? "check" : "move");
   };
 
   const hasPremovesRef = useRef(hasPremoves);
