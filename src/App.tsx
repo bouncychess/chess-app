@@ -17,8 +17,8 @@ import { ThemeProvider } from './context/ThemeContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { SoundManager } from './utils/SoundManager';
 
-// Preload all game sounds immediately
-SoundManager.preloadAll();
+// Fetch raw audio data immediately (decoding happens after first user gesture)
+SoundManager.fetchAll();
 
 // Unlock audio on first user interaction (required by mobile browsers)
 const unlockAudio = () => {
