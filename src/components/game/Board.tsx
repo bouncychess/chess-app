@@ -24,6 +24,10 @@ interface BoardProps {
   gameResult?: GameResult | null;
   flipped?: boolean;
   isSpectator?: boolean;
+  onExplorationChange?: (isExploring: boolean) => void;
+  onExplorationPgnChange?: (pgn: string) => void;
+  resetExploration?: number;
+  viewedMoveIndex?: number | null;
 }
 
 function createChessInstance(pgn?: string | null): Chess {
@@ -65,7 +69,7 @@ function getLegalDests(chess: Chess): Map<Key, Key[]> {
   return dests;
 }
 
-function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null, flipped: flippedProp = false, isSpectator = false }: BoardProps) {
+function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null, flipped: flippedProp = false, isSpectator = false, onExplorationChange, onExplorationPgnChange, resetExploration = 0, viewedMoveIndex: viewedMoveIndexProp = null }: BoardProps) {
   const { sendMessage, subscribe } = useWebSocket();
   const { premovesEnabled } = useSettings();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
@@ -75,6 +79,13 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [hasPremoves, setHasPremoves] = useState(false);
+
+  // Spectator exploration: sandboxed Chess instance for freely moving pieces
+  const explorationChessRef = useRef<Chess | null>(null);
+  const isExploringRef = useRef(false);
+  const onExplorationChangeRef = useRef(onExplorationChange);
+  const onExplorationPgnChangeRef = useRef(onExplorationPgnChange);
+  const viewedMoveIndexRef = useRef(viewedMoveIndexProp);
   const boardRef = useRef<HTMLDivElement>(null);
   const skipNextFenEffect = useRef(false);
   const cgApiRef = useRef<Api | null>(null);
@@ -99,6 +110,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   useEffect(() => { chessGameRef.current = chessGame; }, [chessGame]);
   useEffect(() => { isSpectatorRef.current = isSpectator; }, [isSpectator]);
   useEffect(() => { onPgnChangeRef.current = onPgnChange; }, [onPgnChange]);
+  useEffect(() => { onExplorationChangeRef.current = onExplorationChange; }, [onExplorationChange]);
+  useEffect(() => { onExplorationPgnChangeRef.current = onExplorationPgnChange; }, [onExplorationPgnChange]);
+  useEffect(() => { viewedMoveIndexRef.current = viewedMoveIndexProp; }, [viewedMoveIndexProp]);
 
   const playMoveSound = (isCheck = false) => {
     SoundManager.play(isCheck ? "check" : "move");
@@ -120,8 +134,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
   }, [sendMessage]);
 
   // Check if a move is a pawn promotion
-  const isPromotionMove = (from: string, to: string): boolean => {
-    const piece = chessGame.get(from as Square);
+  const isPromotionMove = (from: string, to: string, chess?: Chess): boolean => {
+    const piece = (chess || chessGame).get(from as Square);
     if (!piece || piece.type !== "p") return false;
     return (piece.color === "w" && to[1] === "8") || (piece.color === "b" && to[1] === "1");
   };
@@ -168,9 +182,75 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     }
   }, [sendMove, onTurnChange, onPgnChange]);
 
+  // Build a Chess instance replayed up to a given half-move index from a source PGN
+  const replayToIndex = (sourcePgn: string, index: number): Chess => {
+    const source = createChessInstance(sourcePgn);
+    const moves = source.history();
+    const replay = new Chess();
+    for (let i = 0; i <= index && i < moves.length; i++) {
+      replay.move(moves[i]);
+    }
+    return replay;
+  };
+
+  // Execute a spectator exploration move in the sandboxed chess instance
+  const executeExplorationMove = useCallback((from: string, to: string, promotion?: PromotionPiece) => {
+    // Initialize exploration chess on first move — from history position or live position
+    if (!explorationChessRef.current) {
+      const livePgn = chessGameRef.current.pgn();
+      const viewIdx = viewedMoveIndexRef.current;
+      if (viewIdx !== null && viewIdx >= 0) {
+        explorationChessRef.current = replayToIndex(livePgn, viewIdx);
+      } else if (viewIdx === -1) {
+        explorationChessRef.current = new Chess();
+      } else {
+        explorationChessRef.current = createChessInstance(livePgn);
+      }
+      isExploringRef.current = true;
+      onExplorationChangeRef.current?.(true);
+    } else {
+      // Already exploring — check if scrolled back, and truncate to branch point
+      const viewIdx = viewedMoveIndexRef.current;
+      const totalMoves = explorationChessRef.current.history().length;
+      if (viewIdx !== null && viewIdx >= 0 && viewIdx < totalMoves - 1) {
+        explorationChessRef.current = replayToIndex(explorationChessRef.current.pgn(), viewIdx);
+      } else if (viewIdx === -1) {
+        explorationChessRef.current = new Chess();
+      }
+    }
+
+    const explChess = explorationChessRef.current;
+    try {
+      const moveResult = explChess.move({ from, to, promotion: promotion || "q" });
+      if (!moveResult) {
+        cgApiRef.current?.set({ fen: explChess.fen() });
+        return;
+      }
+      const newFen = explChess.fen();
+      const newTurn: PlayerColor = explChess.turn() === 'w' ? 'white' : 'black';
+      cgApiRef.current?.set({
+        fen: newFen,
+        lastMove: [from as Key, to as Key],
+        turnColor: newTurn,
+        movable: {
+          color: newTurn,
+          dests: getLegalDests(explChess),
+        },
+      });
+      playMoveSound(explChess.inCheck());
+      onExplorationPgnChangeRef.current?.(explChess.pgn());
+    } catch {
+      cgApiRef.current?.set({ fen: explChess.fen() });
+    }
+  }, []);
+
   // Handle chessground move event (unified for drag and click-to-move)
   const handleCgMove = useCallback((orig: Key, dest: Key) => {
-    const chess = chessGameRef.current;
+    // Pick the active chess instance (exploration for spectators, live otherwise)
+    const chess = (isSpectatorRef.current && explorationChessRef.current)
+      ? explorationChessRef.current
+      : chessGameRef.current;
+    const doMove = isSpectatorRef.current ? executeExplorationMove : executeMove;
 
     // Translate castling moves: any king move 2+ squares maps to standard castling dest
     const piece = chess.get(orig as Square);
@@ -183,9 +263,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     }
 
     // Check if this is a promotion
-    if (isPromotionMove(orig, dest)) {
+    if (isPromotionMove(orig, dest, chess)) {
       if (autoPromoteToQueenRef.current) {
-        executeMove(orig, dest, "q");
+        doMove(orig, dest, "q");
       } else {
         // Revert the visual move chessground already made
         cgApiRef.current?.set({ fen: chess.fen() });
@@ -194,13 +274,17 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       return;
     }
 
-    executeMove(orig, dest);
-  }, [executeMove]);
+    doMove(orig, dest);
+  }, [executeMove, executeExplorationMove]);
 
   // Handle promotion piece selection
   const handlePromotionSelect = (piece: PromotionPiece) => {
     if (pendingPromotion) {
-      executeMove(pendingPromotion.from, pendingPromotion.to, piece);
+      if (isSpectator) {
+        executeExplorationMove(pendingPromotion.from, pendingPromotion.to, piece);
+      } else {
+        executeMove(pendingPromotion.from, pendingPromotion.to, piece);
+      }
       setPendingPromotion(null);
     }
   };
@@ -213,7 +297,20 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   // Determine if the player can move
   const getMovableColor = (): PlayerColor | undefined => {
-    if (isViewingHistory || gameResult !== null) return undefined;
+    if (isSpectator) {
+      // Spectators can always move — from live position, history, or ongoing exploration
+      if (isExploringRef.current && explorationChessRef.current) {
+        return explorationChessRef.current.turn() === 'w' ? 'white' : 'black';
+      }
+      // When viewing history, the turn at that position determines movable color
+      if (overridePosition) {
+        // Derive turn from the override FEN
+        const parts = overridePosition.split(' ');
+        return parts[1] === 'b' ? 'black' : 'white';
+      }
+      return currentTurn;
+    }
+    if (gameResult !== null || isViewingHistory) return undefined;
     if (!gameId) return currentTurn;
     return playerColor;
   };
@@ -337,6 +434,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       skipNextFenEffect.current = false;
       return;
     }
+    // During exploration, only update for history navigation within the exploration line
+    // (overridePosition carries the exploration FEN when scrolled back, null when at latest)
+    if (isExploringRef.current && !overridePosition) return;
     const fen = overridePosition ?? chessPosition;
     cgApiRef.current?.set({
       fen,
@@ -354,12 +454,27 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   // Update movable state when turn/game state changes
   useEffect(() => {
+    // During exploration, only update when scrolled back (overridePosition set)
+    if (isExploringRef.current && !overridePosition) return;
     const movableColor = getMovableColor();
+
+    // For spectators viewing a history position, compute dests from the override FEN.
+    // At the live position (isViewingHistory false), use the live chessGame instance.
+    let dests: Map<Key, Key[]> = new Map();
+    if (movableColor) {
+      if (isSpectator && isViewingHistory && overridePosition) {
+        const historyChess = new Chess(overridePosition);
+        dests = getLegalDests(historyChess);
+      } else {
+        dests = getLegalDests(chessGame);
+      }
+    }
+
     cgApiRef.current?.set({
       turnColor: currentTurn,
       movable: {
         color: movableColor,
-        dests: movableColor ? getLegalDests(chessGame) : new Map(),
+        dests,
       },
     });
     if (gameResult !== null) {
@@ -367,6 +482,21 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTurn, gameId, isViewingHistory, gameResult, playerColor, chessPosition]);
+
+  // Update spectator movable dests when navigating history positions (live or exploration)
+  useEffect(() => {
+    if (!isSpectator || !overridePosition || !isViewingHistory) return;
+    const parts = overridePosition.split(' ');
+    const turnColor: PlayerColor = parts[1] === 'b' ? 'black' : 'white';
+    const historyChess = new Chess(overridePosition);
+    cgApiRef.current?.set({
+      turnColor,
+      movable: {
+        color: turnColor,
+        dests: getLegalDests(historyChess),
+      },
+    });
+  }, [isSpectator, overridePosition, isViewingHistory]);
 
   // Update move handler when it changes
   useEffect(() => {
@@ -378,6 +508,24 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       },
     });
   }, [handleCgMove]);
+
+  // Reset spectator exploration when parent signals "jump to live"
+  useEffect(() => {
+    if (resetExploration === 0) return;
+    explorationChessRef.current = null;
+    isExploringRef.current = false;
+    // Restore live position on chessground
+    const chess = chessGameRef.current;
+    const liveTurn: PlayerColor = chess.turn() === 'w' ? 'white' : 'black';
+    cgApiRef.current?.set({
+      fen: chess.fen(),
+      turnColor: liveTurn,
+      movable: {
+        color: liveTurn,
+        dests: getLegalDests(chess),
+      },
+    });
+  }, [resetExploration]);
 
   // Sync premovesEnabled setting to chessground
   useEffect(() => {
@@ -419,10 +567,20 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
           promotion: moveStr.length > 4 ? moveStr[4] as PromotionPiece : undefined,
         });
         const newFen = chess.fen();
+        const newTurn = msg.turn as PlayerColor;
+
+        // If spectator is exploring, update live state silently but don't touch chessground
+        if (isSpectatorRef.current && isExploringRef.current) {
+          setChessPosition(newFen);
+          setCurrentTurn(newTurn);
+          onPgnChangeRef.current?.(chess.pgn());
+          playMoveSound(chess.inCheck());
+          return;
+        }
+
         setChessPosition(newFen);
         setLastMove({ from, to });
         playMoveSound(chess.inCheck());
-        const newTurn = msg.turn as PlayerColor;
         setCurrentTurn(newTurn);
         onPgnChangeRef.current?.(chess.pgn());
 
@@ -433,13 +591,13 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
           lastMove: [from as Key, to as Key],
           turnColor: newTurn,
           movable: {
-            color: pColor,
-            dests: newTurn === pColor ? getLegalDests(chess) : new Map(),
+            color: isSpectatorRef.current ? newTurn : pColor,
+            dests: isSpectatorRef.current ? getLegalDests(chess) : (newTurn === pColor ? getLegalDests(chess) : new Map()),
           },
         });
 
         // Execute premove immediately — .set() already updated chessground state synchronously
-        if (newTurn === pColor) {
+        if (!isSpectatorRef.current && newTurn === pColor) {
           const cg = cgApiRef.current;
           const hasQueuedPremoves = hasPremovesRef.current ||
             (cg?.state?.premovable?.queue?.length ?? 0) > 0;
