@@ -182,6 +182,17 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     }
   }, [sendMove, onTurnChange, onPgnChange]);
 
+  // Build a Chess instance replayed up to a given half-move index from a source PGN
+  const replayToIndex = (sourcePgn: string, index: number): Chess => {
+    const source = createChessInstance(sourcePgn);
+    const moves = source.history();
+    const replay = new Chess();
+    for (let i = 0; i <= index && i < moves.length; i++) {
+      replay.move(moves[i]);
+    }
+    return replay;
+  };
+
   // Execute a spectator exploration move in the sandboxed chess instance
   const executeExplorationMove = useCallback((from: string, to: string, promotion?: PromotionPiece) => {
     // Initialize exploration chess on first move — from history position or live position
@@ -189,22 +200,23 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       const livePgn = chessGameRef.current.pgn();
       const viewIdx = viewedMoveIndexRef.current;
       if (viewIdx !== null && viewIdx >= 0) {
-        // Replay only up to the viewed move index
-        const fullChess = createChessInstance(livePgn);
-        const moves = fullChess.history();
-        const replay = new Chess();
-        for (let i = 0; i <= viewIdx && i < moves.length; i++) {
-          replay.move(moves[i]);
-        }
-        explorationChessRef.current = replay;
+        explorationChessRef.current = replayToIndex(livePgn, viewIdx);
       } else if (viewIdx === -1) {
-        // Starting position
         explorationChessRef.current = new Chess();
       } else {
         explorationChessRef.current = createChessInstance(livePgn);
       }
       isExploringRef.current = true;
       onExplorationChangeRef.current?.(true);
+    } else {
+      // Already exploring — check if scrolled back, and truncate to branch point
+      const viewIdx = viewedMoveIndexRef.current;
+      const totalMoves = explorationChessRef.current.history().length;
+      if (viewIdx !== null && viewIdx >= 0 && viewIdx < totalMoves - 1) {
+        explorationChessRef.current = replayToIndex(explorationChessRef.current.pgn(), viewIdx);
+      } else if (viewIdx === -1) {
+        explorationChessRef.current = new Chess();
+      }
     }
 
     const explChess = explorationChessRef.current;
@@ -422,8 +434,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       skipNextFenEffect.current = false;
       return;
     }
-    // Don't overwrite the board when spectator is exploring — exploration manages its own position
-    if (isExploringRef.current) return;
+    // During exploration, only update for history navigation within the exploration line
+    // (overridePosition carries the exploration FEN when scrolled back, null when at latest)
+    if (isExploringRef.current && !overridePosition) return;
     const fen = overridePosition ?? chessPosition;
     cgApiRef.current?.set({
       fen,
@@ -441,8 +454,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
   // Update movable state when turn/game state changes
   useEffect(() => {
-    // Don't overwrite movable state during exploration — exploration manages its own
-    if (isExploringRef.current) return;
+    // During exploration, only update when scrolled back (overridePosition set)
+    if (isExploringRef.current && !overridePosition) return;
     const movableColor = getMovableColor();
 
     // For spectators viewing a history position, compute dests from the override FEN.
@@ -470,9 +483,9 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTurn, gameId, isViewingHistory, gameResult, playerColor, chessPosition]);
 
-  // Update spectator movable dests when navigating history positions
+  // Update spectator movable dests when navigating history positions (live or exploration)
   useEffect(() => {
-    if (!isSpectator || isExploringRef.current || !overridePosition || !isViewingHistory) return;
+    if (!isSpectator || !overridePosition || !isViewingHistory) return;
     const parts = overridePosition.split(' ');
     const turnColor: PlayerColor = parts[1] === 'b' ? 'black' : 'white';
     const historyChess = new Chess(overridePosition);
