@@ -15,6 +15,19 @@ import { WebSocketProvider } from './context/WebSocketContext';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SettingsProvider } from './context/SettingsContext';
+import { SoundManager } from './utils/SoundManager';
+
+// Preload all game sounds immediately
+SoundManager.preloadAll();
+
+// Unlock audio on first user interaction (required by mobile browsers)
+const unlockAudio = () => {
+    SoundManager.unlock();
+    document.removeEventListener('click', unlockAudio);
+    document.removeEventListener('touchstart', unlockAudio);
+};
+document.addEventListener('click', unlockAudio);
+document.addEventListener('touchstart', unlockAudio);
 
 function GameWrapper() {
     const { gameId } = useParams<{ gameId: string }>();
