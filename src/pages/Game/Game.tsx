@@ -68,6 +68,9 @@ function Game() {
   const [initialTime, setInitialTime] = useState<number | null>(null);
   const [rematchOfferedBy, setRematchOfferedBy] = useState<string | null>(null);
   const [isWaitingNewGame, setIsWaitingNewGame] = useState(false);
+  const [isExploring, setIsExploring] = useState(false);
+  const [explorationPgn, setExplorationPgn] = useState<string | null>(null);
+  const [resetExplorationCounter, setResetExplorationCounter] = useState(0);
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
   const hasPlayedLowTimeSound = useRef(false);
@@ -87,6 +90,8 @@ function Game() {
   const displayPosition = viewedMoveIndex !== null
     ? getFenAtMoveIndex(pgn || "", viewedMoveIndex)
     : null;
+  const explorationMoveCount = getMoveCount(explorationPgn || "");
+  const explorationViewedIndex = explorationMoveCount > 0 ? explorationMoveCount - 1 : null;
 
   // Always request fresh game state from server when connected
   useEffect(() => {
@@ -138,8 +143,31 @@ function Game() {
   };
 
   const handleMoveClick = (moveIndex: number) => {
+    if (isExploring) {
+      // Exit exploration — return to the live game's PGN at the clicked position
+      setIsExploring(false);
+      setExplorationPgn(null);
+      setResetExplorationCounter(c => c + 1);
+    }
     setViewedMoveIndex(moveIndex);
   };
+
+  const handleExplorationChange = useCallback((exploring: boolean) => {
+    setIsExploring(exploring);
+  }, []);
+
+  const handleExplorationPgnChange = useCallback((newPgn: string) => {
+    setExplorationPgn(newPgn);
+  }, []);
+
+  const handleJumpToLive = useCallback(() => {
+    setIsExploring(false);
+    setExplorationPgn(null);
+    setResetExplorationCounter(c => c + 1);
+    // Reset to latest move
+    const moveCount = getMoveCount(pgn || "");
+    setViewedMoveIndex(moveCount > 0 ? moveCount - 1 : null);
+  }, [pgn]);
 
   const handleResign = useCallback(() => {
     if (gameId && gameResult === null) {
@@ -477,21 +505,27 @@ function Game() {
               onTurnChange={handleTurnChange}
               onPgnChange={handlePgnChange}
               onSizeChange={setBoardSize}
-              overridePosition={displayPosition}
-              isViewingHistory={isViewingHistory}
+              overridePosition={isExploring ? undefined : displayPosition}
+              isViewingHistory={isExploring ? false : isViewingHistory}
               gameResult={gameResult}
               flipped={flipped}
               isSpectator={!isPlayer}
+              onExplorationChange={handleExplorationChange}
+              onExplorationPgnChange={handleExplorationPgnChange}
+              resetExploration={resetExplorationCounter}
+              viewedMoveIndex={viewedMoveIndex}
             />
           </GameClock>
         </div>
         {!isMobile && <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + panelOffset }}>
           <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0}}>
             <MoveNotation
-              pgn={pgn || ""}
-              viewedMoveIndex={viewedMoveIndex}
+              pgn={isExploring && explorationPgn ? explorationPgn : (pgn || "")}
+              viewedMoveIndex={isExploring ? explorationViewedIndex : viewedMoveIndex}
               onMoveClick={handleMoveClick}
               boardSize={boardSize}
+              isExploring={isExploring}
+              onJumpToLive={handleJumpToLive}
             />
             <div style={{ marginTop: 11 }}>
               {gameResult !== null && gameEndReason !== null ? (
@@ -531,10 +565,12 @@ function Game() {
       {isMobile && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
           <MoveNotation
-            pgn={pgn || ""}
-            viewedMoveIndex={viewedMoveIndex}
+            pgn={isExploring && explorationPgn ? explorationPgn : (pgn || "")}
+            viewedMoveIndex={isExploring ? explorationViewedIndex : viewedMoveIndex}
             onMoveClick={handleMoveClick}
             collapsible
+            isExploring={isExploring}
+            onJumpToLive={handleJumpToLive}
           />
           <Chat 
             gameId={gameId} 
