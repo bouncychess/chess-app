@@ -12,6 +12,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
 import { useSettings } from "../../context/SettingsContext";
 import type { PlayerColor, ChatMessage, GameResult, GameEndReason, Player } from "../../types/chess";
+import { SoundManager } from "../../utils/SoundManager";
 
 interface GameState {
   playerColor: PlayerColor;
@@ -70,14 +71,6 @@ function Game() {
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
   const hasPlayedLowTimeSound = useRef(false);
-  const gameStartSoundRef = useRef<HTMLAudioElement | null>(null);
-  const lowTimeSoundRef = useRef<HTMLAudioElement | null>(null);
-  if (!gameStartSoundRef.current) {
-    gameStartSoundRef.current = new Audio("/sounds/game_time.mp3");
-  }
-  if (!lowTimeSoundRef.current) {
-    lowTimeSoundRef.current = new Audio("/sounds/low_time.mp3");
-  }
 
   // Derived values for rematch/new game
   const isPlayer = username !== null && (username === whiteUsername || username === blackUsername);
@@ -266,9 +259,8 @@ function Game() {
     return subscribe((msg) => {
       // Handle startGame — either for this game or a new game (rematch/new game match)
       if (msg.action === "startGame") {
-        if (gameStartSoundRef.current && !pgn && document.visibilityState === "visible") {
-          gameStartSoundRef.current.currentTime = 0;
-          gameStartSoundRef.current.play().catch(() => {});
+        if (!pgn && document.visibilityState === "visible") {
+          SoundManager.play("game_time");
         }
         if (msg.gameId === gameId) {
           setPlayerColor(spectatingUsername ? (spectatingUsername === msg.blackUsername ? "black" : "white") : msg.color);
@@ -404,23 +396,10 @@ function Game() {
     const myTime = playerColor === "white" ? whiteTime : blackTime;
     if (myTime <= lowTimeWarning * 1000 && myTime > 0 && !hasPlayedLowTimeSound.current) {
       hasPlayedLowTimeSound.current = true;
-      const sound = lowTimeSoundRef.current;
-      if (sound) {
-        sound.currentTime = 0;
-        sound.volume = 0.5;
-        sound.play().catch(() => {});
-        setTimeout(() => {
-          const fadeInterval = setInterval(() => {
-            if (sound.volume > 0.03) {
-              sound.volume = Math.max(0, sound.volume - 0.03);
-            } else {
-              sound.volume = 0;
-              sound.pause();
-              clearInterval(fadeInterval);
-            }
-          }, 100);
-        }, 3000);
-      }
+      SoundManager.play("low_time");
+      setTimeout(() => {
+        SoundManager.fadeOutAndStop("low_time", 3);
+      }, 3000);
     }
   }, [whiteTime, blackTime, playerColor, gameResult, isPlayer, gameStarted, lowTimeWarning]);
 

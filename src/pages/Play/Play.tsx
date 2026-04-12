@@ -9,6 +9,7 @@ import { DEFAULT_TIME_CONTROL, TIME_CONTROLS } from "../../constants/timeControl
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { Button } from "../../components/buttons/Button";
 import type { Player } from "../../types/chess";
+import { SoundManager } from "../../utils/SoundManager";
 
 function Play() {
   const { sendMessage, subscribe, isConnected, username } = useWebSocket();
@@ -44,10 +45,6 @@ function Play() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   const hasRequestedPlayers = useRef(false);
-  const gameStartSoundRef = useRef<HTMLAudioElement | null>(null);
-  if (!gameStartSoundRef.current) {
-    gameStartSoundRef.current = new Audio("/sounds/game_time.mp3");
-  }
 
   // Keyboard shortcut to flip board
   useEffect(() => {
@@ -81,9 +78,8 @@ function Play() {
   useEffect(() => {
     return subscribe((msg) => {
       if (msg.action === "startGame") {
-        if (gameStartSoundRef.current && document.visibilityState === "visible") {
-          gameStartSoundRef.current.currentTime = 0;
-          gameStartSoundRef.current.play().catch(() => {});
+        if (document.visibilityState === "visible") {
+          SoundManager.play("game_time");
         }
         // Cancel all outstanding challenges (Layout handles navigation)
         setChallengesSent((prev) => {
