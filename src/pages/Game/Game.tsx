@@ -68,6 +68,9 @@ function Game() {
   const [initialTime, setInitialTime] = useState<number | null>(null);
   const [rematchOfferedBy, setRematchOfferedBy] = useState<string | null>(null);
   const [isWaitingNewGame, setIsWaitingNewGame] = useState(false);
+  const [isExploring, setIsExploring] = useState(false);
+  const [explorationPgn, setExplorationPgn] = useState<string | null>(null);
+  const [resetExplorationCounter, setResetExplorationCounter] = useState(0);
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
   const hasPlayedLowTimeSound = useRef(false);
@@ -86,6 +89,13 @@ function Game() {
     (viewedMoveIndex === -1 || viewedMoveIndex < totalMoveCount - 1);
   const displayPosition = viewedMoveIndex !== null
     ? getFenAtMoveIndex(pgn || "", viewedMoveIndex)
+    : null;
+  const explorationMoveCount = getMoveCount(explorationPgn || "");
+  const [explorationViewedIndex, setExplorationViewedIndex] = useState<number | null>(null);
+  const isExplorationViewingHistory = isExploring && explorationViewedIndex !== null &&
+    (explorationViewedIndex === -1 || explorationViewedIndex < explorationMoveCount - 1);
+  const explorationDisplayPosition = isExplorationViewingHistory && explorationViewedIndex !== null
+    ? getFenAtMoveIndex(explorationPgn || "", explorationViewedIndex)
     : null;
 
   // Always request fresh game state from server when connected
@@ -132,14 +142,43 @@ function Game() {
 
   const handlePgnChange = (newPgn: string) => {
     setPgn(newPgn);
-    // Select the latest move
     const newMoveCount = getMoveCount(newPgn);
-    setViewedMoveIndex(newMoveCount > 0 ? newMoveCount - 1 : null);
+    // Only auto-advance to latest if already viewing live position
+    const currentTotal = getMoveCount(pgn || "");
+    const isAtLive = viewedMoveIndex === null || viewedMoveIndex >= currentTotal - 1;
+    if (isAtLive) {
+      setViewedMoveIndex(newMoveCount > 0 ? newMoveCount - 1 : null);
+    }
+    // Otherwise keep viewedMoveIndex unchanged — user stays on their historical position
   };
 
   const handleMoveClick = (moveIndex: number) => {
+    if (isExploring) {
+      setExplorationViewedIndex(moveIndex);
+      return;
+    }
     setViewedMoveIndex(moveIndex);
   };
+
+  const handleExplorationChange = useCallback((exploring: boolean) => {
+    setIsExploring(exploring);
+  }, []);
+
+  const handleExplorationPgnChange = useCallback((newPgn: string) => {
+    setExplorationPgn(newPgn);
+    const count = getMoveCount(newPgn);
+    setExplorationViewedIndex(count > 0 ? count - 1 : null);
+  }, []);
+
+  const handleJumpToLive = useCallback(() => {
+    setIsExploring(false);
+    setExplorationPgn(null);
+    setExplorationViewedIndex(null);
+    setResetExplorationCounter(c => c + 1);
+    // Reset to latest move
+    const moveCount = getMoveCount(pgn || "");
+    setViewedMoveIndex(moveCount > 0 ? moveCount - 1 : null);
+  }, [pgn]);
 
   const handleResign = useCallback(() => {
     if (gameId && gameResult === null) {
@@ -206,6 +245,21 @@ function Game() {
   }, [initialTime, increment, isBotGame, opponentUsername, isWaitingNewGame, sendMessage]);
 
   const handleNavigate = useCallback((direction: "prev" | "next") => {
+    if (isExploring) {
+      // Navigate within exploration PGN
+      if (direction === "prev") {
+        if (explorationViewedIndex === null) return;
+        if (explorationViewedIndex > 0) {
+          setExplorationViewedIndex(explorationViewedIndex - 1);
+        } else if (explorationViewedIndex === 0) {
+          setExplorationViewedIndex(-1); // Starting position
+        }
+      } else {
+        if (explorationViewedIndex === null || explorationViewedIndex >= explorationMoveCount - 1) return;
+        setExplorationViewedIndex(explorationViewedIndex + 1);
+      }
+      return;
+    }
     if (direction === "prev") {
       if (viewedMoveIndex === null) {
         // Going back from live position
@@ -227,7 +281,7 @@ function Game() {
         setViewedMoveIndex(viewedMoveIndex + 1);
       }
     }
-  }, [viewedMoveIndex, totalMoveCount]);
+  }, [viewedMoveIndex, totalMoveCount, isExploring, explorationViewedIndex, explorationMoveCount]);
 
   useEffect(() => {
     if (!isConnected && status === "playing") {
@@ -285,6 +339,11 @@ function Game() {
           if (msg.result === "white") setBlackTime(0);
           else if (msg.result === "black") setWhiteTime(0);
         }
+        // Exit exploration and jump to final position
+        setIsExploring(false);
+        setExplorationPgn(null);
+        setExplorationViewedIndex(null);
+        setResetExplorationCounter(c => c + 1);
       }
 
       if (msg.action === "move" && msg.gameId === gameId) {
@@ -477,21 +536,28 @@ function Game() {
               onTurnChange={handleTurnChange}
               onPgnChange={handlePgnChange}
               onSizeChange={setBoardSize}
-              overridePosition={displayPosition}
-              isViewingHistory={isViewingHistory}
+              overridePosition={isExploring ? explorationDisplayPosition : displayPosition}
+              isViewingHistory={isExploring ? (isExplorationViewingHistory ?? false) : isViewingHistory}
               gameResult={gameResult}
               flipped={flipped}
               isSpectator={!isPlayer}
+              onExplorationChange={handleExplorationChange}
+              onExplorationPgnChange={handleExplorationPgnChange}
+              resetExploration={resetExplorationCounter}
+              viewedMoveIndex={isExploring ? explorationViewedIndex : viewedMoveIndex}
             />
           </GameClock>
         </div>
         {!isMobile && <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + panelOffset }}>
           <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0}}>
             <MoveNotation
-              pgn={pgn || ""}
-              viewedMoveIndex={viewedMoveIndex}
+              pgn={isExploring && explorationPgn ? explorationPgn : (pgn || "")}
+              viewedMoveIndex={isExploring ? explorationViewedIndex : viewedMoveIndex}
               onMoveClick={handleMoveClick}
               boardSize={boardSize}
+              isExploring={isExploring}
+              isViewingHistory={isExploring ? (isExplorationViewingHistory ?? false) : isViewingHistory}
+              onJumpToLive={handleJumpToLive}
             />
             <div style={{ marginTop: 11 }}>
               {gameResult !== null && gameEndReason !== null ? (
@@ -531,10 +597,13 @@ function Game() {
       {isMobile && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
           <MoveNotation
-            pgn={pgn || ""}
-            viewedMoveIndex={viewedMoveIndex}
+            pgn={isExploring && explorationPgn ? explorationPgn : (pgn || "")}
+            viewedMoveIndex={isExploring ? explorationViewedIndex : viewedMoveIndex}
             onMoveClick={handleMoveClick}
             collapsible
+            isExploring={isExploring}
+            isViewingHistory={isExploring ? (isExplorationViewingHistory ?? false) : isViewingHistory}
+            onJumpToLive={handleJumpToLive}
           />
           <Chat 
             gameId={gameId} 

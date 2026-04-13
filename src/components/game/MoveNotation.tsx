@@ -13,6 +13,9 @@ interface MoveNotationProps {
   onMoveClick?: (moveIndex: number) => void;
   collapsible?: boolean;
   boardSize?: number;
+  isExploring?: boolean;
+  isViewingHistory?: boolean;
+  onJumpToLive?: () => void;
 }
 
 interface ParsedMove {
@@ -52,6 +55,9 @@ export function MoveNotation({
   onMoveClick,
   collapsible = false,
   boardSize = 400,
+  isExploring = false,
+  isViewingHistory = false,
+  onJumpToLive,
 }: MoveNotationProps) {
   const moves = parsePgn(pgn);
   const moveRowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -126,6 +132,32 @@ export function MoveNotation({
             <ModernCopyIcon color={theme.colors.text} size={iconSize} />
           )}
         </button>
+      )}
+      {(isExploring || isViewingHistory) && (
+        <div
+          onClick={onJumpToLive}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "4px 8px",
+            marginBottom: 6,
+            cursor: "pointer",
+            borderRadius: 4,
+            backgroundColor: "rgba(255, 23, 68, 0.15)",
+          }}
+        >
+          <span style={{
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            backgroundColor: "#ff1744",
+            display: "inline-block",
+          }} />
+          <span style={{ fontSize: "0.75rem", color: "#ff1744", fontWeight: 600 }}>
+            Back to live
+          </span>
+        </div>
       )}
       {moves.length === 0 ? (
         <p style={{ color: theme.colors.placeholder, fontSize: "0.875rem", margin: 0 }}>
