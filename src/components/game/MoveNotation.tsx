@@ -142,21 +142,18 @@ export function MoveNotation({
             marginBottom: 6,
             cursor: "pointer",
             borderRadius: 4,
-            backgroundColor: "rgba(9, 141, 78, 0.15)",
+            backgroundColor: "rgba(255, 23, 68, 0.15)",
           }}
         >
           <span style={{
             width: 8,
             height: 8,
             borderRadius: "50%",
-            backgroundColor: "#098d4e",
+            backgroundColor: "#ff1744",
             display: "inline-block",
           }} />
-          <span style={{ fontSize: "0.75rem", color: "#098d4e", fontWeight: 600 }}>
-            LIVE
-          </span>
-          <span style={{ fontSize: "0.75rem", color: theme.colors.placeholder }}>
-            Exploring variation
+          <span style={{ fontSize: "0.75rem", color: "#ff1744", fontWeight: 600 }}>
+            Back to live
           </span>
         </div>
       )}
