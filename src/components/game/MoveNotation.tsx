@@ -14,6 +14,7 @@ interface MoveNotationProps {
   collapsible?: boolean;
   boardSize?: number;
   isExploring?: boolean;
+  isViewingHistory?: boolean;
   onJumpToLive?: () => void;
 }
 
@@ -55,6 +56,7 @@ export function MoveNotation({
   collapsible = false,
   boardSize = 400,
   isExploring = false,
+  isViewingHistory = false,
   onJumpToLive,
 }: MoveNotationProps) {
   const moves = parsePgn(pgn);
@@ -131,7 +133,7 @@ export function MoveNotation({
           )}
         </button>
       )}
-      {isExploring && (
+      {(isExploring || isViewingHistory) && (
         <div
           onClick={onJumpToLive}
           style={{

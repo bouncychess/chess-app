@@ -528,8 +528,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         const newFen = chess.fen();
         const newTurn = msg.turn as PlayerColor;
 
-        // If spectator is exploring, update live state silently but don't touch chessground
-        if (isSpectatorRef.current && isExploringRef.current) {
+        // If viewing history or spectator is exploring, update live state silently but don't touch chessground
+        if (isViewingHistoryRef.current || (isSpectatorRef.current && isExploringRef.current)) {
           setChessPosition(newFen);
           setCurrentTurn(newTurn);
           onPgnChangeRef.current?.(chess.pgn());
