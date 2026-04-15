@@ -39,6 +39,16 @@ export function getFenAtMoveIndex(pgn: string, moveIndex: number | null): string
 }
 
 /**
+ * Returns a Chess instance replayed up to a given half-move index from a PGN.
+ */
+export function replayToIndex(pgn: string, moveIndex: number): Chess {
+  if (!pgn || moveIndex < 0) return new Chess();
+  const chess = new Chess();
+  chess.loadPgn((pgn.match(new RegExp(`^.*?${Math.floor(moveIndex / 2) + 1}\\.\\s*\\S+${moveIndex % 2 === 1 ? "\\s+\\S+" : ""}`, "s")) || [""])[0]);
+  return chess;
+}
+
+/**
  * Gets the total number of half-moves from a PGN string.
  */
 export function getMoveCount(pgn: string): number {

@@ -142,9 +142,14 @@ function Game() {
 
   const handlePgnChange = (newPgn: string) => {
     setPgn(newPgn);
-    // Select the latest move
     const newMoveCount = getMoveCount(newPgn);
-    setViewedMoveIndex(newMoveCount > 0 ? newMoveCount - 1 : null);
+    // Only auto-advance to latest if already viewing live position
+    const currentTotal = getMoveCount(pgn || "");
+    const isAtLive = viewedMoveIndex === null || viewedMoveIndex >= currentTotal - 1;
+    if (isAtLive) {
+      setViewedMoveIndex(newMoveCount > 0 ? newMoveCount - 1 : null);
+    }
+    // Otherwise keep viewedMoveIndex unchanged — user stays on their historical position
   };
 
   const handleMoveClick = (moveIndex: number) => {
@@ -551,6 +556,7 @@ function Game() {
               onMoveClick={handleMoveClick}
               boardSize={boardSize}
               isExploring={isExploring}
+              isViewingHistory={isExploring ? (isExplorationViewingHistory ?? false) : isViewingHistory}
               onJumpToLive={handleJumpToLive}
             />
             <div style={{ marginTop: 11 }}>
@@ -596,6 +602,7 @@ function Game() {
             onMoveClick={handleMoveClick}
             collapsible
             isExploring={isExploring}
+            isViewingHistory={isExploring ? (isExplorationViewingHistory ?? false) : isViewingHistory}
             onJumpToLive={handleJumpToLive}
           />
           <Chat 
