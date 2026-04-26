@@ -1,8 +1,6 @@
-// Used in previous layout where GameEndDisplay rendered title/subtitle in a ResizableCard
-// import { theme } from "../../config/theme";
-// import { ResizableCard } from "../ResizableCard";
+import { theme } from "../../config/theme";
 import { Button } from "../buttons/Button";
-import type { GameResult, GameEndReason } from "../../types/chess";
+import type { GameResult, GameEndReason, PlayerColor } from "../../types/chess";
 
 interface GameEndDisplayProps {
   gameResult: GameResult;
@@ -13,6 +11,15 @@ interface GameEndDisplayProps {
   hasOfferedRematch?: boolean;
   opponentOfferedRematch?: boolean;
   isWaitingNewGame?: boolean;
+  whiteRatingDelta?: number | null;
+  blackRatingDelta?: number | null;
+  playerColor?: PlayerColor;
+}
+
+function formatDelta(delta: number): string {
+  const rounded = Math.round(delta);
+  if (rounded > 0) return `+${rounded}`;
+  return `${rounded}`;
 }
 
 const reasonLabels: Record<GameEndReason, string> = {
@@ -55,8 +62,14 @@ export function GameEndDisplay({
   hasOfferedRematch = false,
   opponentOfferedRematch = false,
   isWaitingNewGame = false,
+  whiteRatingDelta = null,
+  blackRatingDelta = null,
+  playerColor,
 }: GameEndDisplayProps) {
   if (!isPlayer) return null;
+
+  // Show only this player's own delta — they don't need both.
+  const myDelta = playerColor === "white" ? whiteRatingDelta : blackRatingDelta;
 
   const getRematchButton = () => {
     if (opponentOfferedRematch) {
@@ -90,6 +103,16 @@ export function GameEndDisplay({
       >
         {isWaitingNewGame ? "Waiting..." : "New Game"}
       </Button>
+      {typeof myDelta === "number" && (
+        <span style={{
+          fontWeight: 600,
+          color: myDelta > 0 ? theme.colors.success
+               : myDelta < 0 ? theme.colors.danger
+               : theme.colors.placeholder,
+        }}>
+          {formatDelta(myDelta)}
+        </span>
+      )}
     </div>
   );
 }

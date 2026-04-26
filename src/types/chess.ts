@@ -41,7 +41,8 @@ export type GameAction =
   | "challengeDeclined"
   | "challengeCanceled"
   | "checkGame"
-  | "gameStatus";
+  | "gameStatus"
+  | "ratingUpdate";
 
 export interface Player {
   id: string;
@@ -50,6 +51,21 @@ export interface Player {
   gameId?: string;
   isBot?: boolean;
   timeControl?: string;
+  rating?: number;
+}
+
+export interface RatingUpdate {
+  action: "ratingUpdate";
+  gameId: string;
+  tcKey: string;
+  whiteUsername: string;
+  blackUsername: string;
+  whiteOldRating: number;
+  whiteNewRating: number;
+  whiteDelta: number;
+  blackOldRating: number;
+  blackNewRating: number;
+  blackDelta: number;
 }
 
 export interface TimeControl {

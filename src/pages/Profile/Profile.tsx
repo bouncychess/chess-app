@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '../../components/buttons/Button';
 import { theme } from '../../config/theme';
-import { getUserProfile, updateUserProfile, assignUserRole, type UserProfile, type UserRole } from '../../services/profile';
+import { getUserProfile, updateUserProfile, assignUserRole, getRating, getGamesPlayed, type UserProfile, type UserRole } from '../../services/profile';
 import { useAuth } from '../../context/AuthContext';
 import { RoleBadge } from '../../components/RoleBadge';
+import { TIME_CONTROLS, tcKey } from '../../constants/timeControls';
 import GameHistory from './GameHistory';
 
 export default function Profile() {
@@ -98,10 +99,42 @@ export default function Profile() {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 8 }}>
                 <h2 style={{ margin: 0, fontSize: '1.75rem' }}>{profile?.username}</h2>
                 <RoleBadge role={profile?.role ?? null} />
-                <span style={{ color: theme.colors.placeholder, fontSize: '0.875rem' }}>
-                    Rating: <span style={{ color: theme.colors.text, fontWeight: 600 }}>{profile?.rating ?? 0}</span>
-                </span>
             </div>
+
+            {profile && (
+                <div style={{ ...theme.card, maxWidth: 600, marginBottom: 12, padding: 12 }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: 8, color: theme.colors.text }}>
+                        Ratings
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                        <thead>
+                            <tr style={{ color: theme.colors.placeholder, textAlign: 'left' }}>
+                                <th style={{ padding: '4px 8px', fontWeight: 500 }}>Time control</th>
+                                <th style={{ padding: '4px 8px', fontWeight: 500, textAlign: 'right' }}>Rating</th>
+                                <th style={{ padding: '4px 8px', fontWeight: 500, textAlign: 'right' }}>Games</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {TIME_CONTROLS.map(tc => {
+                                const key = tcKey(tc);
+                                const rating = Math.round(getRating(profile, key));
+                                const games = getGamesPlayed(profile, key);
+                                return (
+                                    <tr key={key}>
+                                        <td style={{ padding: '4px 8px', color: theme.colors.text }}>{tc.label}</td>
+                                        <td style={{ padding: '4px 8px', textAlign: 'right', color: theme.colors.text, fontWeight: 600 }}>
+                                            {rating}
+                                        </td>
+                                        <td style={{ padding: '4px 8px', textAlign: 'right', color: theme.colors.placeholder }}>
+                                            {games}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
 
             <div style={{ ...theme.card, maxWidth: 600, maxHeight: 600, overflow: 'auto', padding: 12 }}>
                 <div style={{ marginBottom: 8 }}>

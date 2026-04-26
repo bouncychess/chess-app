@@ -68,6 +68,10 @@ function Game() {
   const [initialTime, setInitialTime] = useState<number | null>(null);
   const [rematchOfferedBy, setRematchOfferedBy] = useState<string | null>(null);
   const [isWaitingNewGame, setIsWaitingNewGame] = useState(false);
+  const [whiteRating, setWhiteRating] = useState<number | null>(null);
+  const [blackRating, setBlackRating] = useState<number | null>(null);
+  const [whiteRatingDelta, setWhiteRatingDelta] = useState<number | null>(null);
+  const [blackRatingDelta, setBlackRatingDelta] = useState<number | null>(null);
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
   const hasPlayedLowTimeSound = useRef(false);
@@ -267,6 +271,10 @@ function Game() {
           setCurrentTurn(msg.turn || "white");
           setWhiteUsername(msg.whiteUsername);
           setBlackUsername(msg.blackUsername);
+          setWhiteRating(typeof msg.whiteRating === "number" ? msg.whiteRating : null);
+          setBlackRating(typeof msg.blackRating === "number" ? msg.blackRating : null);
+          setWhiteRatingDelta(null);
+          setBlackRatingDelta(null);
           setStatus("playing");
           if (msg.whiteTime !== undefined) {
             setWhiteTime(msg.whiteTime);
@@ -285,6 +293,13 @@ function Game() {
           if (msg.result === "white") setBlackTime(0);
           else if (msg.result === "black") setWhiteTime(0);
         }
+      }
+
+      if (msg.action === "ratingUpdate" && msg.gameId === gameId) {
+        setWhiteRating(msg.whiteNewRating);
+        setBlackRating(msg.blackNewRating);
+        setWhiteRatingDelta(msg.whiteDelta);
+        setBlackRatingDelta(msg.blackDelta);
       }
 
       if (msg.action === "move" && msg.gameId === gameId) {
@@ -464,6 +479,8 @@ function Game() {
             blackTime={blackTime}
             whiteName={whiteUsername}
             blackName={blackUsername}
+            whiteRating={whiteRating}
+            blackRating={blackRating}
             activeColor={status === "playing" && gameStarted ? currentTurn : null}
             playerColor={playerColor}
             onFlip={() => setFlipped(f => !f)}
@@ -504,6 +521,9 @@ function Game() {
                   hasOfferedRematch={hasOfferedRematch}
                   opponentOfferedRematch={opponentOfferedRematch}
                   isWaitingNewGame={isWaitingNewGame}
+                  whiteRatingDelta={whiteRatingDelta}
+                  blackRatingDelta={blackRatingDelta}
+                  playerColor={playerColor}
                 />
               ) : isPlayer ? (
                 <GameControls

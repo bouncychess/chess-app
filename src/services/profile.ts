@@ -4,12 +4,33 @@ const PROFILE_API_URL = import.meta.env.VITE_PROFILE_API_URL || 'http://localhos
 
 export type UserRole = 'admin' | 'staff';
 
+// Matches chess-service's RatingEntry shape on the wire. We keep `rd` because
+// the Profile page may eventually want to render an uncertainty indicator;
+// other surfaces only need `rating` + `games_played`.
+export type RatingEntry = {
+    rating: number;
+    rd: number;
+    volatility: number;
+    games_played: number;
+    last_update?: string;
+};
+
 export type UserProfile = {
     username: string;
-    rating: number;
+    ratings: Record<string, RatingEntry>;
     profile_details: string | null;
     role: UserRole | null;
 };
+
+// Returns the rating for a given TC key, defaulting to 0 for unplayed TCs
+// (matches the "all 6 TCs default to 0" UX requirement).
+export function getRating(profile: UserProfile, key: string): number {
+    return profile.ratings?.[key]?.rating ?? 0;
+}
+
+export function getGamesPlayed(profile: UserProfile, key: string): number {
+    return profile.ratings?.[key]?.games_played ?? 0;
+}
 
 export type UserProfileUpdate = {
     profile_details: string | null;
