@@ -140,14 +140,14 @@ jobs:
             --output text)
 
           # Try chess-play EC2 stack first, fall back to chess-live custom domain
-          PLAY_IP=$(aws cloudformation describe-stacks \
+          PLAY_DOMAIN=$(aws cloudformation describe-stacks \
             --stack-name ${{ env.PLAY_STACK }} \
-            --query "Stacks[0].Outputs[?OutputKey=='InstancePublicIp'].OutputValue" \
+            --query "Stacks[0].Outputs[?OutputKey=='PlayDomain'].OutputValue" \
             --output text 2>/dev/null || echo "")
 
-          if [ -n "$PLAY_IP" ] && [ "$PLAY_IP" != "None" ]; then
-            echo "Using chess-play EC2: $PLAY_IP"
-            echo "VITE_WEBSOCKET_URL=ws://$PLAY_IP:8080/ws" >> $GITHUB_ENV
+          if [ -n "$PLAY_DOMAIN" ] && [ "$PLAY_DOMAIN" != "None" ]; then
+            echo "Using chess-play domain: $PLAY_DOMAIN"
+            echo "VITE_WEBSOCKET_URL=wss://$PLAY_DOMAIN/ws" >> $GITHUB_ENV
           else
             echo "chess-play stack not found, using chess-live"
             echo "VITE_WEBSOCKET_URL=wss://${{ env.WS_DOMAIN }}" >> $GITHUB_ENV
