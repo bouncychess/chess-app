@@ -113,6 +113,11 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
                   ) : (
                     player.username
                   )}
+                  {typeof player.rating === 'number' && (
+                    <span style={{ marginLeft: 6, color: theme.colors.placeholder, fontSize: '0.8125rem' }}>
+                      ({player.rating})
+                    </span>
+                  )}
                   {player.isBot && <BotIcon color={theme.colors.botIcon} />}
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}>

@@ -21,6 +21,8 @@ interface GameState {
   blackTime: number;
   whiteUsername: string | null;
   blackUsername: string | null;
+  whiteRating: number | null;
+  blackRating: number | null;
   increment: number;
 }
 
@@ -71,6 +73,10 @@ function Game() {
   const [isExploring, setIsExploring] = useState(false);
   const [explorationPgn, setExplorationPgn] = useState<string | null>(null);
   const [resetExplorationCounter, setResetExplorationCounter] = useState(0);
+  const [whiteRating, setWhiteRating] = useState<number | null>(initialState?.whiteRating ?? null);
+  const [blackRating, setBlackRating] = useState<number | null>(initialState?.blackRating ?? null);
+  const [whiteRatingDelta, setWhiteRatingDelta] = useState<number | null>(null);
+  const [blackRatingDelta, setBlackRatingDelta] = useState<number | null>(null);
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
   const hasPlayedLowTimeSound = useRef(false);
@@ -304,6 +310,8 @@ function Game() {
           blackTime: msg.blackTime,
           whiteUsername: msg.whiteUsername,
           blackUsername: msg.blackUsername,
+          whiteRating: typeof msg.whiteRating === "number" ? msg.whiteRating : null,
+          blackRating: typeof msg.blackRating === "number" ? msg.blackRating : null,
           increment: msg.increment ?? 0,
           spectatingUsername,
         },
@@ -321,6 +329,10 @@ function Game() {
           setCurrentTurn(msg.turn || "white");
           setWhiteUsername(msg.whiteUsername);
           setBlackUsername(msg.blackUsername);
+          setWhiteRating(typeof msg.whiteRating === "number" ? msg.whiteRating : null);
+          setBlackRating(typeof msg.blackRating === "number" ? msg.blackRating : null);
+          setWhiteRatingDelta(null);
+          setBlackRatingDelta(null);
           setStatus("playing");
           if (msg.whiteTime !== undefined) {
             setWhiteTime(msg.whiteTime);
@@ -344,6 +356,13 @@ function Game() {
         setExplorationPgn(null);
         setExplorationViewedIndex(null);
         setResetExplorationCounter(c => c + 1);
+      }
+
+      if (msg.action === "ratingUpdate" && msg.gameId === gameId) {
+        setWhiteRating(msg.whiteNewRating);
+        setBlackRating(msg.blackNewRating);
+        setWhiteRatingDelta(msg.whiteDelta);
+        setBlackRatingDelta(msg.blackDelta);
       }
 
       if (msg.action === "move" && msg.gameId === gameId) {
@@ -405,6 +424,8 @@ function Game() {
         setBlackTime(msg.blackTime);
         setWhiteUsername(msg.whiteUsername);
         setBlackUsername(msg.blackUsername);
+        setWhiteRating(typeof msg.whiteRating === "number" ? msg.whiteRating : null);
+        setBlackRating(typeof msg.blackRating === "number" ? msg.blackRating : null);
         setIncrement(msg.increment ?? 0);
         setInitialTime(msg.initialTime ?? null);
         setPgn(msg.pgn ?? null);
@@ -523,6 +544,8 @@ function Game() {
             blackTime={blackTime}
             whiteName={whiteUsername}
             blackName={blackUsername}
+            whiteRating={whiteRating}
+            blackRating={blackRating}
             activeColor={status === "playing" && gameStarted ? currentTurn : null}
             playerColor={playerColor}
             onFlip={() => setFlipped(f => !f)}
@@ -570,6 +593,9 @@ function Game() {
                   hasOfferedRematch={hasOfferedRematch}
                   opponentOfferedRematch={opponentOfferedRematch}
                   isWaitingNewGame={isWaitingNewGame}
+                  whiteRatingDelta={whiteRatingDelta}
+                  blackRatingDelta={blackRatingDelta}
+                  playerColor={playerColor}
                 />
               ) : isPlayer ? (
                 <GameControls
