@@ -21,6 +21,8 @@ interface GameState {
   blackTime: number;
   whiteUsername: string | null;
   blackUsername: string | null;
+  whiteRating: number | null;
+  blackRating: number | null;
   increment: number;
 }
 
@@ -68,8 +70,8 @@ function Game() {
   const [initialTime, setInitialTime] = useState<number | null>(null);
   const [rematchOfferedBy, setRematchOfferedBy] = useState<string | null>(null);
   const [isWaitingNewGame, setIsWaitingNewGame] = useState(false);
-  const [whiteRating, setWhiteRating] = useState<number | null>(null);
-  const [blackRating, setBlackRating] = useState<number | null>(null);
+  const [whiteRating, setWhiteRating] = useState<number | null>(initialState?.whiteRating ?? null);
+  const [blackRating, setBlackRating] = useState<number | null>(initialState?.blackRating ?? null);
   const [whiteRatingDelta, setWhiteRatingDelta] = useState<number | null>(null);
   const [blackRatingDelta, setBlackRatingDelta] = useState<number | null>(null);
   const hasRequestedGameState = useRef(false);
@@ -254,6 +256,8 @@ function Game() {
           blackTime: msg.blackTime,
           whiteUsername: msg.whiteUsername,
           blackUsername: msg.blackUsername,
+          whiteRating: typeof msg.whiteRating === "number" ? msg.whiteRating : null,
+          blackRating: typeof msg.blackRating === "number" ? msg.blackRating : null,
           increment: msg.increment ?? 0,
           spectatingUsername,
         },
@@ -361,6 +365,8 @@ function Game() {
         setBlackTime(msg.blackTime);
         setWhiteUsername(msg.whiteUsername);
         setBlackUsername(msg.blackUsername);
+        setWhiteRating(typeof msg.whiteRating === "number" ? msg.whiteRating : null);
+        setBlackRating(typeof msg.blackRating === "number" ? msg.blackRating : null);
         setIncrement(msg.increment ?? 0);
         setInitialTime(msg.initialTime ?? null);
         setPgn(msg.pgn ?? null);
