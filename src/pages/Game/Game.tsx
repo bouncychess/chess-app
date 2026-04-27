@@ -300,16 +300,10 @@ function Game() {
       }
 
       if (msg.action === "ratingUpdate" && msg.gameId === gameId) {
-        // chess-play sends two ratingUpdates per game:
-        // - one at game start (delta=0) carrying current ratings for the in-game tags
-        // - one after game end (non-zero delta) for the result animation
-        // Only set the delta state for the post-game one so we don't render "+0".
         setWhiteRating(msg.whiteNewRating);
         setBlackRating(msg.blackNewRating);
-        if (msg.whiteDelta !== 0 || msg.blackDelta !== 0) {
-          setWhiteRatingDelta(msg.whiteDelta);
-          setBlackRatingDelta(msg.blackDelta);
-        }
+        setWhiteRatingDelta(msg.whiteDelta);
+        setBlackRatingDelta(msg.blackDelta);
       }
 
       if (msg.action === "move" && msg.gameId === gameId) {
