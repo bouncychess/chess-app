@@ -17,9 +17,9 @@ interface GameEndDisplayProps {
 }
 
 function formatDelta(delta: number): string {
-  const rounded = Math.round(delta);
-  if (rounded > 0) return `+${rounded}`;
-  return `${rounded}`;
+  const truncated = Math.trunc(delta);
+  if (truncated > 0) return `+${truncated}`;
+  return `${truncated}`;
 }
 
 const reasonLabels: Record<GameEndReason, string> = {

@@ -25,7 +25,7 @@ function PlayerRow({ name, rating, time, isActive, trailing }: { name: string | 
         {name || ""}
         {typeof rating === "number" && (
           <span style={{ marginLeft: 6, color: theme.colors.placeholder, fontWeight: 400 }}>
-            ({rating})
+            ({Math.trunc(rating)})
           </span>
         )}
       </span>

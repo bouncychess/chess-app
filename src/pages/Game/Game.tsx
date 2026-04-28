@@ -13,6 +13,8 @@ import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
 import { useSettings } from "../../context/SettingsContext";
 import type { PlayerColor, ChatMessage, GameResult, GameEndReason, Player } from "../../types/chess";
 import { SoundManager } from "../../utils/SoundManager";
+import { fetchPlayerRatings } from "../../services/ratings";
+import { tcKey } from "../../constants/timeControls";
 
 interface GameState {
   playerColor: PlayerColor;
@@ -356,13 +358,12 @@ function Game() {
         setExplorationPgn(null);
         setExplorationViewedIndex(null);
         setResetExplorationCounter(c => c + 1);
-      }
-
-      if (msg.action === "ratingUpdate" && msg.gameId === gameId) {
-        setWhiteRating(msg.whiteNewRating);
-        setBlackRating(msg.blackNewRating);
-        setWhiteRatingDelta(msg.whiteDelta);
-        setBlackRatingDelta(msg.blackDelta);
+        // Rating deltas are bundled into gameEnd for rated games. Unrated
+        // games (guests, bots, non-canonical TC) omit these fields.
+        if (typeof msg.whiteNewRating === "number") setWhiteRating(msg.whiteNewRating);
+        if (typeof msg.blackNewRating === "number") setBlackRating(msg.blackNewRating);
+        if (typeof msg.whiteDelta === "number") setWhiteRatingDelta(msg.whiteDelta);
+        if (typeof msg.blackDelta === "number") setBlackRatingDelta(msg.blackDelta);
       }
 
       if (msg.action === "move" && msg.gameId === gameId) {
@@ -447,6 +448,31 @@ function Game() {
       }
     });
   }, [subscribe, gameId, navigate, spectatingUsername, pgn, username]);
+
+  // Fetch player ratings from chess-service once the game's players and TC
+  // are known. We skip if the WebSocket already provided ratings (chess-play
+  // may include them in startGame/gameState in the future), and refetch if
+  // the players or time control change (e.g. on rematch with the same opponent
+  // at a different TC).
+  useEffect(() => {
+    if (!whiteUsername || !blackUsername || initialTime === null) return;
+    if (whiteRating !== null && blackRating !== null) return;
+    const key = tcKey({ initialTime, increment });
+    const controller = new AbortController();
+    fetchPlayerRatings([whiteUsername, blackUsername], controller.signal)
+      .then((ratings) => {
+        const w = ratings[whiteUsername]?.[key];
+        const b = ratings[blackUsername]?.[key];
+        if (typeof w === "number") setWhiteRating((prev) => prev ?? w);
+        if (typeof b === "number") setBlackRating((prev) => prev ?? b);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          console.error("Failed to fetch player ratings:", err);
+        }
+      });
+    return () => controller.abort();
+  }, [whiteUsername, blackUsername, initialTime, increment, whiteRating, blackRating]);
 
   // Client-side clock countdown using actual elapsed time
   // Only starts ticking after white makes their first move
@@ -648,6 +674,9 @@ function Game() {
               hasOfferedRematch={hasOfferedRematch}
               opponentOfferedRematch={opponentOfferedRematch}
               isWaitingNewGame={isWaitingNewGame}
+              whiteRatingDelta={whiteRatingDelta}
+              blackRatingDelta={blackRatingDelta}
+              playerColor={playerColor}
             />
           ) : (
             <GameControls
