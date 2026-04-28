@@ -117,7 +117,7 @@ export default function Profile() {
                         <tbody>
                             {TIME_CONTROLS.map(tc => {
                                 const key = tcKey(tc);
-                                const rating = Math.round(getRating(profile, key));
+                                const rating = Math.trunc(getRating(profile, key));
                                 const games = getGamesPlayed(profile, key);
                                 return (
                                     <tr key={key}>

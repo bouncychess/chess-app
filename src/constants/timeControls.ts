@@ -12,9 +12,8 @@ export const TIME_CONTROLS: TimeControl[] = [
 export const DEFAULT_TIME_CONTROL: TimeControl = TIME_CONTROLS[1];
 
 // tcKey produces the canonical "<initialMs>+<incrementMs>" string used as the
-// map key in user.ratings, in chess-play's PlayerInfo.timeControl, and in the
-// ratingUpdate WebSocket message. Must mirror chess-play/time_controls.go and
-// chess-service/app/services/time_controls.py.
+// map key in user.ratings and on the gameEnd WebSocket message. Must mirror
+// chess-play/time_controls.go and chess-service/app/services/time_controls.py.
 export const tcKey = (tc: { initialTime: number; increment: number }): string =>
     `${tc.initialTime}+${tc.increment}`;
 

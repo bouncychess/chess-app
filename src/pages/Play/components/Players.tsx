@@ -117,7 +117,7 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
                     player.username
                   )}
                   <span style={{ marginLeft: 6, color: theme.colors.placeholder, fontSize: '0.8125rem' }}>
-                    ({ratings?.[player.username]?.[currentTcKey] ?? player.rating ?? 0})
+                    ({Math.trunc(ratings?.[player.username]?.[currentTcKey] ?? player.rating ?? 0)})
                   </span>
                   {player.isBot && <BotIcon color={theme.colors.botIcon} />}
                 </span>
