@@ -64,7 +64,6 @@ function Game() {
   const [pgn, setPgn] = useState<string | null>(null);
   const [chatLog, setChatLog] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<'online' | 'disconnected' | 'playing' | 'loading'>('loading');
-  const [gameStarted, setGameStarted] = useState(false);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [gameEndReason, setGameEndReason] = useState<GameEndReason | null>(null);
   const [viewedMoveIndex, setViewedMoveIndex] = useState<number | null>(null);
@@ -91,6 +90,8 @@ function Game() {
 
   // Derived values for move navigation
   const totalMoveCount = getMoveCount(pgn || "");
+  // Game is "started" (clock should run) only after at least one move has been played
+  const gameStarted = totalMoveCount > 0;
   // Abort is allowed pre-first-move, only for active players
   const canAbort = totalMoveCount === 0 && status === "playing" && gameResult === null && isPlayer;
   // Viewing history means looking at a position other than the latest (including starting position -1)
@@ -129,7 +130,6 @@ function Game() {
 
   const handleTurnChange = useCallback((newTurn: PlayerColor) => {
     setCurrentTurn(newTurn);
-    setGameStarted(true);
     if (newTurn === "black") {
       setWhiteTime(prev => prev + increment);
     } else {
@@ -406,7 +406,6 @@ function Game() {
           if (game.pgn) {
             const moveCount = getMoveCount(game.pgn);
             setViewedMoveIndex(moveCount > 0 ? moveCount - 1 : null);
-            setGameStarted(true);
           }
           setStatus("playing");
         }).catch((err) => {
@@ -439,9 +438,6 @@ function Game() {
         if (msg.pgn) {
           const moveCount = getMoveCount(msg.pgn);
           setViewedMoveIndex(moveCount > 0 ? moveCount - 1 : null);
-          setGameStarted(true);
-        } else if (msg.currentTurn === "black") {
-          setGameStarted(true);
         }
       }
     });
