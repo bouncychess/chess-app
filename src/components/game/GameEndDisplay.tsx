@@ -31,9 +31,13 @@ const reasonLabels: Record<GameEndReason, string> = {
   fifty_move_rule: "by fifty-move rule",
   threefold_repetition: "by threefold repetition",
   agreement: "by agreement",
+  abort: "Game aborted",
 };
 
 export function formatGameEndMessage(result: GameResult, reason: GameEndReason): { title: string; subtitle: string } {
+  if (reason === "abort") {
+    return { title: "Game aborted", subtitle: "" };
+  }
   if (reason === "resignation") {
     if (result === "white") {
       return { title: "Black resigned", subtitle: "White is victorious" };
@@ -56,6 +60,7 @@ export function formatGameEndMessage(result: GameResult, reason: GameEndReason):
 }
 
 export function GameEndDisplay({
+  gameEndReason,
   onRematch,
   onNewGame,
   isPlayer = false,
@@ -67,6 +72,9 @@ export function GameEndDisplay({
   playerColor,
 }: GameEndDisplayProps) {
   if (!isPlayer) return null;
+
+  // Aborted games are deleted on the server — no rematch / no rating delta.
+  const isAborted = gameEndReason === "abort";
 
   // Show only this player's own delta — they don't need both.
   const myDelta = playerColor === "white" ? whiteRatingDelta : blackRatingDelta;
@@ -96,7 +104,7 @@ export function GameEndDisplay({
       alignItems: "center",
       flexWrap: "nowrap",
     }}>
-      {getRematchButton()}
+      {!isAborted && getRematchButton()}
       <Button
         variant="primary"
         onClick={onNewGame}

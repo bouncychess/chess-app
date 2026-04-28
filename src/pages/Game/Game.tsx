@@ -92,6 +92,10 @@ function Game() {
   const totalMoveCount = getMoveCount(pgn || "");
   // Game is "started" (clock should run) only after at least one move has been played
   const gameStarted = totalMoveCount > 0;
+  // Abort is allowed until *this player* has made their own first move:
+  // white can abort while totalMoveCount === 0, black until totalMoveCount === 2.
+  const playerHasMoved = playerColor === "white" ? totalMoveCount >= 1 : totalMoveCount >= 2;
+  const canAbort = !playerHasMoved && status === "playing" && gameResult === null && isPlayer;
   // Viewing history means looking at a position other than the latest (including starting position -1)
   const isViewingHistory = viewedMoveIndex !== null &&
     (viewedMoveIndex === -1 || viewedMoveIndex < totalMoveCount - 1);
@@ -156,6 +160,12 @@ function Game() {
       sendMessage({ action: "resign", gameId });
     }
   }, [gameId, gameResult, sendMessage]);
+
+  const handleAbort = useCallback(() => {
+    if (gameId && gameResult === null && !playerHasMoved) {
+      sendMessage({ action: "abort", gameId });
+    }
+  }, [gameId, gameResult, playerHasMoved, sendMessage]);
 
   const handleOfferDraw = useCallback(() => {
     if (gameId && gameResult === null && !hasOfferedDraw) {
@@ -612,6 +622,8 @@ function Game() {
                   onOfferDraw={handleOfferDraw}
                   onAcceptDraw={handleAcceptDraw}
                   onDeclineDraw={handleDeclineDraw}
+                  onAbort={handleAbort}
+                  canAbort={canAbort}
                   isGameOver={gameResult !== null}
                   hasOfferedDraw={hasOfferedDraw}
                   hasPendingDrawOffer={pendingDrawOffer !== null}
@@ -664,6 +676,8 @@ function Game() {
               onOfferDraw={handleOfferDraw}
               onAcceptDraw={handleAcceptDraw}
               onDeclineDraw={handleDeclineDraw}
+              onAbort={handleAbort}
+              canAbort={canAbort}
               isGameOver={gameResult !== null}
               hasOfferedDraw={hasOfferedDraw}
               hasPendingDrawOffer={pendingDrawOffer !== null}

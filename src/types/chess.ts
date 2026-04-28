@@ -1,6 +1,6 @@
 export type PlayerColor = "white" | "black";
 
-export type GameResult = "white" | "black" | "draw";
+export type GameResult = "white" | "black" | "draw" | "aborted";
 
 export type GameEndReason =
   | "checkmate"
@@ -10,7 +10,8 @@ export type GameEndReason =
   | "insufficient_material"
   | "fifty_move_rule"
   | "threefold_repetition"
-  | "agreement";
+  | "agreement"
+  | "abort";
 
 export type GameAction =
   | "play"
@@ -27,6 +28,7 @@ export type GameAction =
   | "gameState" 
   | "playBot"
   | "resign"
+  | "abort"
   | "offerDraw"
   | "respondDraw"
   | "drawOffer"
