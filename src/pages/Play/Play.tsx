@@ -1,15 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useWebSocket } from "../../context/WebSocketContext";
 import { useTheme } from "../../context/ThemeContext";
 import Board from "../../components/game/Board";
 import Players from "./components/Players";
 import { GameClock } from "../../components/game/GameClock";
 import { TimeControlSelector } from "./components/TimeControlSelector";
-import { DEFAULT_TIME_CONTROL, TIME_CONTROLS } from "../../constants/timeControls";
+import { DEFAULT_TIME_CONTROL, TIME_CONTROLS, tcKey } from "../../constants/timeControls";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { Button } from "../../components/buttons/Button";
 import type { Player } from "../../types/chess";
 import { SoundManager } from "../../utils/SoundManager";
+import { fetchPlayerRatings, type PlayerRatings } from "../../services/ratings";
 
 function Play() {
   const { sendMessage, subscribe, isConnected, username } = useWebSocket();
@@ -27,6 +28,37 @@ function Play() {
   const [previewTime, setPreviewTime] = useState<number>(selectedTimeControl.initialTime);
   const [dots, setDots] = useState(1);
   const [challengesSent, setChallengesSent] = useState<Set<string>>(new Set());
+  const [ratings, setRatings] = useState<PlayerRatings>({});
+
+  const usernamesKey = useMemo(
+    () => players.map(p => p.username).sort().join(","),
+    [players],
+  );
+
+  // Refetch ratings whenever the player roster changes. Uses a stable
+  // usernames key so identical re-pushes from the WebSocket don't cause a
+  // refetch, and AbortController so a stale response can't overwrite a fresh
+  // one if the roster changes again before the fetch resolves.
+  useEffect(() => {
+    if (players.length === 0) {
+      setRatings({});
+      return;
+    }
+    const controller = new AbortController();
+    fetchPlayerRatings(players.map(p => p.username), controller.signal)
+      .then(setRatings)
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          console.error("Failed to fetch player ratings:", err);
+        }
+      });
+    return () => controller.abort();
+    // players is read inside the effect; depending on usernamesKey avoids
+    // refetching when the array reference changes but the roster is the same.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usernamesKey]);
+
+  const currentTcKey = tcKey(selectedTimeControl);
 
   useEffect(() => {
     if (status !== "waiting") return;
@@ -213,6 +245,8 @@ function Play() {
               onPlayBot={onPlayBot}
               onChallenge={onChallenge}
               challengesSent={challengesSent}
+              ratings={ratings}
+              currentTcKey={currentTcKey}
             />
           </div>
         </div>

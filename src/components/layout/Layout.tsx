@@ -32,6 +32,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                     blackTime: msg.blackTime,
                     whiteUsername: msg.whiteUsername,
                     blackUsername: msg.blackUsername,
+                    whiteRating: typeof msg.whiteRating === "number" ? msg.whiteRating : null,
+                    blackRating: typeof msg.blackRating === "number" ? msg.blackRating : null,
                     increment: msg.increment,
                 },
             });

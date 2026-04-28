@@ -11,15 +11,24 @@ interface GameClockProps {
   playerColor: PlayerColor;
   whiteName: string | null;
   blackName: string | null;
+  whiteRating?: number | null;
+  blackRating?: number | null;
   children?: ReactNode;
   onFlip?: () => void;
   flipped?: boolean;
 }
 
-function PlayerRow({ name, time, isActive, trailing }: { name: string | null; time: number; isActive: boolean; trailing?: ReactNode }) {
+function PlayerRow({ name, rating, time, isActive, trailing }: { name: string | null; rating?: number | null; time: number; isActive: boolean; trailing?: ReactNode }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span style={{ fontSize: "0.85rem", fontWeight: 500 }}>{name || ""}</span>
+      <span style={{ fontSize: "0.85rem", fontWeight: 500 }}>
+        {name || ""}
+        {typeof rating === "number" && (
+          <span style={{ marginLeft: 6, color: theme.colors.placeholder, fontWeight: 400 }}>
+            ({Math.trunc(rating)})
+          </span>
+        )}
+      </span>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {trailing}
         <Clock time={time} isActive={isActive} />
@@ -30,7 +39,7 @@ function PlayerRow({ name, time, isActive, trailing }: { name: string | null; ti
 
 const MOBILE_BREAKPOINT = 768;
 
-export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whiteName, blackName, children, onFlip, flipped = false }: GameClockProps) {
+export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whiteName, blackName, whiteRating, blackRating, children, onFlip, flipped = false }: GameClockProps) {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
 
   useEffect(() => {
@@ -43,9 +52,9 @@ export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whit
   const isPlayerWhite = flipped ? playerColor !== "white" : playerColor === "white";
 
   const topRow = isPlayerWhite ? (
-    <PlayerRow name={blackName} time={blackTime} isActive={activeColor === "black"} />
+    <PlayerRow name={blackName} rating={blackRating} time={blackTime} isActive={activeColor === "black"} />
   ) : (
-    <PlayerRow name={whiteName} time={whiteTime} isActive={activeColor === "white"} />
+    <PlayerRow name={whiteName} rating={whiteRating} time={whiteTime} isActive={activeColor === "white"} />
   );
 
   const flipButton = onFlip ? (
@@ -71,9 +80,9 @@ export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whit
   ) : undefined;
 
   const bottomRow = isPlayerWhite ? (
-    <PlayerRow name={whiteName} time={whiteTime} isActive={activeColor === "white"} trailing={flipButton} />
+    <PlayerRow name={whiteName} rating={whiteRating} time={whiteTime} isActive={activeColor === "white"} trailing={flipButton} />
   ) : (
-    <PlayerRow name={blackName} time={blackTime} isActive={activeColor === "black"} trailing={flipButton} />
+    <PlayerRow name={blackName} rating={blackRating} time={blackTime} isActive={activeColor === "black"} trailing={flipButton} />
   );
 
   const content = (

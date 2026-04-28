@@ -4,6 +4,7 @@ import type { Player } from "../../../types/chess";
 import { theme } from "../../../config/theme";
 import { useTheme } from "../../../context/ThemeContext";
 import { ResizableCard } from "../../../components/ResizableCard";
+import type { PlayerRatings } from "../../../services/ratings";
 
 function ChallengeSentButton({ username, onChallenge }: { username: string; onChallenge: (u: string) => void }) {
   const [dots, setDots] = useState(1);
@@ -73,13 +74,15 @@ interface PlayersProps {
   onPlayBot?: (botUsername: string) => void;
   onChallenge?: (username: string) => void;
   challengesSent?: Set<string>;
+  ratings?: PlayerRatings;
+  currentTcKey: string;
 }
 
 function isProfileLinkable(username: string) {
   return !username.startsWith('Guest_') && !username.endsWith('_bot');
 }
 
-function Players({ players, currentUsername, onPlayBot, onChallenge, challengesSent = new Set() }: PlayersProps) {
+function Players({ players, currentUsername, onPlayBot, onChallenge, challengesSent = new Set(), ratings, currentTcKey }: PlayersProps) {
   const { mode } = useTheme();
   const isWindows = mode === "windows";
 
@@ -113,6 +116,9 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
                   ) : (
                     player.username
                   )}
+                  <span style={{ marginLeft: 6, color: theme.colors.placeholder, fontSize: '0.8125rem' }}>
+                    ({Math.trunc(ratings?.[player.username]?.[currentTcKey] ?? player.rating ?? 0)})
+                  </span>
                   {player.isBot && <BotIcon color={theme.colors.botIcon} />}
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}>

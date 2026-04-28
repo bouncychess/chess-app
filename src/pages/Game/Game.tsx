@@ -13,6 +13,8 @@ import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
 import { useSettings } from "../../context/SettingsContext";
 import type { PlayerColor, ChatMessage, GameResult, GameEndReason, Player } from "../../types/chess";
 import { SoundManager } from "../../utils/SoundManager";
+import { fetchPlayerRatings } from "../../services/ratings";
+import { tcKey } from "../../constants/timeControls";
 
 interface GameState {
   playerColor: PlayerColor;
@@ -21,6 +23,8 @@ interface GameState {
   blackTime: number;
   whiteUsername: string | null;
   blackUsername: string | null;
+  whiteRating: number | null;
+  blackRating: number | null;
   increment: number;
 }
 
@@ -68,6 +72,10 @@ function Game() {
   const [initialTime, setInitialTime] = useState<number | null>(null);
   const [rematchOfferedBy, setRematchOfferedBy] = useState<string | null>(null);
   const [isWaitingNewGame, setIsWaitingNewGame] = useState(false);
+  const [whiteRating, setWhiteRating] = useState<number | null>(initialState?.whiteRating ?? null);
+  const [blackRating, setBlackRating] = useState<number | null>(initialState?.blackRating ?? null);
+  const [whiteRatingDelta, setWhiteRatingDelta] = useState<number | null>(null);
+  const [blackRatingDelta, setBlackRatingDelta] = useState<number | null>(null);
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
   const hasPlayedLowTimeSound = useRef(false);
@@ -250,6 +258,8 @@ function Game() {
           blackTime: msg.blackTime,
           whiteUsername: msg.whiteUsername,
           blackUsername: msg.blackUsername,
+          whiteRating: typeof msg.whiteRating === "number" ? msg.whiteRating : null,
+          blackRating: typeof msg.blackRating === "number" ? msg.blackRating : null,
           increment: msg.increment ?? 0,
           spectatingUsername,
         },
@@ -267,6 +277,10 @@ function Game() {
           setCurrentTurn(msg.turn || "white");
           setWhiteUsername(msg.whiteUsername);
           setBlackUsername(msg.blackUsername);
+          setWhiteRating(typeof msg.whiteRating === "number" ? msg.whiteRating : null);
+          setBlackRating(typeof msg.blackRating === "number" ? msg.blackRating : null);
+          setWhiteRatingDelta(null);
+          setBlackRatingDelta(null);
           setStatus("playing");
           if (msg.whiteTime !== undefined) {
             setWhiteTime(msg.whiteTime);
@@ -285,6 +299,12 @@ function Game() {
           if (msg.result === "white") setBlackTime(0);
           else if (msg.result === "black") setWhiteTime(0);
         }
+        // Rating deltas are bundled into gameEnd for rated games. Unrated
+        // games (guests, bots, non-canonical TC) omit these fields.
+        if (typeof msg.whiteNewRating === "number") setWhiteRating(msg.whiteNewRating);
+        if (typeof msg.blackNewRating === "number") setBlackRating(msg.blackNewRating);
+        if (typeof msg.whiteDelta === "number") setWhiteRatingDelta(msg.whiteDelta);
+        if (typeof msg.blackDelta === "number") setBlackRatingDelta(msg.blackDelta);
       }
 
       if (msg.action === "move" && msg.gameId === gameId) {
@@ -346,6 +366,8 @@ function Game() {
         setBlackTime(msg.blackTime);
         setWhiteUsername(msg.whiteUsername);
         setBlackUsername(msg.blackUsername);
+        setWhiteRating(typeof msg.whiteRating === "number" ? msg.whiteRating : null);
+        setBlackRating(typeof msg.blackRating === "number" ? msg.blackRating : null);
         setIncrement(msg.increment ?? 0);
         setInitialTime(msg.initialTime ?? null);
         setPgn(msg.pgn ?? null);
@@ -367,6 +389,31 @@ function Game() {
       }
     });
   }, [subscribe, gameId, navigate, spectatingUsername, pgn, username]);
+
+  // Fetch player ratings from chess-service once the game's players and TC
+  // are known. We skip if the WebSocket already provided ratings (chess-play
+  // may include them in startGame/gameState in the future), and refetch if
+  // the players or time control change (e.g. on rematch with the same opponent
+  // at a different TC).
+  useEffect(() => {
+    if (!whiteUsername || !blackUsername || initialTime === null) return;
+    if (whiteRating !== null && blackRating !== null) return;
+    const key = tcKey({ initialTime, increment });
+    const controller = new AbortController();
+    fetchPlayerRatings([whiteUsername, blackUsername], controller.signal)
+      .then((ratings) => {
+        const w = ratings[whiteUsername]?.[key];
+        const b = ratings[blackUsername]?.[key];
+        if (typeof w === "number") setWhiteRating((prev) => prev ?? w);
+        if (typeof b === "number") setBlackRating((prev) => prev ?? b);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          console.error("Failed to fetch player ratings:", err);
+        }
+      });
+    return () => controller.abort();
+  }, [whiteUsername, blackUsername, initialTime, increment, whiteRating, blackRating]);
 
   // Client-side clock countdown using actual elapsed time
   // Only starts ticking after white makes their first move
@@ -464,6 +511,8 @@ function Game() {
             blackTime={blackTime}
             whiteName={whiteUsername}
             blackName={blackUsername}
+            whiteRating={whiteRating}
+            blackRating={blackRating}
             activeColor={status === "playing" && gameStarted ? currentTurn : null}
             playerColor={playerColor}
             onFlip={() => setFlipped(f => !f)}
@@ -504,6 +553,9 @@ function Game() {
                   hasOfferedRematch={hasOfferedRematch}
                   opponentOfferedRematch={opponentOfferedRematch}
                   isWaitingNewGame={isWaitingNewGame}
+                  whiteRatingDelta={whiteRatingDelta}
+                  blackRatingDelta={blackRatingDelta}
+                  playerColor={playerColor}
                 />
               ) : isPlayer ? (
                 <GameControls
@@ -553,6 +605,9 @@ function Game() {
               hasOfferedRematch={hasOfferedRematch}
               opponentOfferedRematch={opponentOfferedRematch}
               isWaitingNewGame={isWaitingNewGame}
+              whiteRatingDelta={whiteRatingDelta}
+              blackRatingDelta={blackRatingDelta}
+              playerColor={playerColor}
             />
           ) : (
             <GameControls

@@ -50,6 +50,7 @@ export interface Player {
   gameId?: string;
   isBot?: boolean;
   timeControl?: string;
+  rating?: number;
 }
 
 export interface TimeControl {
