@@ -41,7 +41,8 @@ export type GameAction =
   | "challengeDeclined"
   | "challengeCanceled"
   | "checkGame"
-  | "gameStatus";
+  | "gameStatus"
+  | "error";
 
 export interface Player {
   id: string;

@@ -14,6 +14,7 @@ import { useSettings } from "../../context/SettingsContext";
 import type { PlayerColor, ChatMessage, GameResult, GameEndReason, Player } from "../../types/chess";
 import { SoundManager } from "../../utils/SoundManager";
 import { fetchPlayerRatings } from "../../services/ratings";
+import { getGame } from "../../services/games";
 import { tcKey } from "../../constants/timeControls";
 
 interface GameState {
@@ -79,6 +80,7 @@ function Game() {
   const [blackRating, setBlackRating] = useState<number | null>(initialState?.blackRating ?? null);
   const [whiteRatingDelta, setWhiteRatingDelta] = useState<number | null>(null);
   const [blackRatingDelta, setBlackRatingDelta] = useState<number | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
   const hasPlayedLowTimeSound = useRef(false);
@@ -417,6 +419,53 @@ function Game() {
         }
       }
 
+      // chess-play has expired the game from memory. Fall back to the
+      // persisted record from chess-service. If chess-service also doesn't
+      // have it, the game truly doesn't exist.
+      if (msg.action === "error" && msg.code === "game_not_found" && msg.gameId === gameId && gameId) {
+        getGame(gameId).then((game) => {
+          if (!game) {
+            setNotFound(true);
+            return;
+          }
+          const myColor: PlayerColor =
+            username === game.white_username ? "white"
+            : username === game.black_username ? "black"
+            : "white";
+          setPlayerColor(spectatingUsername
+            ? (spectatingUsername === game.black_username ? "black" : "white")
+            : myColor);
+          setCurrentTurn("white");
+          setWhiteUsername(game.white_username);
+          setBlackUsername(game.black_username);
+          setWhiteTime(game.white_time_remaining ?? game.initial_time);
+          setBlackTime(game.black_time_remaining ?? game.initial_time);
+          setIncrement(game.increment);
+          setInitialTime(game.initial_time);
+          setWhiteRating(game.white_rating_after ?? null);
+          setBlackRating(game.black_rating_after ?? null);
+          setPgn(game.pgn ?? null);
+          setChatLog((game.chat ?? []).map((c) => ({
+            username: c.username,
+            message: c.message,
+            isSystem: c.isSystem ?? undefined,
+          })) as ChatMessage[]);
+          if (game.result) {
+            setGameResult(game.result);
+            setGameEndReason((game.end_reason ?? null) as GameEndReason | null);
+          }
+          if (game.pgn) {
+            const moveCount = getMoveCount(game.pgn);
+            setViewedMoveIndex(moveCount > 0 ? moveCount - 1 : null);
+            setGameStarted(true);
+          }
+          setStatus("playing");
+        }).catch((err) => {
+          console.error("Failed to fetch game from chess-service:", err);
+          setNotFound(true);
+        });
+      }
+
       // Handle gameState response when loading game directly
       if (msg.action === "gameState" && msg.gameId === gameId) {
         setPlayerColor(spectatingUsername ? (spectatingUsername === msg.blackUsername ? "black" : "white") : msg.playerColor);
@@ -549,6 +598,10 @@ function Game() {
 
   if (!gameId) {
     return <div style={{ padding: 20 }}>Invalid game ID</div>;
+  }
+
+  if (notFound) {
+    return <div style={{ padding: 20 }}>Game not found</div>;
   }
 
   if (status === "loading") {
