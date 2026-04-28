@@ -91,6 +91,8 @@ function Game() {
 
   // Derived values for move navigation
   const totalMoveCount = getMoveCount(pgn || "");
+  // Abort is allowed pre-first-move, only for active players
+  const canAbort = totalMoveCount === 0 && status === "playing" && gameResult === null && isPlayer;
   // Viewing history means looking at a position other than the latest (including starting position -1)
   const isViewingHistory = viewedMoveIndex !== null &&
     (viewedMoveIndex === -1 || viewedMoveIndex < totalMoveCount - 1);
@@ -156,6 +158,12 @@ function Game() {
       sendMessage({ action: "resign", gameId });
     }
   }, [gameId, gameResult, sendMessage]);
+
+  const handleAbort = useCallback(() => {
+    if (gameId && gameResult === null && totalMoveCount === 0) {
+      sendMessage({ action: "abort", gameId });
+    }
+  }, [gameId, gameResult, totalMoveCount, sendMessage]);
 
   const handleOfferDraw = useCallback(() => {
     if (gameId && gameResult === null && !hasOfferedDraw) {
@@ -616,6 +624,8 @@ function Game() {
                   onOfferDraw={handleOfferDraw}
                   onAcceptDraw={handleAcceptDraw}
                   onDeclineDraw={handleDeclineDraw}
+                  onAbort={handleAbort}
+                  canAbort={canAbort}
                   isGameOver={gameResult !== null}
                   hasOfferedDraw={hasOfferedDraw}
                   hasPendingDrawOffer={pendingDrawOffer !== null}
@@ -668,6 +678,8 @@ function Game() {
               onOfferDraw={handleOfferDraw}
               onAcceptDraw={handleAcceptDraw}
               onDeclineDraw={handleDeclineDraw}
+              onAbort={handleAbort}
+              canAbort={canAbort}
               isGameOver={gameResult !== null}
               hasOfferedDraw={hasOfferedDraw}
               hasPendingDrawOffer={pendingDrawOffer !== null}
