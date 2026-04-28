@@ -67,14 +67,15 @@ export function GameControls({
         </>
       ) : (
         <>
-          {canAbort && (
+          {canAbort ? (
             <Button variant="secondary" onClick={onAbort}>
               Abort
             </Button>
+          ) : (
+            <Button variant="danger" onClick={handleResignClick}>
+              Resign
+            </Button>
           )}
-          <Button variant="danger" onClick={handleResignClick}>
-            Resign
-          </Button>
           {hasPendingDrawOffer ? (
             <>
               <span style={{ fontSize: "1rem", color: theme.colors.text }}>

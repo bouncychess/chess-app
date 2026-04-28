@@ -92,8 +92,10 @@ function Game() {
   const totalMoveCount = getMoveCount(pgn || "");
   // Game is "started" (clock should run) only after at least one move has been played
   const gameStarted = totalMoveCount > 0;
-  // Abort is allowed pre-first-move, only for active players
-  const canAbort = totalMoveCount === 0 && status === "playing" && gameResult === null && isPlayer;
+  // Abort is allowed until *this player* has made their own first move:
+  // white can abort while totalMoveCount === 0, black until totalMoveCount === 2.
+  const playerHasMoved = playerColor === "white" ? totalMoveCount >= 1 : totalMoveCount >= 2;
+  const canAbort = !playerHasMoved && status === "playing" && gameResult === null && isPlayer;
   // Viewing history means looking at a position other than the latest (including starting position -1)
   const isViewingHistory = viewedMoveIndex !== null &&
     (viewedMoveIndex === -1 || viewedMoveIndex < totalMoveCount - 1);
