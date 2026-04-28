@@ -201,10 +201,10 @@ function Game() {
   }, [gameId, gameResult, sendMessage]);
 
   const handleAbort = useCallback(() => {
-    if (gameId && gameResult === null && totalMoveCount === 0) {
+    if (gameId && gameResult === null && !playerHasMoved) {
       sendMessage({ action: "abort", gameId });
     }
-  }, [gameId, gameResult, totalMoveCount, sendMessage]);
+  }, [gameId, gameResult, playerHasMoved, sendMessage]);
 
   const handleOfferDraw = useCallback(() => {
     if (gameId && gameResult === null && !hasOfferedDraw) {
