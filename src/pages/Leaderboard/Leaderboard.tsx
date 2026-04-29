@@ -53,10 +53,16 @@ export default function Leaderboard() {
                                 <table
                                     style={{
                                         width: '100%',
+                                        tableLayout: 'fixed',
                                         borderCollapse: 'collapse',
                                         color: theme.colors.text,
                                     }}
                                 >
+                                    <colgroup>
+                                        <col style={{ width: 36 }} />
+                                        <col />
+                                        <col style={{ width: 64 }} />
+                                    </colgroup>
                                     <thead>
                                         <tr style={{ backgroundColor: theme.colors.background }}>
                                             <th
