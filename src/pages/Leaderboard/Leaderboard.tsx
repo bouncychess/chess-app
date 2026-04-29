@@ -53,14 +53,15 @@ export default function Leaderboard() {
                                 <table
                                     style={{
                                         width: '100%',
+                                        tableLayout: 'fixed',
                                         borderCollapse: 'collapse',
                                         color: theme.colors.text,
                                     }}
                                 >
                                     <colgroup>
-                                        <col style={{ width: '1%' }} />
+                                        <col style={{ width: 36 }} />
                                         <col />
-                                        <col style={{ width: '1%' }} />
+                                        <col style={{ width: 80 }} />
                                     </colgroup>
                                     <thead>
                                         <tr style={{ backgroundColor: theme.colors.background }}>
@@ -82,6 +83,7 @@ export default function Leaderboard() {
                                                     ...cellStyle,
                                                     textAlign: 'right',
                                                     whiteSpace: 'nowrap',
+                                                    paddingRight: 14,
                                                 }}
                                             >
                                                 Rating
@@ -139,6 +141,7 @@ export default function Leaderboard() {
                                                             textAlign: 'right',
                                                             whiteSpace: 'nowrap',
                                                             fontWeight: 600,
+                                                            paddingRight: 14,
                                                         }}
                                                     >
                                                         {row.rating}
