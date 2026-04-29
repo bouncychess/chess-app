@@ -34,6 +34,14 @@ const ProfileIcon = () => (
     </svg>
 );
 
+const LeaderboardIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="4" y="10" width="4" height="10" />
+        <rect x="10" y="4" width="4" height="16" />
+        <rect x="16" y="13" width="4" height="7" />
+    </svg>
+);
+
 const SignInIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
@@ -149,6 +157,12 @@ function SidebarContent({ collapsed, onCollapse, onExpand, showToggle = true }: 
                         <Link to="/play" style={linkStyle} title="Play">
                             <PlayIcon />
                             {!collapsed && <span>Play</span>}
+                        </Link>
+                    </li>
+                    <li>
+                        <Link to="/leaderboard" style={linkStyle} title="Leaderboard">
+                            <LeaderboardIcon />
+                            {!collapsed && <span>Leaderboard</span>}
                         </Link>
                     </li>
                     <li>

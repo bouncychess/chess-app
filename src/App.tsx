@@ -6,6 +6,7 @@ import Logout from './pages/Logout/Logout';
 import Article from './pages/Article/Article';
 import ArticleEditor from './pages/ArticleEditor/ArticleEditor';
 import Profile from './pages/Profile/Profile';
+import Leaderboard from './pages/Leaderboard/Leaderboard';
 import SignIn from './pages/SignIn/SignIn';
 import Clive from './pages/Clive/Clive';
 import Diet from './pages/Diet/Diet';
@@ -47,6 +48,7 @@ export default function App() {
                         <Route path="/game/:gameId" element={<Layout><GameWrapper /></Layout>} />
                         <Route path="/news" element={<Layout><News /></Layout>} />
                         <Route path="/user/:username" element={<Layout><Profile /></Layout>} />
+                        <Route path="/leaderboard" element={<Layout><Leaderboard /></Layout>} />
                         <Route path="/signin" element={<Layout><SignIn /></Layout>} />
                         <Route path="/articles/editor" element={<Layout><ArticleEditor /></Layout>} />
                         <Route path="/articles/editor/:id" element={<Layout><ArticleEditor /></Layout>} />
