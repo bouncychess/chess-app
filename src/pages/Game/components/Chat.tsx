@@ -93,7 +93,7 @@ function Chat({ gameId, initialChat = [], collapsible = false, gameEndReason, ga
 
     return (
         <ResizableCard
-            style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+            style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
             collapsible={collapsible}
             collapsedLabel="Chat"
         >

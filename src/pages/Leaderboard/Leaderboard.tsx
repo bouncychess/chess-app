@@ -63,7 +63,7 @@ export default function Leaderboard() {
                                                 style={{
                                                     ...cellStyle,
                                                     textAlign: 'right',
-                                                    width: '15%',
+                                                    whiteSpace: 'nowrap',
                                                     color: theme.colors.placeholder,
                                                 }}
                                             >
@@ -76,7 +76,7 @@ export default function Leaderboard() {
                                                 style={{
                                                     ...cellStyle,
                                                     textAlign: 'right',
-                                                    width: '25%',
+                                                    whiteSpace: 'nowrap',
                                                 }}
                                             >
                                                 Rating
@@ -104,12 +104,21 @@ export default function Leaderboard() {
                                                         style={{
                                                             ...cellStyle,
                                                             textAlign: 'right',
+                                                            whiteSpace: 'nowrap',
                                                             color: theme.colors.placeholder,
                                                         }}
                                                     >
                                                         {row.rank}
                                                     </td>
-                                                    <td style={cellStyle}>
+                                                    <td
+                                                        style={{
+                                                            ...cellStyle,
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap',
+                                                            maxWidth: 0,
+                                                        }}
+                                                    >
                                                         <Link
                                                             to={`/user/${row.username}`}
                                                             style={{
@@ -124,6 +133,7 @@ export default function Leaderboard() {
                                                         style={{
                                                             ...cellStyle,
                                                             textAlign: 'right',
+                                                            whiteSpace: 'nowrap',
                                                             fontWeight: 600,
                                                         }}
                                                     >
