@@ -57,6 +57,11 @@ export default function Leaderboard() {
                                         color: theme.colors.text,
                                     }}
                                 >
+                                    <colgroup>
+                                        <col style={{ width: '1%' }} />
+                                        <col />
+                                        <col style={{ width: '1%' }} />
+                                    </colgroup>
                                     <thead>
                                         <tr style={{ backgroundColor: theme.colors.background }}>
                                             <th
@@ -116,7 +121,6 @@ export default function Leaderboard() {
                                                             overflow: 'hidden',
                                                             textOverflow: 'ellipsis',
                                                             whiteSpace: 'nowrap',
-                                                            maxWidth: 0,
                                                         }}
                                                     >
                                                         <Link
