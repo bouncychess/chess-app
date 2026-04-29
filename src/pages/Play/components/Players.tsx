@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Player } from "../../../types/chess";
 import { theme } from "../../../config/theme";
@@ -86,14 +86,28 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
   const { mode } = useTheme();
   const isWindows = mode === "windows";
 
+  const getRating = (player: Player) =>
+    Math.trunc(ratings?.[player.username]?.[currentTcKey] ?? player.rating ?? 0);
+
+  const sortedPlayers = useMemo(() => {
+    return [...players].sort((a, b) => {
+      // Bots after non-bots; relative order within each group preserved by
+      // returning 0 when the rating tiebreak isn't needed (stable sort).
+      if (a.isBot !== b.isBot) return a.isBot ? 1 : -1;
+      if (a.isBot) return 0;
+      return getRating(b) - getRating(a);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [players, ratings, currentTcKey]);
+
   return (
     <ResizableCard style={{ height: "100%", display: "flex", flexDirection: "column", width: 250, overflow: "hidden" }}>
       <h3 style={{ ...theme.cardHeader, flexShrink: 0 }}>Online Players</h3>
-      {players.length === 0 ? (
+      {sortedPlayers.length === 0 ? (
         <p style={{ color: theme.colors.placeholder, fontSize: "0.875rem", margin: 0 }}>No players online</p>
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0, flex: 1, overflowY: "auto" }}>
-          {players.map((player) => {
+          {sortedPlayers.map((player) => {
             const canChallenge = !player.isBot && player.username !== currentUsername && player.status !== "playing" && onChallenge;
             const hasSentChallenge = challengesSent.has(player.username);
 
@@ -140,7 +154,7 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
                     whiteSpace: 'nowrap',
                     flexShrink: 0,
                   }}>
-                    ({Math.trunc(ratings?.[player.username]?.[currentTcKey] ?? player.rating ?? 0)})
+                    ({getRating(player)})
                   </span>
                   {player.isBot && <BotIcon color={theme.colors.botIcon} />}
                 </span>
