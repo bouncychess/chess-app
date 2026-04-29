@@ -87,7 +87,7 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
   const isWindows = mode === "windows";
 
   return (
-    <ResizableCard style={{ height: "100%", display: "flex", flexDirection: "column", width: 250 }}>
+    <ResizableCard style={{ height: "100%", display: "flex", flexDirection: "column", width: 250, overflow: "hidden" }}>
       <h3 style={{ ...theme.cardHeader, flexShrink: 0 }}>Online Players</h3>
       {players.length === 0 ? (
         <p style={{ color: theme.colors.placeholder, fontSize: "0.875rem", margin: 0 }}>No players online</p>
@@ -100,28 +100,53 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
             return (
               <li key={player.username} style={{
                 padding: "4px 8px",
-                display: "flex",
-                justifyContent: "space-between",
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr) auto auto",
+                columnGap: 8,
                 alignItems: "center",
                 backgroundColor: player.username === currentUsername ? "rgba(34, 197, 94, 0.3)" : "transparent",
                 borderRadius: 4,
                 fontSize: "0.875rem",
                 color: theme.colors.text,
               }}>
-                <span style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
                   {isProfileLinkable(player.username) ? (
-                    <Link to={`/user/${player.username}`} style={{ color: theme.colors.link, textDecoration: "none" }}>
+                    <Link
+                      to={`/user/${player.username}`}
+                      style={{
+                        color: theme.colors.link,
+                        textDecoration: "none",
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       {player.username}
                     </Link>
                   ) : (
-                    player.username
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {player.username}
+                    </span>
                   )}
-                  <span style={{ marginLeft: 6, color: theme.colors.placeholder, fontSize: '0.8125rem' }}>
-                    ({Math.trunc(ratings?.[player.username]?.[currentTcKey] ?? player.rating ?? 0)})
-                  </span>
                   {player.isBot && <BotIcon color={theme.colors.botIcon} />}
                 </span>
-                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{
+                  color: theme.colors.placeholder,
+                  fontSize: '0.8125rem',
+                  whiteSpace: 'nowrap',
+                  textAlign: 'right',
+                }}>
+                  ({Math.trunc(ratings?.[player.username]?.[currentTcKey] ?? player.rating ?? 0)})
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
                   {canChallenge && (
                     hasSentChallenge ? (
                       <ChallengeSentButton username={player.username} onChallenge={onChallenge} />

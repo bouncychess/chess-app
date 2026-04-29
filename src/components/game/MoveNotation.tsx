@@ -90,7 +90,7 @@ export function MoveNotation({
 
   return (
     <ResizableCard
-      style={{ height: "100%", display: "flex", flexDirection: "column", position: "relative" }}
+      style={{ height: "100%", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
       collapsible={collapsible}
       collapsedLabel="Moves"
     >

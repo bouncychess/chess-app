@@ -41,7 +41,7 @@ export function ResizableCard({ children, style, collapsible = false, collapsedL
   return (
     <div style={{
       ...theme.card,
-      overflow: 'hidden',
+      overflow: 'visible',
       ...style,
       borderRadius: theme.card.borderRadius,
     }}>
