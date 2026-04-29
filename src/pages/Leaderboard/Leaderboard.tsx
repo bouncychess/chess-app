@@ -31,7 +31,6 @@ export default function Leaderboard() {
 
     return (
         <div style={{ padding: '16px 20px 20px', color: theme.colors.text }}>
-            <h2 style={{ marginTop: 0, marginBottom: 16 }}>Leaderboard</h2>
 
             {loading && <p>Loading…</p>}
             {error && <p style={{ color: theme.colors.danger }}>{error}</p>}
