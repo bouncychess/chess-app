@@ -101,7 +101,7 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
               <li key={player.username} style={{
                 padding: "4px 8px",
                 display: "grid",
-                gridTemplateColumns: "minmax(0, 1fr) auto auto",
+                gridTemplateColumns: "minmax(0, 1fr) auto",
                 columnGap: 8,
                 alignItems: "center",
                 backgroundColor: player.username === currentUsername ? "rgba(34, 197, 94, 0.3)" : "transparent",
@@ -114,9 +114,6 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
                   alignItems: 'center',
                   gap: 4,
                   minWidth: 0,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
                 }}>
                   {isProfileLinkable(player.username) ? (
                     <Link
@@ -127,24 +124,25 @@ function Players({ players, currentUsername, onPlayBot, onChallenge, challengesS
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
+                        minWidth: 0,
                       }}
                     >
                       {player.username}
                     </Link>
                   ) : (
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                       {player.username}
                     </span>
                   )}
+                  <span style={{
+                    color: theme.colors.placeholder,
+                    fontSize: '0.8125rem',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}>
+                    ({Math.trunc(ratings?.[player.username]?.[currentTcKey] ?? player.rating ?? 0)})
+                  </span>
                   {player.isBot && <BotIcon color={theme.colors.botIcon} />}
-                </span>
-                <span style={{
-                  color: theme.colors.placeholder,
-                  fontSize: '0.8125rem',
-                  whiteSpace: 'nowrap',
-                  textAlign: 'right',
-                }}>
-                  ({Math.trunc(ratings?.[player.username]?.[currentTcKey] ?? player.rating ?? 0)})
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
                   {canChallenge && (
