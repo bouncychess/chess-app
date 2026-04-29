@@ -122,7 +122,6 @@ export default function Leaderboard() {
                                                             overflow: 'hidden',
                                                             textOverflow: 'ellipsis',
                                                             whiteSpace: 'nowrap',
-                                                            maxWidth: 0,
                                                         }}
                                                     >
                                                         <Link
