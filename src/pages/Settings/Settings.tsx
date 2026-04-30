@@ -38,27 +38,30 @@ export default function Settings() {
             <div style={{ marginTop: 16 }}>
                 <ResizableCard>
                     <div style={{ fontWeight: 600, marginBottom: 8 }}>Gameplay</div>
-                    <ToggleSwitch
-                        options={[
-                            { label: 'Premoves On', value: 'on' },
-                            { label: 'Premoves Off', value: 'off' },
-                        ]}
-                        selected={premovesEnabled ? 'on' : 'off'}
-                        onToggle={togglePremoves}
-                    />
-                </ResizableCard>
-            </div>
-            <div style={{ marginTop: 16 }}>
-                <ResizableCard>
-                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Pawn Promotion</div>
-                    <ToggleSwitch
-                        options={[
-                            { label: 'Auto-Queen On', value: 'on' },
-                            { label: 'Auto-Queen Off', value: 'off' },
-                        ]}
-                        selected={autoPromoteToQueen ? 'on' : 'off'}
-                        onToggle={toggleAutoPromoteToQueen}
-                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div>
+                            <div style={{ fontSize: '0.875rem', marginBottom: 4 }}>Premoves</div>
+                            <ToggleSwitch
+                                options={[
+                                    { label: 'Premoves On', value: 'on' },
+                                    { label: 'Premoves Off', value: 'off' },
+                                ]}
+                                selected={premovesEnabled ? 'on' : 'off'}
+                                onToggle={togglePremoves}
+                            />
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '0.875rem', marginBottom: 4 }}>Pawn Promotion</div>
+                            <ToggleSwitch
+                                options={[
+                                    { label: 'Auto-Queen On', value: 'on' },
+                                    { label: 'Auto-Queen Off', value: 'off' },
+                                ]}
+                                selected={autoPromoteToQueen ? 'on' : 'off'}
+                                onToggle={toggleAutoPromoteToQueen}
+                            />
+                        </div>
+                    </div>
                 </ResizableCard>
             </div>
             <div style={{ marginTop: 16 }}>
