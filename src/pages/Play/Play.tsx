@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useWebSocket } from "../../context/WebSocketContext";
 import { useTheme } from "../../context/ThemeContext";
+import { useSettings } from "../../context/SettingsContext";
 import Board from "../../components/game/Board";
 import Players from "./components/Players";
 import { GameClock } from "../../components/game/GameClock";
@@ -15,6 +16,7 @@ import { fetchPlayerRatings, type PlayerRatings } from "../../services/ratings";
 function Play() {
   const { sendMessage, subscribe, isConnected, username } = useWebSocket();
   const { mode } = useTheme();
+  const { autoPromoteToQueen } = useSettings();
   const panelOffset = mode === 'windows' ? 67 : 85;
 
   const [status, setStatus] = useState<'online' | 'disconnected' | 'waiting'>('online');
@@ -213,6 +215,7 @@ function Play() {
             initialTurn="white"
             onTurnChange={() => {}}
             onSizeChange={setBoardSize}
+            autoPromoteToQueen={autoPromoteToQueen}
             flipped={flipped}
           />
         </GameClock>
