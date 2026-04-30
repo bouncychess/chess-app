@@ -38,7 +38,7 @@ export default function Settings() {
             <div style={{ marginTop: 16 }}>
                 <ResizableCard>
                     <div style={{ fontWeight: 600, marginBottom: 8 }}>Gameplay</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}>
                         <ToggleSwitch
                             options={[
                                 { label: 'Premoves On', value: 'on' },
