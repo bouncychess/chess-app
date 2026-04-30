@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Chess, type Square } from "chess.js";
 import { Chessground } from "@lichess-org/chessground";
 import type { Api } from "@lichess-org/chessground/api";
-import type { Key } from "@lichess-org/chessground/types";
+import type { Key, Role } from "@lichess-org/chessground/types";
 import { useWebSocket } from "../../context/WebSocketContext";
 import { useSettings } from "../../context/SettingsContext";
 import type { PlayerColor, GameResult } from "../../types/chess";
@@ -70,14 +70,15 @@ function getLegalDests(chess: Chess): Map<Key, Key[]> {
   return dests;
 }
 
-function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = true, gameResult = null, flipped: flippedProp = false, isSpectator = false, onExplorationChange, onExplorationPgnChange, resetExploration = 0, viewedMoveIndex: viewedMoveIndexProp = null }: BoardProps) {
+function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = false, gameResult = null, flipped: flippedProp = false, isSpectator = false, onExplorationChange, onExplorationPgnChange, resetExploration = 0, viewedMoveIndex: viewedMoveIndexProp = null }: BoardProps) {
   const { sendMessage, subscribe } = useWebSocket();
   const { premovesEnabled } = useSettings();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
 
   const [chessPosition, setChessPosition] = useState(() => chessGame.fen());
   const [currentTurn, setCurrentTurn] = useState<PlayerColor>(initialTurn);
-  const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
+  const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string; isPremove: boolean } | null>(null);
+  const premovePromotionsRef = useRef<Map<string, PromotionPiece>>(new Map());
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [hasPremoves, setHasPremoves] = useState(false);
 
@@ -225,12 +226,19 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
     // Check if this is a promotion
     if (isPromotionMove(orig, dest, chess)) {
+      // Premove playback: caller already chose a piece via the picker; use it.
+      const stored = premovePromotionsRef.current.get(`${orig}${dest}`);
+      if (stored) {
+        premovePromotionsRef.current.delete(`${orig}${dest}`);
+        doMove(orig, dest, stored);
+        return;
+      }
       if (autoPromoteToQueenRef.current) {
         doMove(orig, dest, "q");
       } else {
         // Revert the visual move chessground already made
         cgApiRef.current?.set({ fen: chess.fen() });
-        setPendingPromotion({ from: orig, to: dest });
+        setPendingPromotion({ from: orig, to: dest, isPremove: false });
       }
       return;
     }
@@ -238,22 +246,68 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
     doMove(orig, dest);
   }, [executeMove, doExplorationMove]);
 
+  // Visually swap the piece on `key` to a promoted role so subsequent
+  // premoves can move from that square as the promoted piece.
+  const swapPromotedVisual = (key: Key, piece: PromotionPiece) => {
+    const role: Role = piece === 'q' ? 'queen' : piece === 'r' ? 'rook' : piece === 'b' ? 'bishop' : 'knight';
+    cgApiRef.current?.setPieces(new Map([[key, { role, color: playerColorRef.current }]]));
+  };
+
+  // Called when chessground adds a premove. If it's a promotion, store the
+  // chosen piece (or prompt for it) so follow-up premoves work.
+  const handlePremoveSet = useCallback((orig: Key, dest: Key) => {
+    setHasPremoves(true);
+    // Detect promotion from chessground's visual state (which already reflects
+    // visuallyMovePiece for this and any earlier queued premoves), not from
+    // chess.js — chess.js only sees moves that have actually played, so a
+    // pawn that arrived at the 7th rank via a previous queued premove won't
+    // show up there.
+    const cgPiece = cgApiRef.current?.state?.pieces?.get(dest);
+    const isPromo = !!cgPiece && cgPiece.role === 'pawn' &&
+      ((cgPiece.color === 'white' && dest[1] === '8') ||
+        (cgPiece.color === 'black' && dest[1] === '1'));
+    if (!isPromo) return;
+    if (autoPromoteToQueenRef.current) {
+      premovePromotionsRef.current.set(`${orig}${dest}`, 'q');
+      swapPromotedVisual(dest, 'q');
+    } else {
+      setPendingPromotion({ from: orig, to: dest, isPremove: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handlePremoveUnset = useCallback(() => {
+    setHasPremoves(false);
+    premovePromotionsRef.current.clear();
+  }, []);
+
   // Handle promotion piece selection
   const handlePromotionSelect = (piece: PromotionPiece) => {
-    if (pendingPromotion) {
-      if (isSpectator) {
-        doExplorationMove(pendingPromotion.from, pendingPromotion.to, piece);
-      } else {
-        executeMove(pendingPromotion.from, pendingPromotion.to, piece);
-      }
-      setPendingPromotion(null);
+    if (!pendingPromotion) return;
+    const { from, to, isPremove } = pendingPromotion;
+    if (isPremove) {
+      // Premove path: store the chosen piece and swap the visual so follow-up
+      // premoves can move from the promoted square.
+      premovePromotionsRef.current.set(`${from}${to}`, piece);
+      swapPromotedVisual(to as Key, piece);
+    } else if (isSpectator) {
+      doExplorationMove(from, to, piece);
+    } else {
+      executeMove(from, to, piece);
     }
+    setPendingPromotion(null);
   };
 
   const cancelPromotion = () => {
+    if (!pendingPromotion) return;
+    if (pendingPromotion.isPremove) {
+      // Drop the just-queued promotion premove since the player declined to pick.
+      cgApiRef.current?.cancelLastPremove();
+    } else {
+      // Restore position after canceling
+      cgApiRef.current?.set({ fen: chessGame.fen() });
+    }
     setPendingPromotion(null);
-    // Restore position after canceling
-    cgApiRef.current?.set({ fen: chessGame.fen() });
   };
 
   // Determine if the player can move
@@ -362,8 +416,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
           return true;
         },
         events: {
-          set: () => setHasPremoves(true),
-          unset: () => setHasPremoves(false),
+          set: handlePremoveSet,
+          unset: handlePremoveUnset,
         },
       },
       drawable: {
@@ -493,12 +547,12 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
         enabled: premovesEnabled,
         maxQueue: 100,
         events: {
-          set: () => setHasPremoves(true),
-          unset: () => setHasPremoves(false),
+          set: handlePremoveSet,
+          unset: handlePremoveUnset,
         },
       },
     });
-  }, [premovesEnabled]);
+  }, [premovesEnabled, handlePremoveSet, handlePremoveUnset]);
 
   // Handle opponent/spectator moves via WebSocket subscribe callback.
   useEffect(() => {

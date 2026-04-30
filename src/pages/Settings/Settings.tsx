@@ -6,7 +6,7 @@ import { theme } from '../../config/theme';
 
 export default function Settings() {
     const { mode, toggleMode, isDark, toggleDark } = useTheme();
-    const { premovesEnabled, togglePremoves, lowTimeWarning, setLowTimeWarning } = useSettings();
+    const { premovesEnabled, togglePremoves, lowTimeWarning, setLowTimeWarning, autoPromoteToQueen, toggleAutoPromoteToQueen } = useSettings();
 
     return (
         <div style={{ maxWidth: 500 }}>
@@ -45,6 +45,19 @@ export default function Settings() {
                         ]}
                         selected={premovesEnabled ? 'on' : 'off'}
                         onToggle={togglePremoves}
+                    />
+                </ResizableCard>
+            </div>
+            <div style={{ marginTop: 16 }}>
+                <ResizableCard>
+                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Pawn Promotion</div>
+                    <ToggleSwitch
+                        options={[
+                            { label: 'Auto-Queen On', value: 'on' },
+                            { label: 'Auto-Queen Off', value: 'off' },
+                        ]}
+                        selected={autoPromoteToQueen ? 'on' : 'off'}
+                        onToggle={toggleAutoPromoteToQueen}
                     />
                 </ResizableCard>
             </div>

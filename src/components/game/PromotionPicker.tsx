@@ -19,6 +19,7 @@ const promotionPieces: PromotionPiece[] = ["q", "r", "b", "n"];
 export default function PromotionPicker({ playerColor, onSelect, onCancel }: PromotionPickerProps) {
   return (
     <div
+      data-testid="promotion-picker"
       style={{
         position: "absolute",
         top: 0,
@@ -47,6 +48,7 @@ export default function PromotionPicker({ playerColor, onSelect, onCancel }: Pro
         {promotionPieces.map((piece) => (
           <button
             key={piece}
+            data-testid={`promotion-piece-${piece}`}
             onClick={() => onSelect(piece)}
             style={{
               width: 40,
