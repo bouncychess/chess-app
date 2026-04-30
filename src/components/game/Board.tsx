@@ -711,7 +711,8 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
 
       {pendingPromotion && (
         <PromotionPicker
-          playerColor={playerColor}
+          destSquare={pendingPromotion.to}
+          orientation={getOrientation()}
           onSelect={handlePromotionSelect}
           onCancel={cancelPromotion}
         />

@@ -147,6 +147,89 @@ test('promoted piece can be used in a subsequent premove', async ({ page }) => {
   await expect.poll(() => pieceAt(page, 'e8')).toBeNull();
 });
 
+test('auto-promote-to-queen setting skips picker on a live move and queens', async ({ page }) => {
+  // Same near-promotion position, but white to move so the drag is a real
+  // move, not a premove. Both the PGN's FEN side-to-move and the gameState's
+  // currentTurn must agree, otherwise chess.js rejects the move.
+  const WHITE_TO_MOVE_PGN = `[SetUp "1"]\n[FEN "k7/4P3/8/8/8/8/8/7K w - - 0 1"]\n\n*`;
+  await page.addInitScript(() => localStorage.setItem('auto_promote_to_queen', 'true'));
+  await page.addInitScript(MOCK_WEBSOCKET_INIT_SCRIPT);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`/game/${GAME_ID}`);
+  await page.waitForFunction(() => (window as any).__waitForSocket !== undefined);
+  await page.evaluate(() => (window as any).__waitForSocket());
+  await page.evaluate(() => (window as any).__deliver({ action: 'connected', username: 'me' }));
+  await page.evaluate((msg) => (window as any).__deliver(msg), { ...gameStateMessage, currentTurn: 'white', pgn: WHITE_TO_MOVE_PGN });
+  await expect(page.locator('cg-board')).toBeVisible();
+
+  // Make the promotion move directly. With auto-queen on, no picker should
+  // appear and the pawn should become a queen on e8.
+  await dragSquare(page, 'e7', 'e8');
+
+  await expect(page.getByTestId('promotion-picker')).not.toBeVisible();
+  await expect.poll(() => pieceAt(page, 'e8')).toMatch(/white\s+queen/);
+
+  // Verify the move was sent over the (mock) socket with the queen suffix.
+  const sent = await page.evaluate(() => (window as any).__sentMessages);
+  const moves = sent.filter((m: any) => m.action === 'move');
+  expect(moves.at(-1)).toMatchObject({ action: 'move', move: 'e7e8q' });
+});
+
+test('auto-promote-to-queen setting skips picker on a premove and queens visually', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('auto_promote_to_queen', 'true'));
+  await bootGame(page); // black to move → drag is a premove
+  await expect(page.locator('cg-board')).toBeVisible();
+
+  // Premove the promotion. With auto-queen on, no picker; the visual on e8
+  // should immediately become a white queen so follow-up premoves work.
+  await dragSquare(page, 'e7', 'e8');
+
+  await expect(page.getByTestId('promotion-picker')).not.toBeVisible();
+  await expect.poll(() => pieceAt(page, 'e8')).toMatch(/white\s+queen/);
+
+  // Premoves don't send a "move" message until the opponent replies, so we
+  // shouldn't see one in the sent log yet.
+  const sent = await page.evaluate(() => (window as any).__sentMessages);
+  const moves = sent.filter((m: any) => m.action === 'move');
+  expect(moves).toHaveLength(0);
+});
+
+test('auto-promote-to-queen setting allows follow-up premoves with the queened piece', async ({ page }) => {
+  // Pawn on e6 so the chain is: e6→e7 (non-promotion premove), e7→e8
+  // (auto-queens, no picker), e8→e1 (queen slides down the file). Without
+  // the visual swap to a queen, chessground's premove validation would
+  // reject the third drag because pawns can't move e8→e1.
+  const SETUP_PGN = `[SetUp "1"]\n[FEN "k7/8/4P3/8/8/8/8/7K b - - 0 1"]\n\n*`;
+
+  await page.addInitScript(() => localStorage.setItem('auto_promote_to_queen', 'true'));
+  await page.addInitScript(MOCK_WEBSOCKET_INIT_SCRIPT);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`/game/${GAME_ID}`);
+  await page.waitForFunction(() => (window as any).__waitForSocket !== undefined);
+  await page.evaluate(() => (window as any).__waitForSocket());
+  await page.evaluate(() => (window as any).__deliver({ action: 'connected', username: 'me' }));
+  await page.evaluate((msg) => (window as any).__deliver(msg), { ...gameStateMessage, pgn: SETUP_PGN });
+  await expect(page.locator('cg-board')).toBeVisible();
+
+  // Premove 1.
+  await dragSquare(page, 'e6', 'e7');
+  // Premove 2 — auto-queens silently.
+  await dragSquare(page, 'e7', 'e8');
+  await expect(page.getByTestId('promotion-picker')).not.toBeVisible();
+  await expect.poll(() => pieceAt(page, 'e8')).toMatch(/white\s+queen/);
+
+  // Premove 3 — queen slides from e8 to e1. Only legal because the visual
+  // piece on e8 was swapped to a queen.
+  await dragSquare(page, 'e8', 'e1');
+
+  await expect.poll(() => pieceAt(page, 'e1')).toMatch(/white\s+queen/);
+  await expect.poll(() => pieceAt(page, 'e8')).toBeNull();
+
+  // No moves sent yet — all three are still in the premove queue.
+  const sent = await page.evaluate(() => (window as any).__sentMessages);
+  expect(sent.filter((m: any) => m.action === 'move')).toHaveLength(0);
+});
+
 test('chained premoves with promotion further down the chain show the picker', async ({ page }) => {
   // Override the boot position: pawn on e6 so we need two queued premoves
   // (e6→e7, then e7→e8) to reach promotion.

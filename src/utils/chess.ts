@@ -31,6 +31,13 @@ export function getFenAtMoveIndex(pgn: string, moveIndex: number | null): string
   }
 
   const replayChess = new Chess();
+  // PGNs that start from a custom position carry [SetUp "1"] [FEN "..."]
+  // headers; the replay must seed from that FEN, otherwise SAN moves valid
+  // for the real position fail against the standard starting position.
+  const headers = chess.header();
+  if (headers.FEN) {
+    replayChess.load(headers.FEN);
+  }
   for (let i = 0; i <= moveIndex && i < moves.length; i++) {
     replayChess.move(moves[i]);
   }
