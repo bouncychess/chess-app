@@ -194,6 +194,42 @@ test('auto-promote-to-queen setting skips picker on a premove and queens visuall
   expect(moves).toHaveLength(0);
 });
 
+test('auto-promote-to-queen setting allows follow-up premoves with the queened piece', async ({ page }) => {
+  // Pawn on e6 so the chain is: e6→e7 (non-promotion premove), e7→e8
+  // (auto-queens, no picker), e8→e1 (queen slides down the file). Without
+  // the visual swap to a queen, chessground's premove validation would
+  // reject the third drag because pawns can't move e8→e1.
+  const SETUP_PGN = `[SetUp "1"]\n[FEN "k7/8/4P3/8/8/8/8/7K b - - 0 1"]\n\n*`;
+
+  await page.addInitScript(() => localStorage.setItem('auto_promote_to_queen', 'true'));
+  await page.addInitScript(MOCK_WEBSOCKET_INIT_SCRIPT);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`/game/${GAME_ID}`);
+  await page.waitForFunction(() => (window as any).__waitForSocket !== undefined);
+  await page.evaluate(() => (window as any).__waitForSocket());
+  await page.evaluate(() => (window as any).__deliver({ action: 'connected', username: 'me' }));
+  await page.evaluate((msg) => (window as any).__deliver(msg), { ...gameStateMessage, pgn: SETUP_PGN });
+  await expect(page.locator('cg-board')).toBeVisible();
+
+  // Premove 1.
+  await dragSquare(page, 'e6', 'e7');
+  // Premove 2 — auto-queens silently.
+  await dragSquare(page, 'e7', 'e8');
+  await expect(page.getByTestId('promotion-picker')).not.toBeVisible();
+  await expect.poll(() => pieceAt(page, 'e8')).toMatch(/white\s+queen/);
+
+  // Premove 3 — queen slides from e8 to e1. Only legal because the visual
+  // piece on e8 was swapped to a queen.
+  await dragSquare(page, 'e8', 'e1');
+
+  await expect.poll(() => pieceAt(page, 'e1')).toMatch(/white\s+queen/);
+  await expect.poll(() => pieceAt(page, 'e8')).toBeNull();
+
+  // No moves sent yet — all three are still in the premove queue.
+  const sent = await page.evaluate(() => (window as any).__sentMessages);
+  expect(sent.filter((m: any) => m.action === 'move')).toHaveLength(0);
+});
+
 test('chained premoves with promotion further down the chain show the picker', async ({ page }) => {
   // Override the boot position: pawn on e6 so we need two queued premoves
   // (e6→e7, then e7→e8) to reach promotion.
