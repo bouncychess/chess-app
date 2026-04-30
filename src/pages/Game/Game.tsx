@@ -38,7 +38,7 @@ function Game() {
   const location = useLocation();
   const { sendMessage, subscribe, isConnected, username } = useWebSocket();
   const { mode } = useTheme();
-  const { lowTimeWarning } = useSettings();
+  const { lowTimeWarning, autoPromoteToQueen } = useSettings();
   const navigate = useNavigate();
   const [boardSize, setBoardSize] = useState(400);
   const [flipped, setFlipped] = useState(false);
@@ -587,6 +587,7 @@ function Game() {
               onSizeChange={setBoardSize}
               overridePosition={displayPosition}
               isViewingHistory={isViewingHistory}
+              autoPromoteToQueen={autoPromoteToQueen}
               gameResult={gameResult}
               flipped={flipped}
               isSpectator={!isPlayer}

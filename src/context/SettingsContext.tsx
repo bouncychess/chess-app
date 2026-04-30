@@ -5,17 +5,24 @@ interface SettingsContextType {
     togglePremoves: () => void;
     lowTimeWarning: number;
     setLowTimeWarning: (seconds: number) => void;
+    autoPromoteToQueen: boolean;
+    toggleAutoPromoteToQueen: () => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | null>(null);
 
 const PREMOVES_KEY = 'premoves_enabled';
 const LOW_TIME_KEY = 'low_time_warning';
+const AUTO_PROMOTE_QUEEN_KEY = 'auto_promote_to_queen';
 
 function getInitialPremoves(): boolean {
     const stored = localStorage.getItem(PREMOVES_KEY);
     if (stored === 'false') return false;
     return true; // default enabled
+}
+
+function getInitialAutoPromoteQueen(): boolean {
+    return localStorage.getItem(AUTO_PROMOTE_QUEEN_KEY) === 'true';
 }
 
 function getInitialLowTime(): number {
@@ -30,6 +37,7 @@ function getInitialLowTime(): number {
 export function SettingsProvider({ children }: { children: ReactNode }) {
     const [premovesEnabled, setPremovesEnabled] = useState(getInitialPremoves);
     const [lowTimeWarning, setLowTimeWarningState] = useState(getInitialLowTime);
+    const [autoPromoteToQueen, setAutoPromoteToQueen] = useState(getInitialAutoPromoteQueen);
 
     const togglePremoves = useCallback(() => {
         setPremovesEnabled(prev => {
@@ -45,8 +53,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(LOW_TIME_KEY, String(clamped));
     }, []);
 
+    const toggleAutoPromoteToQueen = useCallback(() => {
+        setAutoPromoteToQueen(prev => {
+            const next = !prev;
+            localStorage.setItem(AUTO_PROMOTE_QUEEN_KEY, String(next));
+            return next;
+        });
+    }, []);
+
     return (
-        <SettingsContext.Provider value={{ premovesEnabled, togglePremoves, lowTimeWarning, setLowTimeWarning }}>
+        <SettingsContext.Provider value={{ premovesEnabled, togglePremoves, lowTimeWarning, setLowTimeWarning, autoPromoteToQueen, toggleAutoPromoteToQueen }}>
             {children}
         </SettingsContext.Provider>
     );
