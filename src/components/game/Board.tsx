@@ -18,6 +18,7 @@ interface BoardProps {
   initialPgn?: string | null;
   onTurnChange?: (turn: PlayerColor) => void;
   onPgnChange?: (pgn: string) => void;
+  onFenChange?: (fen: string) => void;
   onSizeChange?: (size: number) => void;
   overridePosition?: string | null;
   isViewingHistory?: boolean;
@@ -70,7 +71,7 @@ function getLegalDests(chess: Chess): Map<Key, Key[]> {
   return dests;
 }
 
-function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = false, gameResult = null, flipped: flippedProp = false, isSpectator = false, onExplorationChange, onExplorationPgnChange, resetExploration = 0, viewedMoveIndex: viewedMoveIndexProp = null }: BoardProps) {
+function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onPgnChange, onFenChange, onSizeChange, overridePosition, isViewingHistory = false, autoPromoteToQueen = false, gameResult = null, flipped: flippedProp = false, isSpectator = false, onExplorationChange, onExplorationPgnChange, resetExploration = 0, viewedMoveIndex: viewedMoveIndexProp = null }: BoardProps) {
   const { sendMessage, subscribe } = useWebSocket();
   const { premovesEnabled } = useSettings();
   const [chessGame] = useState(() => createChessInstance(initialPgn));
@@ -458,6 +459,12 @@ function Board({ gameId, playerColor, initialTurn, initialPgn, onTurnChange, onP
       lastMove: (lastMove && !isViewingHistory) ? [lastMove.from as Key, lastMove.to as Key] : undefined,
     });
   }, [chessPosition, overridePosition, lastMove, isViewingHistory, chessGame]);
+
+  // Surface the visible FEN to parents so analysis features can run on it.
+  // Fires for local moves, opponent moves, and history navigation.
+  useEffect(() => {
+    onFenChange?.(overridePosition ?? chessPosition);
+  }, [chessPosition, overridePosition, onFenChange]);
 
   // Update orientation when flipped or playerColor changes
   useEffect(() => {
