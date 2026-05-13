@@ -54,11 +54,6 @@ export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whit
   // When flipped, swap which color appears on top/bottom
   const isPlayerWhite = flipped ? playerColor !== "white" : playerColor === "white";
 
-  const topRow = isPlayerWhite ? (
-    <PlayerRow name={blackName} rating={blackRating} time={blackTime} isActive={activeColor === "black"} />
-  ) : (
-    <PlayerRow name={whiteName} rating={whiteRating} time={whiteTime} isActive={activeColor === "white"} />
-  );
 
   const flipButton = onFlip ? (
     <div
@@ -89,10 +84,16 @@ export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whit
     </div>
   ) : undefined;
 
-  const bottomRow = isPlayerWhite ? (
-    <PlayerRow name={whiteName} rating={whiteRating} time={whiteTime} isActive={activeColor === "white"} trailing={trailing} />
-  ) : (
+  const topRow = isPlayerWhite ? (
     <PlayerRow name={blackName} rating={blackRating} time={blackTime} isActive={activeColor === "black"} trailing={trailing} />
+  ) : (
+    <PlayerRow name={whiteName} rating={whiteRating} time={whiteTime} isActive={activeColor === "white"} trailing={trailing} />
+  );
+
+  const bottomRow = isPlayerWhite ? (
+    <PlayerRow name={whiteName} rating={whiteRating} time={whiteTime} isActive={activeColor === "white"} />
+  ) : (
+    <PlayerRow name={blackName} rating={blackRating} time={blackTime} isActive={activeColor === "black"} />
   );
 
   const content = (
