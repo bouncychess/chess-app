@@ -10,6 +10,7 @@ import { DEFAULT_TIME_CONTROL, TIME_CONTROLS, tcKey } from "../../constants/time
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { Button } from "../../components/buttons/Button";
 import { EngineAnalysis } from "../../components/game/EngineAnalysis";
+import { AnalysisToggle } from "../../components/game/AnalysisToggle";
 import type { Player } from "../../types/chess";
 import { SoundManager } from "../../utils/SoundManager";
 import { fetchPlayerRatings, type PlayerRatings } from "../../services/ratings";
@@ -213,6 +214,12 @@ function Play() {
           playerColor="white"
           onFlip={() => setFlipped(f => !f)}
           flipped={flipped}
+          controls={
+            <AnalysisToggle
+              enabled={analysisEnabled}
+              onToggle={() => setAnalysisEnabled(v => !v)}
+            />
+          }
         >
           <Board
             gameId={null}
@@ -226,12 +233,6 @@ function Play() {
           />
         </GameClock>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + panelOffset }}>
-          <Button
-            variant={analysisEnabled ? "success" : "secondary"}
-            onClick={() => setAnalysisEnabled(v => !v)}
-          >
-            Analysis
-          </Button>
           {analysisEnabled && (
             <EngineAnalysis fen={boardFen} enabled={analysisEnabled} width={258} />
           )}
