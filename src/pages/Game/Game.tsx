@@ -9,7 +9,7 @@ import { MoveNotation } from "../../components/game/MoveNotation";
 import { GameControls } from "../../components/game/GameControls";
 import { GameEndDisplay } from "../../components/game/GameEndDisplay";
 import { EngineAnalysis } from "../../components/game/EngineAnalysis";
-import { Button } from "../../components/buttons/Button";
+import { AnalysisToggle } from "../../components/game/AnalysisToggle";
 import { StatusBadge } from "../../components/StatusBadge";
 import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
 import { useSettings } from "../../context/SettingsContext";
@@ -650,6 +650,12 @@ function Game() {
             playerColor={playerColor}
             onFlip={() => setFlipped(f => !f)}
             flipped={flipped}
+            controls={canAnalyze ? (
+              <AnalysisToggle
+                enabled={analysisEnabled}
+                onToggle={() => setAnalysisEnabled(v => !v)}
+              />
+            ) : undefined}
           >
             <Board
               gameId={gameId}
@@ -674,18 +680,8 @@ function Game() {
           </GameClock>
         </div>
         {!isMobile && <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + panelOffset }}>
-          {canAnalyze && (
-            <>
-              <Button
-                variant={analysisEnabled ? "success" : "secondary"}
-                onClick={() => setAnalysisEnabled(v => !v)}
-              >
-                Analysis
-              </Button>
-              {analysisEnabled && (
-                <EngineAnalysis fen={boardFen} enabled={analysisEnabled} width={258} />
-              )}
-            </>
+          {canAnalyze && analysisEnabled && (
+            <EngineAnalysis fen={boardFen} enabled={analysisEnabled} width={258} />
           )}
           <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0}}>
             <MoveNotation
@@ -739,18 +735,8 @@ function Game() {
       </div>
       {isMobile && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-          {canAnalyze && (
-            <>
-              <Button
-                variant={analysisEnabled ? "success" : "secondary"}
-                onClick={() => setAnalysisEnabled(v => !v)}
-              >
-                Analysis
-              </Button>
-              {analysisEnabled && (
-                <EngineAnalysis fen={boardFen} enabled={analysisEnabled} />
-              )}
-            </>
+          {canAnalyze && analysisEnabled && (
+            <EngineAnalysis fen={boardFen} enabled={analysisEnabled} />
           )}
           <MoveNotation
             pgn={isExploring && explorationPgn ? explorationPgn : (pgn || "")}

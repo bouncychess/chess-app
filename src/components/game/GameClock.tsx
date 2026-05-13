@@ -16,6 +16,9 @@ interface GameClockProps {
   children?: ReactNode;
   onFlip?: () => void;
   flipped?: boolean;
+  // Extra controls rendered in the bottom row, to the left of the flip button.
+  // Used for board-anchored toggles such as the analysis slider.
+  controls?: ReactNode;
 }
 
 function PlayerRow({ name, rating, time, isActive, trailing }: { name: string | null; rating?: number | null; time: number; isActive: boolean; trailing?: ReactNode }) {
@@ -39,7 +42,7 @@ function PlayerRow({ name, rating, time, isActive, trailing }: { name: string | 
 
 const MOBILE_BREAKPOINT = 768;
 
-export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whiteName, blackName, whiteRating, blackRating, children, onFlip, flipped = false }: GameClockProps) {
+export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whiteName, blackName, whiteRating, blackRating, children, onFlip, flipped = false, controls }: GameClockProps) {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
 
   useEffect(() => {
@@ -79,10 +82,17 @@ export function GameClock({ whiteTime, blackTime, activeColor, playerColor, whit
     </div>
   ) : undefined;
 
+  const trailing = (controls || flipButton) ? (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      {controls}
+      {flipButton}
+    </div>
+  ) : undefined;
+
   const bottomRow = isPlayerWhite ? (
-    <PlayerRow name={whiteName} rating={whiteRating} time={whiteTime} isActive={activeColor === "white"} trailing={flipButton} />
+    <PlayerRow name={whiteName} rating={whiteRating} time={whiteTime} isActive={activeColor === "white"} trailing={trailing} />
   ) : (
-    <PlayerRow name={blackName} rating={blackRating} time={blackTime} isActive={activeColor === "black"} trailing={flipButton} />
+    <PlayerRow name={blackName} rating={blackRating} time={blackTime} isActive={activeColor === "black"} trailing={trailing} />
   );
 
   const content = (
