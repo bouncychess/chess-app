@@ -8,6 +8,8 @@ import { GameClock } from "../../components/game/GameClock";
 import { MoveNotation } from "../../components/game/MoveNotation";
 import { GameControls } from "../../components/game/GameControls";
 import { GameEndDisplay } from "../../components/game/GameEndDisplay";
+import { EngineAnalysis } from "../../components/game/EngineAnalysis";
+import { Button } from "../../components/buttons/Button";
 import { StatusBadge } from "../../components/StatusBadge";
 import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
 import { useSettings } from "../../context/SettingsContext";
@@ -77,6 +79,10 @@ function Game() {
   const [whiteRatingDelta, setWhiteRatingDelta] = useState<number | null>(null);
   const [blackRatingDelta, setBlackRatingDelta] = useState<number | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [analysisEnabled, setAnalysisEnabled] = useState(false);
+  const [boardFen, setBoardFen] = useState<string>(
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  );
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
   const hasPlayedLowTimeSound = useRef(false);
@@ -87,6 +93,15 @@ function Game() {
   const isBotGame = opponentUsername !== null && opponentUsername.endsWith("_bot");
   const hasOfferedRematch = rematchOfferedBy === username;
   const opponentOfferedRematch = rematchOfferedBy !== null && rematchOfferedBy !== username;
+
+  // Analysis is only allowed when it can't help cheat: after the game ends,
+  // when spectating, or when scrolled back to a past position. Auto-disable
+  // if the user transitions out of an eligible state (e.g. a spectated game
+  // ends then a new one starts).
+  const canAnalyze = !isPlayer || gameResult !== null;
+  useEffect(() => {
+    if (analysisEnabled && !canAnalyze) setAnalysisEnabled(false);
+  }, [analysisEnabled, canAnalyze]);
 
   // Derived values for move navigation
   const totalMoveCount = getMoveCount(pgn || "");
@@ -584,6 +599,7 @@ function Game() {
               initialPgn={pgn}
               onTurnChange={handleTurnChange}
               onPgnChange={handlePgnChange}
+              onFenChange={setBoardFen}
               onSizeChange={setBoardSize}
               overridePosition={displayPosition}
               isViewingHistory={isViewingHistory}
@@ -593,6 +609,19 @@ function Game() {
               isSpectator={!isPlayer}
             />
           </GameClock>
+          {canAnalyze && (
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8, width: boardSize }}>
+              <Button
+                variant={analysisEnabled ? "success" : "secondary"}
+                onClick={() => setAnalysisEnabled(v => !v)}
+              >
+                {analysisEnabled ? "Analysis: On" : "Analysis: Off"}
+              </Button>
+              {analysisEnabled && (
+                <EngineAnalysis fen={boardFen} enabled={analysisEnabled} />
+              )}
+            </div>
+          )}
         </div>
         {!isMobile && <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + panelOffset }}>
           <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0}}>

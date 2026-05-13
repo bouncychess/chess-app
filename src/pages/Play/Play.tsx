@@ -9,6 +9,7 @@ import { TimeControlSelector } from "./components/TimeControlSelector";
 import { DEFAULT_TIME_CONTROL, TIME_CONTROLS, tcKey } from "../../constants/timeControls";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { Button } from "../../components/buttons/Button";
+import { EngineAnalysis } from "../../components/game/EngineAnalysis";
 import type { Player } from "../../types/chess";
 import { SoundManager } from "../../utils/SoundManager";
 import { fetchPlayerRatings, type PlayerRatings } from "../../services/ratings";
@@ -72,6 +73,10 @@ function Play() {
   const [boardSize, setBoardSize] = useState(400);
   const [flipped, setFlipped] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [analysisEnabled, setAnalysisEnabled] = useState(false);
+  const [boardFen, setBoardFen] = useState<string>(
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  );
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -214,6 +219,7 @@ function Play() {
             playerColor="white"
             initialTurn="white"
             onTurnChange={() => {}}
+            onFenChange={setBoardFen}
             onSizeChange={setBoardSize}
             autoPromoteToQueen={autoPromoteToQueen}
             flipped={flipped}
@@ -241,6 +247,15 @@ function Play() {
               ? <span style={{ display: "flex", alignItems: "center", width: "100%", position: "relative" }}><span style={{ flex: 1, textAlign: "center" }}>Waiting{".".repeat(dots)}<span style={{ visibility: "hidden" }}>{".".repeat(3 - dots)}</span></span><span style={{ fontWeight: 900, fontSize: "1.0em", position: "absolute", right: 0 }}>✕</span></span>
               : "Play"}
           </Button>
+          <Button
+            variant={analysisEnabled ? "success" : "secondary"}
+            onClick={() => setAnalysisEnabled(v => !v)}
+          >
+            {analysisEnabled ? "Analysis: On" : "Analysis: Off"}
+          </Button>
+          {analysisEnabled && (
+            <EngineAnalysis fen={boardFen} enabled={analysisEnabled} width={250} />
+          )}
           <div style={{ flex: 1, minHeight: 0 }}>
             <Players
               players={players}
