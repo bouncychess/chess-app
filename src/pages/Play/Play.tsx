@@ -226,6 +226,15 @@ function Play() {
           />
         </GameClock>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + panelOffset }}>
+          <Button
+            variant={analysisEnabled ? "success" : "secondary"}
+            onClick={() => setAnalysisEnabled(v => !v)}
+          >
+            Analysis
+          </Button>
+          {analysisEnabled && (
+            <EngineAnalysis fen={boardFen} enabled={analysisEnabled} width={250} />
+          )}
           <TimeControlSelector
             selected={selectedTimeControl}
             onSelect={(tc) => {
@@ -247,15 +256,6 @@ function Play() {
               ? <span style={{ display: "flex", alignItems: "center", width: "100%", position: "relative" }}><span style={{ flex: 1, textAlign: "center" }}>Waiting{".".repeat(dots)}<span style={{ visibility: "hidden" }}>{".".repeat(3 - dots)}</span></span><span style={{ fontWeight: 900, fontSize: "1.0em", position: "absolute", right: 0 }}>✕</span></span>
               : "Play"}
           </Button>
-          <Button
-            variant={analysisEnabled ? "success" : "secondary"}
-            onClick={() => setAnalysisEnabled(v => !v)}
-          >
-            Analysis
-          </Button>
-          {analysisEnabled && (
-            <EngineAnalysis fen={boardFen} enabled={analysisEnabled} width={250} />
-          )}
           <div style={{ flex: 1, minHeight: 0 }}>
             <Players
               players={players}

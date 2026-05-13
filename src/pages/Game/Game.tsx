@@ -672,8 +672,10 @@ function Game() {
               viewedMoveIndex={isExploring ? explorationViewedIndex : viewedMoveIndex}
             />
           </GameClock>
+        </div>
+        {!isMobile && <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + panelOffset }}>
           {canAnalyze && (
-            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8, width: boardSize }}>
+            <>
               <Button
                 variant={analysisEnabled ? "success" : "secondary"}
                 onClick={() => setAnalysisEnabled(v => !v)}
@@ -681,12 +683,10 @@ function Game() {
                 Analysis
               </Button>
               {analysisEnabled && (
-                <EngineAnalysis fen={boardFen} enabled={analysisEnabled} />
+                <EngineAnalysis fen={boardFen} enabled={analysisEnabled} width={250} />
               )}
-            </div>
+            </>
           )}
-        </div>
-        {!isMobile && <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + panelOffset }}>
           <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0}}>
             <MoveNotation
               pgn={isExploring && explorationPgn ? explorationPgn : (pgn || "")}
@@ -728,9 +728,9 @@ function Game() {
             </div>
           </div>
           <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: 78}}>
-          <Chat 
-            gameId={gameId} 
-            initialChat={chatLog} 
+          <Chat
+            gameId={gameId}
+            initialChat={chatLog}
             gameResult={gameResult}
             gameEndReason={gameEndReason}
           />
@@ -739,6 +739,19 @@ function Game() {
       </div>
       {isMobile && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+          {canAnalyze && (
+            <>
+              <Button
+                variant={analysisEnabled ? "success" : "secondary"}
+                onClick={() => setAnalysisEnabled(v => !v)}
+              >
+                Analysis
+              </Button>
+              {analysisEnabled && (
+                <EngineAnalysis fen={boardFen} enabled={analysisEnabled} />
+              )}
+            </>
+          )}
           <MoveNotation
             pgn={isExploring && explorationPgn ? explorationPgn : (pgn || "")}
             viewedMoveIndex={isExploring ? explorationViewedIndex : viewedMoveIndex}
@@ -748,10 +761,10 @@ function Game() {
             isViewingHistory={isExploring ? (isExplorationViewingHistory ?? false) : isViewingHistory}
             onJumpToLive={handleJumpToLive}
           />
-          <Chat 
-            gameId={gameId} 
-            initialChat={chatLog} 
-            collapsible 
+          <Chat
+            gameId={gameId}
+            initialChat={chatLog}
+            collapsible
             gameResult={gameResult}
             gameEndReason={gameEndReason}
           />
