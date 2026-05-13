@@ -620,7 +620,7 @@ function Game() {
                 Analysis
               </Button>
               {analysisEnabled && (
-                <EngineAnalysis fen={boardFen} enabled={analysisEnabled} width={250} />
+                <EngineAnalysis fen={boardFen} enabled={analysisEnabled} width={258} />
               )}
             </>
           )}
