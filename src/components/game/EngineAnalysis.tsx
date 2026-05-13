@@ -57,7 +57,15 @@ export function EngineAnalysis({ fen, enabled, multipv = 3, width }: EngineAnaly
             </div>
           )}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            overflowX: "auto",
+            scrollbarWidth: "thin",
+          }}
+        >
           {Array.from({ length: multipv }).map((_, i) => (
             <LineRow key={i} info={lines[i]} fen={fen} sideToMove={sideToMove} />
           ))}
@@ -81,9 +89,20 @@ function LineRow({ info, fen, sideToMove }: { info: EngineInfo | undefined; fen:
 
   const whiteScore = toWhiteScore(info.score, sideToMove);
   return (
-    <div style={{ display: "flex", gap: 8, fontSize: "0.85rem", fontFamily: "monospace" }}>
-      <span style={{ minWidth: 48, fontWeight: 600 }}>{formatScore(whiteScore)}</span>
-      <span style={{ flex: 1, wordBreak: "break-word" }}>{san}</span>
+    <div
+      style={{
+        display: "flex",
+        gap: 8,
+        fontSize: "0.85rem",
+        fontFamily: "monospace",
+        whiteSpace: "nowrap",
+        // Width: max-content so the row grows to fit its full PV; the parent
+        // container's overflow-x produces a single scrollbar across all rows.
+        width: "max-content",
+      }}
+    >
+      <span style={{ minWidth: 48, fontWeight: 600, flexShrink: 0 }}>{formatScore(whiteScore)}</span>
+      <span>{san}</span>
     </div>
   );
 }

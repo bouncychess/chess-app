@@ -615,7 +615,7 @@ function Game() {
                 variant={analysisEnabled ? "success" : "secondary"}
                 onClick={() => setAnalysisEnabled(v => !v)}
               >
-                {analysisEnabled ? "Analysis: On" : "Analysis: Off"}
+                Analysis
               </Button>
               {analysisEnabled && (
                 <EngineAnalysis fen={boardFen} enabled={analysisEnabled} />
