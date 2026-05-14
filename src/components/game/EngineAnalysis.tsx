@@ -58,12 +58,12 @@ export function EngineAnalysis({ fen, enabled, multipv = 3, width }: EngineAnaly
           )}
         </div>
         <div
+          className="faint-scrollbar"
           style={{
             display: "flex",
             flexDirection: "column",
             gap: 4,
             overflowX: "auto",
-            scrollbarWidth: "thin",
           }}
         >
           {Array.from({ length: multipv }).map((_, i) => (
