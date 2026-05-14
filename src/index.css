@@ -78,6 +78,26 @@ button:focus-visible {
   display: none;
 }
 
+.faint-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+.faint-scrollbar::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.faint-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.faint-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 3px;
+}
+.faint-scrollbar:hover::-webkit-scrollbar-thumb,
+.faint-scrollbar:focus-within::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.22);
+}
+
 /* TipTap Editor Styles */
 .tiptap {
   outline: none;
