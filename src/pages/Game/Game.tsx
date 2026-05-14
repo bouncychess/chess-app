@@ -8,6 +8,8 @@ import { GameClock } from "../../components/game/GameClock";
 import { MoveNotation } from "../../components/game/MoveNotation";
 import { GameControls } from "../../components/game/GameControls";
 import { GameEndDisplay } from "../../components/game/GameEndDisplay";
+import { EngineAnalysis } from "../../components/game/EngineAnalysis";
+import { AnalysisToggle } from "../../components/game/AnalysisToggle";
 import { StatusBadge } from "../../components/StatusBadge";
 import { getFenAtMoveIndex, getMoveCount } from "../../utils/chess";
 import { useSettings } from "../../context/SettingsContext";
@@ -77,6 +79,10 @@ function Game() {
   const [whiteRatingDelta, setWhiteRatingDelta] = useState<number | null>(null);
   const [blackRatingDelta, setBlackRatingDelta] = useState<number | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [analysisEnabled, setAnalysisEnabled] = useState(false);
+  const [boardFen, setBoardFen] = useState<string>(
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  );
   const hasRequestedGameState = useRef(false);
   const hasReportedTimeout = useRef(false);
   const hasPlayedLowTimeSound = useRef(false);
@@ -87,6 +93,15 @@ function Game() {
   const isBotGame = opponentUsername !== null && opponentUsername.endsWith("_bot");
   const hasOfferedRematch = rematchOfferedBy === username;
   const opponentOfferedRematch = rematchOfferedBy !== null && rematchOfferedBy !== username;
+
+  // Analysis is only allowed when it can't help cheat: after the game ends,
+  // when spectating, or when scrolled back to a past position. Auto-disable
+  // if the user transitions out of an eligible state (e.g. a spectated game
+  // ends then a new one starts).
+  const canAnalyze = !isPlayer || gameResult !== null;
+  useEffect(() => {
+    if (analysisEnabled && !canAnalyze) setAnalysisEnabled(false);
+  }, [analysisEnabled, canAnalyze]);
 
   // Derived values for move navigation
   const totalMoveCount = getMoveCount(pgn || "");
@@ -576,6 +591,12 @@ function Game() {
             playerColor={playerColor}
             onFlip={() => setFlipped(f => !f)}
             flipped={flipped}
+            controls={canAnalyze ? (
+              <AnalysisToggle
+                enabled={analysisEnabled}
+                onToggle={() => setAnalysisEnabled(v => !v)}
+              />
+            ) : undefined}
           >
             <Board
               gameId={gameId}
@@ -584,6 +605,7 @@ function Game() {
               initialPgn={pgn}
               onTurnChange={handleTurnChange}
               onPgnChange={handlePgnChange}
+              onFenChange={setBoardFen}
               onSizeChange={setBoardSize}
               overridePosition={displayPosition}
               isViewingHistory={isViewingHistory}
@@ -595,6 +617,9 @@ function Game() {
           </GameClock>
         </div>
         {!isMobile && <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 200, height: boardSize + panelOffset }}>
+          {canAnalyze && analysisEnabled && (
+            <EngineAnalysis fen={boardFen} enabled={analysisEnabled} width={258} />
+          )}
           <div style={{ flex: MOVE_NOTATION_RATIO, minHeight: 0}}>
             <MoveNotation
               pgn={pgn || ""}
@@ -633,9 +658,9 @@ function Game() {
             </div>
           </div>
           <div style={{ flex: 1 - MOVE_NOTATION_RATIO, minHeight: 0, width: 300, marginTop: 78}}>
-          <Chat 
-            gameId={gameId} 
-            initialChat={chatLog} 
+          <Chat
+            gameId={gameId}
+            initialChat={chatLog}
             gameResult={gameResult}
             gameEndReason={gameEndReason}
           />
@@ -644,16 +669,19 @@ function Game() {
       </div>
       {isMobile && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+          {canAnalyze && analysisEnabled && (
+            <EngineAnalysis fen={boardFen} enabled={analysisEnabled} />
+          )}
           <MoveNotation
             pgn={pgn || ""}
             viewedMoveIndex={viewedMoveIndex}
             onMoveClick={handleMoveClick}
             collapsible
           />
-          <Chat 
-            gameId={gameId} 
-            initialChat={chatLog} 
-            collapsible 
+          <Chat
+            gameId={gameId}
+            initialChat={chatLog}
+            collapsible
             gameResult={gameResult}
             gameEndReason={gameEndReason}
           />

@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "npx playwright test",
-    "test:ui": "npx playwright test --ui"
+    "test:ui": "npx playwright test --ui",
+    "copy-stockfish": "mkdir -p public/stockfish && cp node_modules/stockfish/src/stockfish-nnue-16-single.js node_modules/stockfish/src/stockfish-nnue-16-single.wasm node_modules/stockfish/src/nn-5af11540bbfe.nnue public/stockfish/",
+    "postinstall": "npm run copy-stockfish"
   },
   "dependencies": {
     "@lichess-org/chessground": "github:bouncychess/chessground#multiple-premoves",
@@ -29,7 +31,8 @@
     "dompurify": "^3.3.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.1"
+    "react-router-dom": "^7.9.1",
+    "stockfish": "^16.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",

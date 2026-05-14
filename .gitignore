@@ -13,6 +13,10 @@ dist-ssr
 *.local
 .env
 
+# Stockfish engine files (copied from node_modules by `npm run copy-stockfish`).
+# Excluded because the NNUE weights are ~38MB.
+public/stockfish
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

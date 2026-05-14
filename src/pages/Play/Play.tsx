@@ -9,6 +9,8 @@ import { TimeControlSelector } from "./components/TimeControlSelector";
 import { DEFAULT_TIME_CONTROL, TIME_CONTROLS, tcKey } from "../../constants/timeControls";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { Button } from "../../components/buttons/Button";
+import { EngineAnalysis } from "../../components/game/EngineAnalysis";
+import { AnalysisToggle } from "../../components/game/AnalysisToggle";
 import type { Player } from "../../types/chess";
 import { SoundManager } from "../../utils/SoundManager";
 import { fetchPlayerRatings, type PlayerRatings } from "../../services/ratings";
@@ -72,6 +74,10 @@ function Play() {
   const [boardSize, setBoardSize] = useState(400);
   const [flipped, setFlipped] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [analysisEnabled, setAnalysisEnabled] = useState(false);
+  const [boardFen, setBoardFen] = useState<string>(
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  );
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -208,18 +214,28 @@ function Play() {
           playerColor="white"
           onFlip={() => setFlipped(f => !f)}
           flipped={flipped}
+          controls={
+            <AnalysisToggle
+              enabled={analysisEnabled}
+              onToggle={() => setAnalysisEnabled(v => !v)}
+            />
+          }
         >
           <Board
             gameId={null}
             playerColor="white"
             initialTurn="white"
             onTurnChange={() => {}}
+            onFenChange={setBoardFen}
             onSizeChange={setBoardSize}
             autoPromoteToQueen={autoPromoteToQueen}
             flipped={flipped}
           />
         </GameClock>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, height: boardSize + panelOffset }}>
+          {analysisEnabled && (
+            <EngineAnalysis fen={boardFen} enabled={analysisEnabled} width={258} />
+          )}
           <TimeControlSelector
             selected={selectedTimeControl}
             onSelect={(tc) => {
