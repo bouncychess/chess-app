@@ -122,6 +122,8 @@ export default function News() {
                                         slug: article.slug,
                                         title: article.title,
                                         thumbnail: article.preview_image_url || '',
+                                        ratingAverage: article.rating_average,
+                                        ratingCount: article.rating_count,
                                     }}
                                 />
                             ))}
