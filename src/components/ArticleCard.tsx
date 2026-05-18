@@ -6,12 +6,42 @@ export type Article = {
     slug?: string;
     title: string;
     thumbnail: string;
+    ratingAverage?: number | null;
+    ratingCount?: number;
 };
 
 type ArticleCardProps = {
     article: Article;
     isDraft?: boolean;
 };
+
+const STAR_FILLED_COLOR = '#f59e0b';
+
+function CardStars({ average, count }: { average: number | null | undefined; count: number | undefined }) {
+    // Hide entirely when no ratings exist; the empty row would just be noise.
+    if (!count) return null;
+    const value = average ?? 0;
+    return (
+        <div style={{
+            marginTop: 6,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: '0.85rem',
+            color: theme.colors.placeholder,
+        }}>
+            <div style={{ display: 'flex', gap: 0, color: STAR_FILLED_COLOR, fontSize: '0.95rem', lineHeight: 1 }}>
+                {[1, 2, 3, 4, 5].map(i => (
+                    <span key={i} style={{ opacity: i <= Math.round(value) ? 1 : 0.25 }}>★</span>
+                ))}
+            </div>
+            <span>
+                <span style={{ color: theme.colors.cardText, fontWeight: 600 }}>{value.toFixed(1)}</span>
+                {' '}({count})
+            </span>
+        </div>
+    );
+}
 
 export default function ArticleCard({ article, isDraft }: ArticleCardProps) {
     const linkTo = isDraft
@@ -97,6 +127,9 @@ export default function ArticleCard({ article, isDraft }: ArticleCardProps) {
             </div>
             <div style={{ padding: 12 }}>
                 <h3 style={{ margin: 0, fontSize: '1rem' }}>{article.title}</h3>
+                {!isDraft && (
+                    <CardStars average={article.ratingAverage} count={article.ratingCount} />
+                )}
             </div>
         </Link>
     );

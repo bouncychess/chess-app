@@ -13,6 +13,8 @@ export type ArticleSummary = {
     status: ArticleStatus;
     created_at: string;
     updated_at: string;
+    rating_average: number | null;
+    rating_count: number;
 };
 
 export type ArticleDetail = ArticleSummary & {
