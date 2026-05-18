@@ -15,6 +15,7 @@ DOMPurify.addHook('uponSanitizeElement', (node, data) => {
     }
 });
 import Comments from './components/Comments';
+import StarRating from './components/StarRating';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Button } from '../../components/buttons/Button';
@@ -138,6 +139,7 @@ export default function Article() {
                 dangerouslySetInnerHTML={{ __html: cleanHtml }}
             />
 
+            {id && <StarRating articleId={id} />}
             {id && <Comments articleId={id} />}
         </div>
     );
