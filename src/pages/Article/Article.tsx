@@ -139,8 +139,8 @@ export default function Article() {
                 dangerouslySetInnerHTML={{ __html: cleanHtml }}
             />
 
-            {id && <StarRating articleId={id} />}
-            {id && <Comments articleId={id} />}
+            <StarRating articleId={article.article_id} />
+            <Comments articleId={article.article_id} />
         </div>
     );
 }
