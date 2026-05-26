@@ -70,6 +70,7 @@ cg-board piece {
   bottom: calc(var(--board-size, 400px) * -0.015);
   left: calc(var(--board-size, 400px) * 0.052);
   height: calc(var(--board-size, 400px) * 0.04);
+  text-transform: none;
 }
 
 /* Coordinate label colors */
