@@ -27,6 +27,13 @@ const PlayIcon = () => (
     </svg>
 );
 
+const OpeningsIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="3" y="3" width="18" height="18" rx="1" />
+        <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+    </svg>
+);
+
 const ProfileIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -157,6 +164,12 @@ function SidebarContent({ collapsed, onCollapse, onExpand, showToggle = true }: 
                         <Link to="/play" style={linkStyle} title="Play">
                             <PlayIcon />
                             {!collapsed && <span>Play</span>}
+                        </Link>
+                    </li>
+                    <li>
+                        <Link to="/openings" style={linkStyle} title="Openings">
+                            <OpeningsIcon />
+                            {!collapsed && <span>Openings</span>}
                         </Link>
                     </li>
                     <li>
