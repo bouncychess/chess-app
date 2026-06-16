@@ -32,6 +32,17 @@ interface HistoryMove {
     fen: string;
 }
 
+// Feedback on the user's last move in play mode: was it a book move, and how
+// popular, judged against the explorer stats for the position it came from.
+interface MoveFeedback {
+    san: string;
+    status: "book" | "offbook" | "unknown";
+    sharePct: number; // % of games at the prior position that played this move
+    rank: number; // 1-based popularity rank among listed book moves
+    totalMoves: number; // number of listed book moves
+    avgRating: number | null;
+}
+
 function gamesPlayed(m: ExplorerMove): number {
     return m.white + m.draws + m.black;
 }
@@ -96,6 +107,7 @@ function Openings() {
     const [userColor, setUserColor] = useState<"white" | "black">("white");
     const [outOfBook, setOutOfBook] = useState(false);
     const [analysisEnabled, setAnalysisEnabled] = useState(false);
+    const [lastMoveFeedback, setLastMoveFeedback] = useState<MoveFeedback | null>(null);
     // The position the opponent has already responded to (guards double-replies).
     const lastReplyFen = useRef<string | null>(null);
 
@@ -135,9 +147,35 @@ function Openings() {
         (move: OpeningsBoardMove) => {
             // A fresh user move leads to a new position the opponent hasn't seen.
             lastReplyFen.current = null;
+
+            // In play mode, grade the move against the book for the position it
+            // came from (the explorer returns moves sorted by popularity).
+            if (playMode) {
+                const moves = data && dataFen === currentFen ? data.moves : null;
+                if (!moves) {
+                    setLastMoveFeedback({ san: move.san, status: "unknown", sharePct: 0, rank: 0, totalMoves: 0, avgRating: null });
+                } else {
+                    const total = data!.white + data!.draws + data!.black;
+                    const idx = moves.findIndex((m) => m.uci === move.uci);
+                    if (idx >= 0) {
+                        const entry = moves[idx];
+                        setLastMoveFeedback({
+                            san: move.san,
+                            status: "book",
+                            sharePct: total > 0 ? (gamesPlayed(entry) / total) * 100 : 0,
+                            rank: idx + 1,
+                            totalMoves: moves.length,
+                            avgRating: entry.averageRating,
+                        });
+                    } else {
+                        setLastMoveFeedback({ san: move.san, status: "offbook", sharePct: 0, rank: 0, totalMoves: moves.length, avgRating: null });
+                    }
+                }
+            }
+
             pushMove(move);
         },
-        [pushMove],
+        [pushMove, playMode, data, dataFen, currentFen],
     );
 
     // Apply a move chosen from the explorer table (UCI) at the current position.
@@ -170,6 +208,7 @@ function Openings() {
         setHistory([]);
         setCursor(-1);
         setOutOfBook(false);
+        setLastMoveFeedback(null);
         lastReplyFen.current = null;
     }, []);
 
@@ -179,6 +218,7 @@ function Openings() {
             setUserColor(color);
             setOrientation(color); // view from the user's side
             setOutOfBook(false);
+            setLastMoveFeedback(null);
             lastReplyFen.current = null;
             setPlayMode(true);
         },
@@ -188,6 +228,7 @@ function Openings() {
     const stopPlay = useCallback(() => {
         setPlayMode(false);
         setOutOfBook(false);
+        setLastMoveFeedback(null);
         lastReplyFen.current = null;
     }, []);
 
@@ -356,6 +397,38 @@ function Openings() {
                                         "Opponent is choosing a move…"
                                     )}
                                 </div>
+                                {lastMoveFeedback && (
+                                    <div style={{ borderTop: `1px solid ${theme.colors.border}`, paddingTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
+                                        {lastMoveFeedback.status === "book" && (
+                                            <>
+                                                <div style={{ fontSize: "0.85rem", fontWeight: 700, color: theme.colors.success }}>
+                                                    ✓ {lastMoveFeedback.san} — book move
+                                                </div>
+                                                <div style={{ fontSize: "0.8rem", color: theme.colors.placeholder }}>
+                                                    Played {Math.round(lastMoveFeedback.sharePct)}% of the time · {ordinal(lastMoveFeedback.rank)} most
+                                                    popular of {lastMoveFeedback.totalMoves}
+                                                    {lastMoveFeedback.avgRating ? ` · avg ${lastMoveFeedback.avgRating}` : ""}
+                                                </div>
+                                            </>
+                                        )}
+                                        {lastMoveFeedback.status === "offbook" && (
+                                            <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#c2410c" }}>
+                                                ⚠ {lastMoveFeedback.san} — not a top book move at this rating
+                                            </div>
+                                        )}
+                                        {lastMoveFeedback.status === "unknown" && (
+                                            <div style={{ fontSize: "0.85rem", color: theme.colors.placeholder }}>
+                                                {lastMoveFeedback.san} — book data wasn’t loaded yet
+                                            </div>
+                                        )}
+                                        {data?.opening && (
+                                            <div style={{ fontSize: "0.8rem", color: theme.colors.cardText }}>
+                                                <span style={{ color: theme.colors.placeholder, marginRight: 4 }}>{data.opening.eco}</span>
+                                                {data.opening.name}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 <Button size="sm" variant="danger" onClick={stopPlay}>
                                     Exit play mode
                                 </Button>
@@ -451,6 +524,12 @@ function Openings() {
             </div>
         </div>
     );
+}
+
+function ordinal(n: number): string {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 function moveChipStyle(active: boolean, theme: ReturnType<typeof useTheme>["theme"]): React.CSSProperties {
