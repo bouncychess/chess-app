@@ -16,6 +16,9 @@ interface OpeningsBoardProps {
     orientation: "white" | "black";
     size: number;
     onMove: (move: OpeningsBoardMove) => void;
+    // Which color the user may move. "both" (default) follows the side to move;
+    // a fixed color locks the board to that side (used in play mode).
+    movableColor?: "white" | "black" | "both";
 }
 
 // Legal destinations for chessground, including the extra king-target squares
@@ -47,7 +50,7 @@ function getLegalDests(chess: Chess): Map<Key, Key[]> {
  * for the side to move, and reports each move back via onMove. Promotions
  * auto-queen (rare in opening theory).
  */
-function OpeningsBoard({ fen, lastMove, orientation, size, onMove }: OpeningsBoardProps) {
+function OpeningsBoard({ fen, lastMove, orientation, size, onMove, movableColor = "both" }: OpeningsBoardProps) {
     const boardRef = useRef<HTMLDivElement>(null);
     const cgApiRef = useRef<Api | null>(null);
     const onMoveRef = useRef(onMove);
@@ -95,7 +98,7 @@ function OpeningsBoard({ fen, lastMove, orientation, size, onMove }: OpeningsBoa
             animation: { enabled: true, duration: 150 },
             movable: {
                 free: false,
-                color: turnColor,
+                color: movableColor === "both" ? turnColor : movableColor,
                 dests: getLegalDests(chess),
                 showDests: true,
                 events: { after: handleMove },
@@ -123,11 +126,11 @@ function OpeningsBoard({ fen, lastMove, orientation, size, onMove }: OpeningsBoa
             lastMove: lastMove ? [lastMove[0] as Key, lastMove[1] as Key] : undefined,
             check: chess.inCheck(),
             movable: {
-                color: turnColor,
+                color: movableColor === "both" ? turnColor : movableColor,
                 dests: getLegalDests(chess),
             },
         });
-    }, [fen, lastMove, orientation]);
+    }, [fen, lastMove, orientation, movableColor]);
 
     // Redraw when the board size changes.
     useEffect(() => {

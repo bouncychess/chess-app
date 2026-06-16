@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { useTheme } from "../../context/ThemeContext";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { Button } from "../../components/buttons/Button";
 import { useLichessAuth } from "../../hooks/useLichessAuth";
+import { EngineAnalysis } from "../../components/game/EngineAnalysis";
+import { AnalysisToggle } from "../../components/game/AnalysisToggle";
 import OpeningsBoard, { type OpeningsBoardMove } from "./components/OpeningsBoard";
 import ExplorerPanel from "./components/ExplorerPanel";
 import LichessConnect from "./components/LichessConnect";
@@ -20,10 +22,34 @@ import {
 
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
+// In play mode the book opponent keeps replying while the current position has
+// at least this many games on record; below it, we're "out of book".
+const BOOK_THRESHOLD = 10_000;
+
 interface HistoryMove {
     uci: string;
     san: string;
     fen: string;
+}
+
+function gamesPlayed(m: ExplorerMove): number {
+    return m.white + m.draws + m.black;
+}
+
+// Pick a reply weighted by how often each move is actually played at this
+// position (the move's share of total games).
+function sampleBookMove(moves: ExplorerMove[]): ExplorerMove {
+    const total = moves.reduce((sum, m) => sum + gamesPlayed(m), 0);
+    let r = Math.random() * total;
+    for (const m of moves) {
+        r -= gamesPlayed(m);
+        if (r < 0) return m;
+    }
+    return moves[moves.length - 1];
+}
+
+function turnOf(fen: string): "white" | "black" {
+    return fen.split(" ")[1] === "b" ? "black" : "white";
 }
 
 const RATING_OPTIONS: { value: RatingBucket; label: string }[] = [
@@ -59,10 +85,24 @@ function Openings() {
     });
 
     const [data, setData] = useState<ExplorerResponse | null>(null);
+    // The position `data` corresponds to, so the book opponent only replies
+    // once stats for the actual current position have loaded.
+    const [dataFen, setDataFen] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Play mode: hide stats on your turn; the opponent replies from the book.
+    const [playMode, setPlayMode] = useState(false);
+    const [userColor, setUserColor] = useState<"white" | "black">("white");
+    const [outOfBook, setOutOfBook] = useState(false);
+    const [analysisEnabled, setAnalysisEnabled] = useState(false);
+    // The position the opponent has already responded to (guards double-replies).
+    const lastReplyFen = useRef<string | null>(null);
+
     const currentFen = cursor < 0 ? START_FEN : history[cursor].fen;
+    const turnColor = useMemo(() => turnOf(currentFen), [currentFen]);
+    const isUserTurn = !playMode || turnColor === userColor;
+    const hideStats = playMode && !outOfBook;
     const lastMove = useMemo<[string, string] | null>(() => {
         if (cursor < 0) return null;
         const uci = history[cursor].uci;
@@ -86,12 +126,17 @@ function Openings() {
                 return [...base, move];
             });
             setCursor((c) => c + 1);
+            setOutOfBook(false);
         },
         [cursor],
     );
 
     const handleBoardMove = useCallback(
-        (move: OpeningsBoardMove) => pushMove(move),
+        (move: OpeningsBoardMove) => {
+            // A fresh user move leads to a new position the opponent hasn't seen.
+            lastReplyFen.current = null;
+            pushMove(move);
+        },
         [pushMove],
     );
 
@@ -124,6 +169,26 @@ function Openings() {
     const reset = useCallback(() => {
         setHistory([]);
         setCursor(-1);
+        setOutOfBook(false);
+        lastReplyFen.current = null;
+    }, []);
+
+    const startPlay = useCallback(
+        (color: "white" | "black") => {
+            setCursor(history.length - 1); // play from the live tip of the line
+            setUserColor(color);
+            setOrientation(color); // view from the user's side
+            setOutOfBook(false);
+            lastReplyFen.current = null;
+            setPlayMode(true);
+        },
+        [history.length],
+    );
+
+    const stopPlay = useCallback(() => {
+        setPlayMode(false);
+        setOutOfBook(false);
+        lastReplyFen.current = null;
     }, []);
 
     // Keyboard navigation through the line.
@@ -151,13 +216,15 @@ function Openings() {
             return;
         }
         const controller = new AbortController();
+        const fenForFetch = currentFen;
         setLoading(true);
         setError(null);
         const ratings = bucketsAtLeast(minRating);
         const timer = setTimeout(() => {
-            fetchOpeningExplorer({ fen: currentFen, ratings, speeds: DEFAULT_SPEEDS, signal: controller.signal })
+            fetchOpeningExplorer({ fen: fenForFetch, ratings, speeds: DEFAULT_SPEEDS, signal: controller.signal })
                 .then((res) => {
                     setData(res);
+                    setDataFen(fenForFetch);
                     setLoading(false);
                 })
                 .catch((err) => {
@@ -171,6 +238,40 @@ function Openings() {
             controller.abort();
         };
     }, [currentFen, minRating, auth.status, auth.isAuthorized, auth.token]);
+
+    // Play mode: when it's the opponent's turn, sample a reply from the book
+    // (weighted by how often each move is played) and play it — as long as the
+    // current position still has at least BOOK_THRESHOLD games.
+    useEffect(() => {
+        if (!playMode) return;
+        if (cursor !== history.length - 1) return; // only respond at the live tip
+        if (turnColor === userColor) return; // user's move
+        if (!data || dataFen !== currentFen) return; // wait for this position's stats
+        if (lastReplyFen.current === currentFen) return; // already responded
+
+        const total = data.white + data.draws + data.black;
+        if (total < BOOK_THRESHOLD || data.moves.length === 0) {
+            lastReplyFen.current = currentFen;
+            setOutOfBook(true);
+            return;
+        }
+
+        const pick = sampleBookMove(data.moves);
+        const chess = new Chess(currentFen);
+        try {
+            const result = chess.move({
+                from: pick.uci.slice(0, 2),
+                to: pick.uci.slice(2, 4),
+                promotion: pick.uci.length > 4 ? pick.uci[4] : undefined,
+            });
+            if (result) {
+                lastReplyFen.current = currentFen;
+                pushMove({ uci: pick.uci, san: result.san, fen: chess.fen() });
+            }
+        } catch {
+            /* ignore — stale data */
+        }
+    }, [playMode, cursor, history.length, turnColor, userColor, data, dataFen, currentFen, pushMove]);
 
     // Build a readable move list grouped by full move (1. e4 e5 2. Nf3 ...).
     const moveRows = useMemo(() => {
@@ -211,6 +312,7 @@ function Openings() {
                         orientation={orientation}
                         size={boardSize}
                         onMove={handleBoardMove}
+                        movableColor={playMode ? userColor : "both"}
                     />
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                         {navBtn("⏮", goStart, cursor < 0)}
@@ -230,6 +332,50 @@ function Openings() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 16, width: 360, maxWidth: "100%" }}>
                     {/* Lichess account connection (required by the explorer) */}
                     <LichessConnect auth={auth} theme={theme} />
+
+                    {/* Play mode + analysis controls */}
+                    <div style={{ ...theme.card, display: "flex", flexDirection: "column", gap: 12, padding: "12px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                            <span style={{ fontSize: "0.85rem", fontWeight: 600, color: theme.colors.cardText }}>
+                                Play mode
+                            </span>
+                            <AnalysisToggle enabled={analysisEnabled} onToggle={() => setAnalysisEnabled((v) => !v)} />
+                        </div>
+
+                        {playMode ? (
+                            <>
+                                <div style={{ fontSize: "0.82rem", color: theme.colors.placeholder }}>
+                                    You play <strong style={{ color: theme.colors.cardText }}>{userColor}</strong>.{" "}
+                                    {outOfBook ? (
+                                        <span style={{ color: theme.colors.danger }}>
+                                            Out of book — fewer than {BOOK_THRESHOLD.toLocaleString()} games. Moves revealed.
+                                        </span>
+                                    ) : isUserTurn ? (
+                                        "Your move — opponent will reply from the book."
+                                    ) : (
+                                        "Opponent is choosing a move…"
+                                    )}
+                                </div>
+                                <Button size="sm" variant="danger" onClick={stopPlay}>
+                                    Exit play mode
+                                </Button>
+                            </>
+                        ) : (
+                            <div style={{ display: "flex", gap: 8 }}>
+                                <Button size="sm" variant="primary" onClick={() => startPlay("white")} disabled={!auth.isAuthorized}>
+                                    Play as White
+                                </Button>
+                                <Button size="sm" variant="secondary" onClick={() => startPlay("black")} disabled={!auth.isAuthorized}>
+                                    Play as Black
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Engine evaluation */}
+                    {analysisEnabled && (
+                        <EngineAnalysis fen={currentFen} enabled={analysisEnabled} width="100%" />
+                    )}
 
                     {/* Rating filter */}
                     <div
@@ -270,6 +416,7 @@ function Openings() {
                         error={error}
                         theme={theme}
                         onPlayMove={handleExplorerMove}
+                        hidden={hideStats}
                     />
 
                     {/* Move list */}

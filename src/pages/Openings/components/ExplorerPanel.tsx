@@ -8,6 +8,9 @@ interface ExplorerPanelProps {
     error: string | null;
     theme: Theme;
     onPlayMove: (move: ExplorerMove) => void;
+    // In play mode the move frequencies and results are concealed so the user
+    // can't see the answer while it's their turn.
+    hidden?: boolean;
 }
 
 function formatCount(n: number): string {
@@ -21,8 +24,22 @@ function moveTotal(m: ExplorerMove): number {
     return m.white + m.draws + m.black;
 }
 
-function ExplorerPanel({ data, loading, error, theme, onPlayMove }: ExplorerPanelProps) {
+function ExplorerPanel({ data, loading, error, theme, onPlayMove, hidden = false }: ExplorerPanelProps) {
     const positionTotal = data ? data.white + data.draws + data.black : 0;
+
+    if (hidden) {
+        return (
+            <div style={{ ...theme.card, display: "flex", flexDirection: "column", gap: 8, padding: "18px 16px", textAlign: "center" }}>
+                <div style={{ fontSize: "0.95rem", fontWeight: 700, color: theme.colors.cardText }}>
+                    {data?.opening ? data.opening.name : "Play mode"}
+                </div>
+                <div style={{ fontSize: "0.82rem", color: theme.colors.placeholder }}>
+                    Moves and results are hidden. Make your move — the opponent will reply from the
+                    book.
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div
