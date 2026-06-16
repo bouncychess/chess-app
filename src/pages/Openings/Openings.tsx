@@ -33,19 +33,30 @@ interface HistoryMove {
     fen: string;
 }
 
+// One move shown in the feedback list (the move played plus the more popular
+// ones above it), with its share of games and result counts.
+interface FeedbackRow {
+    san: string;
+    uci: string;
+    sharePct: number;
+    white: number;
+    draws: number;
+    black: number;
+    isUser: boolean;
+}
+
 // Feedback on the user's last move in play mode: was it a book move, and how
 // popular, judged against the explorer stats for the position it came from.
 interface MoveFeedback {
     san: string;
     status: "book" | "offbook" | "unknown";
-    sharePct: number; // % of games at the prior position that played this move
-    rank: number; // 1-based popularity rank among listed book moves
+    rank: number; // 1-based popularity rank among listed book moves (0 if N/A)
     totalMoves: number; // number of listed book moves
     avgRating: number | null;
-    // Game-result counts for this move (only meaningful when status === "book").
-    white: number;
-    draws: number;
-    black: number;
+    // The move played plus every more-popular move above it (most popular first),
+    // so the user can see the better-known choices. For off-book moves this holds
+    // the top moves they could have considered instead.
+    rows: FeedbackRow[];
 }
 
 function gamesPlayed(m: ExplorerMove): number {
@@ -158,25 +169,29 @@ function Openings() {
             if (playMode) {
                 const moves = data && dataFen === currentFen ? data.moves : null;
                 if (!moves) {
-                    setLastMoveFeedback({ san: move.san, status: "unknown", sharePct: 0, rank: 0, totalMoves: 0, avgRating: null, white: 0, draws: 0, black: 0 });
+                    setLastMoveFeedback({ san: move.san, status: "unknown", rank: 0, totalMoves: 0, avgRating: null, rows: [] });
                 } else {
                     const total = data!.white + data!.draws + data!.black;
+                    const share = (m: ExplorerMove) => (total > 0 ? (gamesPlayed(m) / total) * 100 : 0);
+                    const toRow = (m: ExplorerMove, isUser: boolean): FeedbackRow => ({
+                        san: m.san, uci: m.uci, sharePct: share(m), white: m.white, draws: m.draws, black: m.black, isUser,
+                    });
                     const idx = moves.findIndex((m) => m.uci === move.uci);
                     if (idx >= 0) {
-                        const entry = moves[idx];
+                        // Show the played move and everything more popular above it.
+                        const rows = moves.slice(0, idx + 1).map((m, i) => toRow(m, i === idx));
                         setLastMoveFeedback({
                             san: move.san,
                             status: "book",
-                            sharePct: total > 0 ? (gamesPlayed(entry) / total) * 100 : 0,
                             rank: idx + 1,
                             totalMoves: moves.length,
-                            avgRating: entry.averageRating,
-                            white: entry.white,
-                            draws: entry.draws,
-                            black: entry.black,
+                            avgRating: moves[idx].averageRating,
+                            rows,
                         });
                     } else {
-                        setLastMoveFeedback({ san: move.san, status: "offbook", sharePct: 0, rank: 0, totalMoves: moves.length, avgRating: null, white: 0, draws: 0, black: 0 });
+                        // Off book: show the popular moves they could have played.
+                        const rows = moves.slice(0, 5).map((m) => toRow(m, false));
+                        setLastMoveFeedback({ san: move.san, status: "offbook", rank: 0, totalMoves: moves.length, avgRating: null, rows });
                     }
                 }
             }
@@ -406,32 +421,15 @@ function Openings() {
                                     )}
                                 </div>
                                 {lastMoveFeedback && (
-                                    <div style={{ borderTop: `1px solid ${theme.colors.border}`, paddingTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
+                                    <div style={{ borderTop: `1px solid ${theme.colors.border}`, paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
                                         {lastMoveFeedback.status === "book" && (
-                                            <>
-                                                <div style={{ fontSize: "0.85rem", fontWeight: 700, color: theme.colors.success }}>
-                                                    ✓ {lastMoveFeedback.san} — book move
-                                                </div>
-                                                <div style={{ fontSize: "0.8rem", color: theme.colors.placeholder }}>
-                                                    Played {Math.round(lastMoveFeedback.sharePct)}% of the time · {ordinal(lastMoveFeedback.rank)} most
-                                                    popular of {lastMoveFeedback.totalMoves}
+                                            <div style={{ fontSize: "0.85rem", fontWeight: 700, color: theme.colors.success }}>
+                                                ✓ {lastMoveFeedback.san} — {lastMoveFeedback.rank === 1 ? "most popular move" : "book move"}
+                                                <span style={{ fontWeight: 500, color: theme.colors.placeholder, marginLeft: 6, fontSize: "0.78rem" }}>
+                                                    {ordinal(lastMoveFeedback.rank)} of {lastMoveFeedback.totalMoves}
                                                     {lastMoveFeedback.avgRating ? ` · avg ${lastMoveFeedback.avgRating}` : ""}
-                                                </div>
-                                                <WdlBar white={lastMoveFeedback.white} draws={lastMoveFeedback.draws} black={lastMoveFeedback.black} height={20} />
-                                                <div style={{ fontSize: "0.75rem", color: theme.colors.placeholder, display: "flex", justifyContent: "space-between" }}>
-                                                    {(() => {
-                                                        const t = lastMoveFeedback.white + lastMoveFeedback.draws + lastMoveFeedback.black;
-                                                        const p = (n: number) => (t > 0 ? Math.round((n / t) * 100) : 0);
-                                                        return (
-                                                            <>
-                                                                <span>White {p(lastMoveFeedback.white)}%</span>
-                                                                <span>Draw {p(lastMoveFeedback.draws)}%</span>
-                                                                <span>Black {p(lastMoveFeedback.black)}%</span>
-                                                            </>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            </>
+                                                </span>
+                                            </div>
                                         )}
                                         {lastMoveFeedback.status === "offbook" && (
                                             <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#c2410c" }}>
@@ -443,6 +441,41 @@ function Openings() {
                                                 {lastMoveFeedback.san} — book data wasn’t loaded yet
                                             </div>
                                         )}
+
+                                        {/* Played move plus the more-popular moves above it */}
+                                        {lastMoveFeedback.rows.length > 0 && (
+                                            <>
+                                                {(lastMoveFeedback.status === "offbook" || lastMoveFeedback.rank > 1) && (
+                                                    <div style={{ fontSize: "0.72rem", color: theme.colors.placeholder }}>
+                                                        {lastMoveFeedback.status === "offbook"
+                                                            ? "Most popular moves here:"
+                                                            : "More popular moves — yours highlighted:"}
+                                                    </div>
+                                                )}
+                                                <div style={{ display: "flex", flexDirection: "column", gap: 3, maxHeight: 168, overflowY: "auto" }}>
+                                                    {lastMoveFeedback.rows.map((r) => (
+                                                        <div
+                                                            key={r.uci}
+                                                            style={{
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                gap: 8,
+                                                                padding: "3px 6px",
+                                                                borderRadius: 4,
+                                                                background: r.isUser ? theme.colors.moveHighlight : "transparent",
+                                                            }}
+                                                        >
+                                                            <span style={{ minWidth: 42, fontWeight: 700, fontSize: "0.82rem", color: theme.colors.cardText }}>{r.san}</span>
+                                                            <span style={{ minWidth: 34, textAlign: "right", fontSize: "0.72rem", color: theme.colors.placeholder }}>{Math.round(r.sharePct)}%</span>
+                                                            <div style={{ flex: 1 }}>
+                                                                <WdlBar white={r.white} draws={r.draws} black={r.black} height={16} />
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+
                                         {data?.opening && (
                                             <div style={{ fontSize: "0.8rem", color: theme.colors.cardText }}>
                                                 <span style={{ color: theme.colors.placeholder, marginRight: 4 }}>{data.opening.eco}</span>
