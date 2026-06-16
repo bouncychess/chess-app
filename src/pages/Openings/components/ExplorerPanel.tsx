@@ -82,15 +82,15 @@ function ExplorerPanel({ data, loading, error, theme, onPlayMove, hidden = false
                 </div>
             )}
 
-            {/* Moves table */}
-            <div style={{ maxHeight: 460, overflowY: "auto" }}>
+            {/* Moves table — ~5 rows visible, the rest scrolls */}
+            <div style={{ maxHeight: 210, overflowY: "auto" }}>
                 {data && data.moves.length > 0 ? (
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                         <thead>
                             <tr style={{ color: theme.colors.placeholder, fontSize: "0.72rem", textAlign: "left" }}>
-                                <th style={{ padding: "4px 16px", fontWeight: 600 }}>Move</th>
-                                <th style={{ padding: "4px 8px", fontWeight: 600, textAlign: "right" }}>Games</th>
-                                <th style={{ padding: "4px 16px 4px 12px", fontWeight: 600 }}>White / Draw / Black</th>
+                                <th style={{ padding: "4px 16px", fontWeight: 600, position: "sticky", top: 0, background: theme.colors.cardBackground, zIndex: 1 }}>Move</th>
+                                <th style={{ padding: "4px 8px", fontWeight: 600, textAlign: "right", position: "sticky", top: 0, background: theme.colors.cardBackground, zIndex: 1 }}>Games</th>
+                                <th style={{ padding: "4px 16px 4px 12px", fontWeight: 600, position: "sticky", top: 0, background: theme.colors.cardBackground, zIndex: 1 }}>White / Draw / Black</th>
                             </tr>
                         </thead>
                         <tbody>
