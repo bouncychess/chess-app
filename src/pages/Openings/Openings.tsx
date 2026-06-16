@@ -3,8 +3,10 @@ import { Chess } from "chess.js";
 import { useTheme } from "../../context/ThemeContext";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { Button } from "../../components/buttons/Button";
+import { useLichessAuth } from "../../hooks/useLichessAuth";
 import OpeningsBoard, { type OpeningsBoardMove } from "./components/OpeningsBoard";
 import ExplorerPanel from "./components/ExplorerPanel";
+import LichessConnect from "./components/LichessConnect";
 import {
     fetchOpeningExplorer,
     bucketsAtLeast,
@@ -35,6 +37,7 @@ const RATING_OPTIONS: { value: RatingBucket; label: string }[] = [
 
 function Openings() {
     const { theme } = useTheme();
+    const auth = useLichessAuth();
 
     const [history, setHistory] = useState<HistoryMove[]>([]);
     // cursor === -1 means the starting position; otherwise an index into history.
@@ -139,6 +142,14 @@ function Openings() {
     // A short debounce + AbortController keeps at most one request in flight
     // (the explorer is rate-limited) and lets rapid navigation settle first.
     useEffect(() => {
+        // Wait for the auth check; don't fire a doomed request when not authorized.
+        if (auth.status === "loading") return;
+        if (!auth.isAuthorized) {
+            setData(null);
+            setLoading(false);
+            setError(null);
+            return;
+        }
         const controller = new AbortController();
         setLoading(true);
         setError(null);
@@ -159,7 +170,7 @@ function Openings() {
             clearTimeout(timer);
             controller.abort();
         };
-    }, [currentFen, minRating]);
+    }, [currentFen, minRating, auth.status, auth.isAuthorized, auth.token]);
 
     // Build a readable move list grouped by full move (1. e4 e5 2. Nf3 ...).
     const moveRows = useMemo(() => {
@@ -217,6 +228,9 @@ function Openings() {
 
                 {/* Right column: filter, explorer, move list */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 16, width: 360, maxWidth: "100%" }}>
+                    {/* Lichess account connection (required by the explorer) */}
+                    <LichessConnect auth={auth} theme={theme} />
+
                     {/* Rating filter */}
                     <div
                         style={{

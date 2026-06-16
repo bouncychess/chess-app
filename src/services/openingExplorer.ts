@@ -58,6 +58,33 @@ export interface ExplorerQuery {
 export const DEFAULT_SPEEDS: Speed[] = ['blitz', 'rapid', 'classical'];
 export const DEFAULT_MIN_RATING: RatingBucket = 2200;
 
+// Lichess now requires authentication on the opening explorer (it returns 401
+// otherwise). We send a Bearer token: an OAuth token set at runtime takes
+// precedence (for a future lichess login flow), otherwise we fall back to a
+// personal token supplied via VITE_LICHESS_TOKEN in .env.local for local dev.
+let runtimeToken: string | null = null;
+
+/** Set the lichess token at runtime (e.g. after an OAuth login). */
+export function setLichessToken(token: string | null): void {
+    runtimeToken = token;
+}
+
+function getLichessToken(): string | undefined {
+    return runtimeToken || (import.meta.env.VITE_LICHESS_TOKEN as string | undefined) || undefined;
+}
+
+/** Whether any lichess token is currently available. */
+export function hasLichessToken(): boolean {
+    return !!getLichessToken();
+}
+
+export class ExplorerAuthError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'ExplorerAuthError';
+    }
+}
+
 /**
  * Fetch opening statistics for a position. The explorer is rate-limited to
  * roughly one in-flight request, so callers should pass an AbortSignal and
@@ -81,12 +108,22 @@ export async function fetchOpeningExplorer({
     });
     const url = `${EXPLORER_URL}?${params.toString()}`;
 
+    const token = getLichessToken();
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
     for (let attempt = 0; attempt < 2; attempt++) {
-        const response = await fetch(url, { signal });
+        const response = await fetch(url, { signal, headers });
         if (response.status === 429) {
             // Rate limited — back off briefly then retry once.
             await new Promise((resolve) => setTimeout(resolve, 1500));
             continue;
+        }
+        if (response.status === 401) {
+            throw new ExplorerAuthError(
+                token
+                    ? 'Lichess rejected the token (401). Check that VITE_LICHESS_TOKEN is a valid lichess API token.'
+                    : 'Lichess requires authentication for the opening explorer. Add a token to chess-app/.env.local as VITE_LICHESS_TOKEN and restart the dev server.',
+            );
         }
         if (!response.ok) {
             throw new Error(`Opening explorer request failed (${response.status})`);

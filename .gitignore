@@ -31,3 +31,6 @@ public/stockfish
 # Playwright
 test-results/
 playwright-report/
+
+# Local secrets (lichess token, etc.) — never commit
+.env.local
