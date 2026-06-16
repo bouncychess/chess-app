@@ -9,6 +9,7 @@ import { AnalysisToggle } from "../../components/game/AnalysisToggle";
 import OpeningsBoard, { type OpeningsBoardMove } from "./components/OpeningsBoard";
 import ExplorerPanel from "./components/ExplorerPanel";
 import LichessConnect from "./components/LichessConnect";
+import WdlBar from "./components/WdlBar";
 import {
     fetchOpeningExplorer,
     bucketsAtLeast,
@@ -41,6 +42,10 @@ interface MoveFeedback {
     rank: number; // 1-based popularity rank among listed book moves
     totalMoves: number; // number of listed book moves
     avgRating: number | null;
+    // Game-result counts for this move (only meaningful when status === "book").
+    white: number;
+    draws: number;
+    black: number;
 }
 
 function gamesPlayed(m: ExplorerMove): number {
@@ -153,7 +158,7 @@ function Openings() {
             if (playMode) {
                 const moves = data && dataFen === currentFen ? data.moves : null;
                 if (!moves) {
-                    setLastMoveFeedback({ san: move.san, status: "unknown", sharePct: 0, rank: 0, totalMoves: 0, avgRating: null });
+                    setLastMoveFeedback({ san: move.san, status: "unknown", sharePct: 0, rank: 0, totalMoves: 0, avgRating: null, white: 0, draws: 0, black: 0 });
                 } else {
                     const total = data!.white + data!.draws + data!.black;
                     const idx = moves.findIndex((m) => m.uci === move.uci);
@@ -166,9 +171,12 @@ function Openings() {
                             rank: idx + 1,
                             totalMoves: moves.length,
                             avgRating: entry.averageRating,
+                            white: entry.white,
+                            draws: entry.draws,
+                            black: entry.black,
                         });
                     } else {
-                        setLastMoveFeedback({ san: move.san, status: "offbook", sharePct: 0, rank: 0, totalMoves: moves.length, avgRating: null });
+                        setLastMoveFeedback({ san: move.san, status: "offbook", sharePct: 0, rank: 0, totalMoves: moves.length, avgRating: null, white: 0, draws: 0, black: 0 });
                     }
                 }
             }
@@ -408,6 +416,20 @@ function Openings() {
                                                     Played {Math.round(lastMoveFeedback.sharePct)}% of the time · {ordinal(lastMoveFeedback.rank)} most
                                                     popular of {lastMoveFeedback.totalMoves}
                                                     {lastMoveFeedback.avgRating ? ` · avg ${lastMoveFeedback.avgRating}` : ""}
+                                                </div>
+                                                <WdlBar white={lastMoveFeedback.white} draws={lastMoveFeedback.draws} black={lastMoveFeedback.black} height={20} />
+                                                <div style={{ fontSize: "0.75rem", color: theme.colors.placeholder, display: "flex", justifyContent: "space-between" }}>
+                                                    {(() => {
+                                                        const t = lastMoveFeedback.white + lastMoveFeedback.draws + lastMoveFeedback.black;
+                                                        const p = (n: number) => (t > 0 ? Math.round((n / t) * 100) : 0);
+                                                        return (
+                                                            <>
+                                                                <span>White {p(lastMoveFeedback.white)}%</span>
+                                                                <span>Draw {p(lastMoveFeedback.draws)}%</span>
+                                                                <span>Black {p(lastMoveFeedback.black)}%</span>
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </>
                                         )}
