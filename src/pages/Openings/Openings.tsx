@@ -194,6 +194,9 @@ function Openings() {
     const [chessdbVersion, setChessdbVersion] = useState(0);
     const [evalFeedback, setEvalFeedback] = useState<EvalFeedback | null>(null);
     const evalReqId = useRef(0);
+    // Once the user errs (inaccuracy or worse), the opponent switches from
+    // sampling the book to playing chessdb's best move — punishing the mistake.
+    const [punishMode, setPunishMode] = useState(false);
 
     const currentFen = cursor < 0 ? START_FEN : history[cursor].fen;
     const turnColor = useMemo(() => turnOf(currentFen), [currentFen]);
@@ -353,6 +356,7 @@ function Openings() {
     const clearFeedback = () => {
         setLastMoveFeedback(null);
         setEvalFeedback(null);
+        setPunishMode(false);
         evalReqId.current++; // invalidate any in-flight eval grade
     };
 
@@ -494,7 +498,7 @@ function Openings() {
                 const graded = gradeUserMove(parentFen, res.moves, san, uci);
                 if (!graded) return update({ status: "notrated" });
                 if (!graded.matched) return update({ status: "done", matched: false, bestSan: graded.bestSan });
-                return update({
+                update({
                     status: "done",
                     grade: graded.grade,
                     scoreText: formatChessdbScore(graded.userScore, sideToMove),
@@ -502,6 +506,11 @@ function Openings() {
                     loss: graded.loss,
                     matched: true,
                 });
+                // An inaccuracy or worse flips the opponent into punish mode.
+                if (graded.grade === "inaccuracy" || graded.grade === "mistake" || graded.grade === "blunder") {
+                    setPunishMode(true);
+                }
+                return;
             }
             if (res.status === "unknown" || res.status === "nobestmove") {
                 requestChessdbAnalysis(parentFen);
@@ -537,9 +546,28 @@ function Openings() {
         if (!playMode) return;
         if (cursor !== history.length - 1) return; // only respond at the live tip
         if (turnColor === userColor) return; // user's move
-        if (!data || dataFen !== currentFen) return; // wait for this position's stats
         if (lastReplyFen.current === currentFen) return; // already responded
+        // Wait for the user's move to be graded so punish mode is decided before
+        // the opponent picks a reply.
+        if (evalFeedback && evalFeedback.status === "loading") return;
 
+        // Punish mode: reply with chessdb's best move instead of a book sample.
+        if (punishMode) {
+            const cd = chessdbCache.current.get(currentFen);
+            if (!cd) return; // wait for chessdb (continuous fetch will populate it)
+            if (cd.status === "ok" && cd.moves.length > 0) {
+                const best = cd.moves[0];
+                const moved = applyExplorerMove(currentFen, uciToSan(currentFen, best.uci) ?? best.uci, best.uci);
+                if (moved) {
+                    lastReplyFen.current = currentFen;
+                    pushMove(moved);
+                }
+                return;
+            }
+            // chessdb doesn't know this position — fall back to book sampling.
+        }
+
+        if (!data || dataFen !== currentFen) return; // wait for this position's stats
         const total = data.white + data.draws + data.black;
         if (total < BOOK_THRESHOLD || data.moves.length === 0) {
             lastReplyFen.current = currentFen;
@@ -553,7 +581,7 @@ function Openings() {
             lastReplyFen.current = currentFen;
             pushMove(moved);
         }
-    }, [playMode, cursor, history.length, turnColor, userColor, data, dataFen, currentFen, pushMove]);
+    }, [playMode, cursor, history.length, turnColor, userColor, data, dataFen, currentFen, pushMove, punishMode, evalFeedback, chessdbVersion]);
 
     // Build a readable move list grouped by full move (1. e4 e5 2. Nf3 ...).
     const moveRows = useMemo(() => {
@@ -639,6 +667,11 @@ function Openings() {
                                         "Opponent is choosing a move…"
                                     )}
                                 </div>
+                                {punishMode && (
+                                    <div style={{ fontSize: "0.75rem", fontWeight: 700, color: theme.colors.danger }}>
+                                        ⚡ Punish mode — opponent now plays the best moves
+                                    </div>
+                                )}
                                 {lastMoveFeedback && (
                                     <div style={{ borderTop: `1px solid ${theme.colors.border}`, paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
                                         {lastMoveFeedback.status === "book" && (
