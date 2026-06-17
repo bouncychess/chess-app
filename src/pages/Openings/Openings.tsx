@@ -178,8 +178,9 @@ function Openings() {
                     });
                     const idx = moves.findIndex((m) => m.uci === move.uci);
                     if (idx >= 0) {
-                        // Show the played move and everything more popular above it.
-                        const rows = moves.slice(0, idx + 1).map((m, i) => toRow(m, i === idx));
+                        // Always show the top 5 moves, extending to include the
+                        // played move if it ranks deeper than 5.
+                        const rows = moves.slice(0, Math.max(5, idx + 1)).map((m, i) => toRow(m, i === idx));
                         setLastMoveFeedback({
                             san: move.san,
                             status: "book",
