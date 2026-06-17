@@ -79,6 +79,39 @@ function turnOf(fen: string): "white" | "black" {
     return fen.split(" ")[1] === "b" ? "black" : "white";
 }
 
+// Apply an explorer move (which carries both san and uci) at a position.
+// We prefer SAN because the Lichess explorer encodes castling as king-to-rook
+// in UCI (e.g. e8h8) while chess.js expects king-to-square (e8g8); SAN ("O-O")
+// is unambiguous. Falls back to UCI with castling normalized. Returns the
+// resulting move (with chess.js-style uci) or null if illegal.
+function applyExplorerMove(fen: string, san: string, uci: string): HistoryMove | null {
+    const chess = new Chess(fen);
+    let result: ReturnType<Chess["move"]> | null = null;
+    try {
+        result = chess.move(san);
+    } catch {
+        result = null;
+    }
+    if (!result) {
+        const from = uci.slice(0, 2);
+        let to = uci.slice(2, 4);
+        const promotion = uci.length > 4 ? uci[4] : undefined;
+        const piece = chess.get(from as Parameters<Chess["get"]>[0]);
+        if (piece?.type === "k") {
+            const rank = from[1];
+            if (to === `h${rank}`) to = `g${rank}`; // king-side castle
+            else if (to === `a${rank}`) to = `c${rank}`; // queen-side castle
+        }
+        try {
+            result = chess.move({ from, to, promotion });
+        } catch {
+            result = null;
+        }
+    }
+    if (!result) return null;
+    return { uci: `${result.from}${result.to}${result.promotion ?? ""}`, san: result.san, fen: chess.fen() };
+}
+
 const RATING_OPTIONS: { value: RatingBucket; label: string }[] = [
     { value: 0, label: "All ratings" },
     { value: 1600, label: "1600+" },
@@ -183,7 +216,9 @@ function Openings() {
                     const toRow = (m: ExplorerMove, isUser: boolean): FeedbackRow => ({
                         san: m.san, uci: m.uci, sharePct: share(m), white: m.white, draws: m.draws, black: m.black, isUser,
                     });
-                    const idx = moves.findIndex((m) => m.uci === move.uci);
+                    // Match by uci or san: castling differs in uci encoding
+                    // (king-to-rook vs king-to-square) but agrees in san ("O-O").
+                    const idx = moves.findIndex((m) => m.uci === move.uci || m.san === move.san);
                     if (idx >= 0) {
                         // Always show the top 5 moves, extending to include the
                         // played move if it ranks deeper than 5.
@@ -209,21 +244,11 @@ function Openings() {
         [pushMove, playMode, data, dataFen, currentFen],
     );
 
-    // Apply a move chosen from the explorer table (UCI) at the current position.
+    // Apply a move chosen from the explorer table at the current position.
     const handleExplorerMove = useCallback(
         (m: ExplorerMove) => {
-            const chess = new Chess(currentFen);
-            try {
-                const result = chess.move({
-                    from: m.uci.slice(0, 2),
-                    to: m.uci.slice(2, 4),
-                    promotion: m.uci.length > 4 ? m.uci[4] : undefined,
-                });
-                if (!result) return;
-                pushMove({ uci: m.uci, san: result.san, fen: chess.fen() });
-            } catch {
-                /* ignore illegal move from stale data */
-            }
+            const moved = applyExplorerMove(currentFen, m.san, m.uci);
+            if (moved) pushMove(moved);
         },
         [currentFen, pushMove],
     );
@@ -348,19 +373,10 @@ function Openings() {
         }
 
         const pick = sampleBookMove(data.moves);
-        const chess = new Chess(currentFen);
-        try {
-            const result = chess.move({
-                from: pick.uci.slice(0, 2),
-                to: pick.uci.slice(2, 4),
-                promotion: pick.uci.length > 4 ? pick.uci[4] : undefined,
-            });
-            if (result) {
-                lastReplyFen.current = currentFen;
-                pushMove({ uci: pick.uci, san: result.san, fen: chess.fen() });
-            }
-        } catch {
-            /* ignore — stale data */
+        const moved = applyExplorerMove(currentFen, pick.san, pick.uci);
+        if (moved) {
+            lastReplyFen.current = currentFen;
+            pushMove(moved);
         }
     }, [playMode, cursor, history.length, turnColor, userColor, data, dataFen, currentFen, pushMove]);
 
