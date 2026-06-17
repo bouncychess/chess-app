@@ -25,7 +25,7 @@ const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 // In play mode the book opponent keeps replying while the current position has
 // at least this many games on record; below it, we're "out of book".
-const BOOK_THRESHOLD = 1_000;
+const BOOK_THRESHOLD = 100;
 
 interface HistoryMove {
     uci: string;
