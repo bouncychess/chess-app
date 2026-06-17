@@ -2,8 +2,9 @@ import { useMemo } from "react";
 import { Chess } from "chess.js";
 import { useTheme } from "../../context/ThemeContext";
 import { useStockfishAnalysis } from "../../hooks/useStockfishAnalysis";
-import type { EngineInfo, Score } from "../../services/StockfishEngine";
+import type { EngineInfo } from "../../services/StockfishEngine";
 import { ResizableCard } from "../ResizableCard";
+import { toWhiteScore, formatScore, scoreToWhitePercent } from "../../utils/score";
 
 interface EngineAnalysisProps {
   fen: string;
@@ -105,30 +106,6 @@ function LineRow({ info, fen, sideToMove }: { info: EngineInfo | undefined; fen:
       <span>{san}</span>
     </div>
   );
-}
-
-function toWhiteScore(score: Score, sideToMove: "w" | "b"): Score {
-  if (sideToMove === "w") return score;
-  return { type: score.type, value: -score.value };
-}
-
-function formatScore(score: Score): string {
-  if (score.type === "mate") {
-    if (score.value === 0) return "#";
-    return `${score.value > 0 ? "" : "-"}M${Math.abs(score.value)}`;
-  }
-  const pawns = score.value / 100;
-  const sign = pawns >= 0 ? "+" : "";
-  return `${sign}${pawns.toFixed(2)}`;
-}
-
-// Map an eval to a 0-100% bar fill representing how much of the bar should be
-// "white". Capped at +/-10 pawns so a mate-in-1 doesn't make smaller advantages
-// look identical visually.
-function scoreToWhitePercent(score: Score): number {
-  if (score.type === "mate") return score.value > 0 ? 100 : 0;
-  const pawns = Math.max(-10, Math.min(10, score.value / 100));
-  return 50 + (pawns / 10) * 50;
 }
 
 function uciPvToSan(fen: string, uciMoves: string[], maxPlies: number): string {

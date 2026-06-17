@@ -20,6 +20,15 @@ import {
     type ExplorerResponse,
     type ExplorerMove,
 } from "../../services/openingExplorer";
+import {
+    fetchChessdbEval,
+    requestChessdbAnalysis,
+    gradeUserMove,
+    uciToSan,
+    type ChessdbResult,
+    type MoveGrade,
+} from "../../services/chessdbEval";
+import { formatChessdbScore } from "../../utils/score";
 
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -57,6 +66,20 @@ interface MoveFeedback {
     // so the user can see the better-known choices. For off-book moves this holds
     // the top moves they could have considered instead.
     rows: FeedbackRow[];
+}
+
+// chessdb evaluation verdict for the user's last move in play mode.
+interface EvalFeedback {
+    parentFen: string; // position the move was played from
+    san: string;
+    uci: string;
+    sideToMove: "w" | "b"; // whose move it was (for white-perspective display)
+    status: "loading" | "done" | "notrated" | "unavailable";
+    grade?: MoveGrade; // undefined when the move wasn't in chessdb's list
+    scoreText?: string;
+    bestSan?: string;
+    loss?: number;
+    matched?: boolean;
 }
 
 function gamesPlayed(m: ExplorerMove): number {
@@ -166,6 +189,12 @@ function Openings() {
     const fetchFailKey = useRef<string>("");
     const fetchFailCount = useRef(0);
 
+    // chessdb evaluations, cached by FEN. cacheVersion forces derived recompute.
+    const chessdbCache = useRef<Map<string, ChessdbResult>>(new Map());
+    const [chessdbVersion, setChessdbVersion] = useState(0);
+    const [evalFeedback, setEvalFeedback] = useState<EvalFeedback | null>(null);
+    const evalReqId = useRef(0);
+
     const currentFen = cursor < 0 ? START_FEN : history[cursor].fen;
     const turnColor = useMemo(() => turnOf(currentFen), [currentFen]);
     const atLatestPosition = cursor === history.length - 1;
@@ -176,6 +205,57 @@ function Openings() {
         const uci = history[cursor].uci;
         return [uci.slice(0, 2), uci.slice(2, 4)];
     }, [cursor, history]);
+
+    // chessdb eval for the position currently on the board (for the explorer).
+    const currentChessdb = useMemo(
+        () => chessdbCache.current.get(currentFen) ?? null,
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [currentFen, chessdbVersion],
+    );
+
+    // Map each candidate move (by san) to its white-perspective eval + rank.
+    const currentEvalBySan = useMemo(() => {
+        const map = new Map<string, { text: string; rank: number }>();
+        if (currentChessdb?.status === "ok") {
+            const stm = turnColor === "white" ? "w" : "b";
+            for (const m of currentChessdb.moves) {
+                const san = uciToSan(currentFen, m.uci);
+                if (san && !map.has(san)) map.set(san, { text: formatChessdbScore(m.score, stm), rank: m.rank });
+            }
+        }
+        return map;
+    }, [currentChessdb, currentFen, turnColor]);
+
+    const positionEval = useMemo(() => {
+        if (currentChessdb?.status !== "ok") return null;
+        const best = currentChessdb.moves[0];
+        const stm = turnColor === "white" ? "w" : "b";
+        return { text: formatChessdbScore(best.score, stm), bestSan: uciToSan(currentFen, best.uci) ?? best.uci };
+    }, [currentChessdb, currentFen, turnColor]);
+
+    const evalStatus = useMemo<"loading" | "notrated" | "unavailable" | null>(() => {
+        if (!currentChessdb) return "loading";
+        if (currentChessdb.status === "ok") return null;
+        if (currentChessdb.status === "unknown" || currentChessdb.status === "nobestmove") return "notrated";
+        return "unavailable";
+    }, [currentChessdb]);
+
+    // Eval per candidate (by san) for the parent of the user's graded move, to
+    // annotate the play-mode feedback rows.
+    const feedbackEvalBySan = useMemo(() => {
+        const map = new Map<string, string>();
+        if (!evalFeedback) return map;
+        const cached = chessdbCache.current.get(evalFeedback.parentFen);
+        if (cached?.status === "ok") {
+            const stm = turnOf(evalFeedback.parentFen) === "white" ? "w" : "b";
+            for (const m of cached.moves) {
+                const san = uciToSan(evalFeedback.parentFen, m.uci);
+                if (san && !map.has(san)) map.set(san, formatChessdbScore(m.score, stm));
+            }
+        }
+        return map;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [evalFeedback, chessdbVersion]);
 
     useEffect(() => {
         const onResize = () => {
@@ -237,11 +317,21 @@ function Openings() {
                         setLastMoveFeedback({ san: move.san, status: "offbook", rank: 0, totalMoves: moves.length, avgRating: null, rows });
                     }
                 }
+
+                // Seed the chessdb eval verdict; a dedicated effect resolves it
+                // against the parent position's stored evaluation.
+                setEvalFeedback({
+                    parentFen: currentFen,
+                    san: move.san,
+                    uci: move.uci,
+                    sideToMove: turnColor === "white" ? "w" : "b",
+                    status: "loading",
+                });
             }
 
             pushMove(move);
         },
-        [pushMove, playMode, data, dataFen, currentFen],
+        [pushMove, playMode, data, dataFen, currentFen, turnColor],
     );
 
     // Apply a move chosen from the explorer table at the current position.
@@ -260,11 +350,17 @@ function Openings() {
     );
     const goStart = useCallback(() => setCursor(-1), []);
     const goEnd = useCallback(() => setCursor(history.length - 1), [history.length]);
+    const clearFeedback = () => {
+        setLastMoveFeedback(null);
+        setEvalFeedback(null);
+        evalReqId.current++; // invalidate any in-flight eval grade
+    };
+
     const reset = useCallback(() => {
         setHistory([]);
         setCursor(-1);
         setOutOfBook(false);
-        setLastMoveFeedback(null);
+        clearFeedback();
         lastReplyFen.current = null;
     }, []);
 
@@ -274,7 +370,7 @@ function Openings() {
             setUserColor(color);
             setOrientation(color); // view from the user's side
             setOutOfBook(false);
-            setLastMoveFeedback(null);
+            clearFeedback();
             lastReplyFen.current = null;
             setPlayMode(true);
         },
@@ -284,7 +380,7 @@ function Openings() {
     const stopPlay = useCallback(() => {
         setPlayMode(false);
         setOutOfBook(false);
-        setLastMoveFeedback(null);
+        clearFeedback();
         lastReplyFen.current = null;
     }, []);
 
@@ -354,6 +450,85 @@ function Openings() {
             controller.abort();
         };
     }, [currentFen, minRating, auth.status, auth.isAuthorized, auth.token, retryTick]);
+
+    // Fetch chessdb evaluation for the current position (explore + play). Cached
+    // by FEN so revisiting a position is free; no auth needed.
+    useEffect(() => {
+        if (chessdbCache.current.has(currentFen)) return;
+        const controller = new AbortController();
+        const fen = currentFen;
+        const timer = setTimeout(() => {
+            fetchChessdbEval({ fen, signal: controller.signal })
+                .then((res) => {
+                    chessdbCache.current.set(fen, res);
+                    setChessdbVersion((v) => v + 1);
+                })
+                .catch((err) => {
+                    if (err.name === "AbortError") return;
+                });
+        }, 150);
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [currentFen]);
+
+    // Resolve the chessdb verdict for the user's last move: grade it against the
+    // parent position's evaluation (from cache, fetching it on a miss). A request
+    // id guards against stale responses when moves happen in quick succession.
+    useEffect(() => {
+        if (!evalFeedback || evalFeedback.status !== "loading") return;
+        const { parentFen, san, uci, sideToMove } = evalFeedback;
+        const reqId = ++evalReqId.current;
+
+        const update = (patch: Partial<EvalFeedback>) => {
+            if (reqId !== evalReqId.current) return;
+            setEvalFeedback((prev) =>
+                prev && prev.parentFen === parentFen && prev.san === san ? { ...prev, ...patch } : prev,
+            );
+        };
+
+        const resolve = (res: ChessdbResult) => {
+            if (reqId !== evalReqId.current) return;
+            if (res.status === "ok") {
+                const graded = gradeUserMove(parentFen, res.moves, san, uci);
+                if (!graded) return update({ status: "notrated" });
+                if (!graded.matched) return update({ status: "done", matched: false, bestSan: graded.bestSan });
+                return update({
+                    status: "done",
+                    grade: graded.grade,
+                    scoreText: formatChessdbScore(graded.userScore, sideToMove),
+                    bestSan: graded.bestSan,
+                    loss: graded.loss,
+                    matched: true,
+                });
+            }
+            if (res.status === "unknown" || res.status === "nobestmove") {
+                requestChessdbAnalysis(parentFen);
+                return update({ status: "notrated" });
+            }
+            update({ status: "unavailable" });
+        };
+
+        const cached = chessdbCache.current.get(parentFen);
+        if (cached) {
+            resolve(cached);
+            return;
+        }
+
+        const controller = new AbortController();
+        fetchChessdbEval({ fen: parentFen, signal: controller.signal })
+            .then((res) => {
+                chessdbCache.current.set(parentFen, res);
+                setChessdbVersion((v) => v + 1);
+                resolve(res);
+            })
+            .catch((err) => {
+                if (err.name === "AbortError") return;
+                update({ status: "unavailable" });
+            });
+        return () => controller.abort();
+    }, [evalFeedback]);
 
     // Play mode: when it's the opponent's turn, sample a reply from the book
     // (weighted by how often each move is played) and play it — as long as the
@@ -486,6 +661,11 @@ function Openings() {
                                             </div>
                                         )}
 
+                                        {/* chessdb quality verdict for the played move */}
+                                        {evalFeedback && evalFeedback.san === lastMoveFeedback.san && (
+                                            <EvalVerdictLine fb={evalFeedback} theme={theme} />
+                                        )}
+
                                         {/* Played move plus the more-popular moves above it */}
                                         {lastMoveFeedback.rows.length > 0 && (
                                             <>
@@ -512,6 +692,9 @@ function Openings() {
                                                             <div style={{ flex: 1 }}>
                                                                 <WdlBar white={r.white} draws={r.draws} black={r.black} height={16} />
                                                             </div>
+                                                            <span style={{ minWidth: 42, textAlign: "right", fontSize: "0.72rem", fontWeight: 600, color: theme.colors.placeholder }}>
+                                                                {feedbackEvalBySan.get(r.san) ?? ""}
+                                                            </span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -587,6 +770,9 @@ function Openings() {
                         theme={theme}
                         onPlayMove={handleExplorerMove}
                         hidden={hideStats}
+                        evalBySan={currentEvalBySan}
+                        positionEval={positionEval}
+                        evalStatus={evalStatus}
                     />
 
                     {/* Move list */}
@@ -627,6 +813,48 @@ function ordinal(n: number): string {
     const s = ["th", "st", "nd", "rd"];
     const v = n % 100;
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+type ThemeT = ReturnType<typeof useTheme>["theme"];
+
+function gradeStyle(grade: MoveGrade, theme: ThemeT): { label: string; color: string; icon: string } {
+    switch (grade) {
+        case "best": return { label: "Best move", color: theme.colors.success, icon: "✓" };
+        case "good": return { label: "Good", color: theme.colors.success, icon: "✓" };
+        case "inaccuracy": return { label: "Inaccuracy", color: "#c2410c", icon: "?!" };
+        case "mistake": return { label: "Mistake", color: theme.colors.danger, icon: "?" };
+        case "blunder": return { label: "Blunder", color: theme.colors.danger, icon: "??" };
+    }
+}
+
+// The chessdb evaluation verdict line for the user's played move.
+function EvalVerdictLine({ fb, theme }: { fb: EvalFeedback; theme: ThemeT }) {
+    const muted = (text: string) => (
+        <div style={{ fontSize: "0.8rem", color: theme.colors.placeholder, fontStyle: "italic" }}>{text}</div>
+    );
+    if (fb.status === "loading") return muted("Evaluating…");
+    if (fb.status === "notrated") return muted("Not yet evaluated by chessdb");
+    if (fb.status === "unavailable") return muted("Eval unavailable");
+    // status === "done"
+    if (!fb.grade) {
+        return muted(`Move not in chessdb's list${fb.bestSan ? ` · best was ${fb.bestSan}` : ""}`);
+    }
+    const gs = gradeStyle(fb.grade, theme);
+    const showBest = fb.grade !== "best" && fb.grade !== "good" && fb.bestSan;
+    return (
+        <div style={{ fontSize: "0.82rem", fontWeight: 700, color: gs.color }}>
+            {gs.icon} {gs.label}
+            {fb.scoreText && (
+                <span style={{ marginLeft: 6, fontWeight: 600 }}>{fb.scoreText}</span>
+            )}
+            {showBest && (
+                <span style={{ marginLeft: 6, fontWeight: 500, color: theme.colors.placeholder }}>
+                    · best was {fb.bestSan}
+                    {fb.loss != null && fb.loss > 0 ? ` (−${(fb.loss / 100).toFixed(2)})` : ""}
+                </span>
+            )}
+        </div>
+    );
 }
 
 function moveChipStyle(active: boolean, theme: ReturnType<typeof useTheme>["theme"]): React.CSSProperties {

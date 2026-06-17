@@ -11,6 +11,11 @@ interface ExplorerPanelProps {
     // In play mode the move frequencies and results are concealed so the user
     // can't see the answer while it's their turn.
     hidden?: boolean;
+    // chessdb evaluations (white-perspective), per candidate move by san, plus a
+    // position eval / best move for the header.
+    evalBySan?: Map<string, { text: string; rank: number }>;
+    positionEval?: { text: string; bestSan: string } | null;
+    evalStatus?: "loading" | "notrated" | "unavailable" | null;
 }
 
 function formatCount(n: number): string {
@@ -24,7 +29,7 @@ function moveTotal(m: ExplorerMove): number {
     return m.white + m.draws + m.black;
 }
 
-function ExplorerPanel({ data, loading, error, theme, onPlayMove, hidden = false }: ExplorerPanelProps) {
+function ExplorerPanel({ data, loading, error, theme, onPlayMove, hidden = false, evalBySan, positionEval, evalStatus }: ExplorerPanelProps) {
     const positionTotal = data ? data.white + data.draws + data.black : 0;
 
     if (hidden) {
@@ -74,6 +79,17 @@ function ExplorerPanel({ data, loading, error, theme, onPlayMove, hidden = false
                           ? `${formatCount(positionTotal)} games`
                           : ""}
                 </div>
+                {positionEval ? (
+                    <div style={{ fontSize: "0.78rem", color: theme.colors.placeholder, marginTop: 2 }}>
+                        Eval <span style={{ fontWeight: 700, color: theme.colors.cardText }}>{positionEval.text}</span>
+                        {" · best "}
+                        <span style={{ fontWeight: 700, color: theme.colors.cardText }}>{positionEval.bestSan}</span>
+                    </div>
+                ) : evalStatus === "loading" ? (
+                    <div style={{ fontSize: "0.78rem", color: theme.colors.placeholder, marginTop: 2 }}>Eval…</div>
+                ) : evalStatus === "notrated" ? (
+                    <div style={{ fontSize: "0.78rem", color: theme.colors.placeholder, marginTop: 2 }}>Not in chessdb yet</div>
+                ) : null}
             </div>
 
             {error && (
@@ -90,13 +106,15 @@ function ExplorerPanel({ data, loading, error, theme, onPlayMove, hidden = false
                             <tr style={{ color: theme.colors.placeholder, fontSize: "0.72rem", textAlign: "left" }}>
                                 <th style={{ padding: "4px 16px", fontWeight: 600, position: "sticky", top: 0, background: theme.colors.cardBackground, zIndex: 1 }}>Move</th>
                                 <th style={{ padding: "4px 8px", fontWeight: 600, textAlign: "right", position: "sticky", top: 0, background: theme.colors.cardBackground, zIndex: 1 }}>Games</th>
-                                <th style={{ padding: "4px 16px 4px 12px", fontWeight: 600, position: "sticky", top: 0, background: theme.colors.cardBackground, zIndex: 1 }}>White / Draw / Black</th>
+                                <th style={{ padding: "4px 8px 4px 12px", fontWeight: 600, position: "sticky", top: 0, background: theme.colors.cardBackground, zIndex: 1 }}>White / Draw / Black</th>
+                                <th style={{ padding: "4px 16px 4px 6px", fontWeight: 600, textAlign: "right", position: "sticky", top: 0, background: theme.colors.cardBackground, zIndex: 1 }}>Eval</th>
                             </tr>
                         </thead>
                         <tbody>
                             {data.moves.map((m) => {
                                 const mTotal = moveTotal(m);
                                 const share = positionTotal > 0 ? Math.round((mTotal / positionTotal) * 100) : 0;
+                                const ev = evalBySan?.get(m.san);
                                 return (
                                     <tr
                                         key={m.uci}
@@ -117,8 +135,11 @@ function ExplorerPanel({ data, loading, error, theme, onPlayMove, hidden = false
                                                 {share}%
                                             </span>
                                         </td>
-                                        <td style={{ padding: "8px 16px 8px 12px", width: 150 }}>
+                                        <td style={{ padding: "8px 8px 8px 12px", width: 130 }}>
                                             <WdlBar white={m.white} draws={m.draws} black={m.black} height={18} />
+                                        </td>
+                                        <td style={{ padding: "8px 16px 8px 6px", textAlign: "right", whiteSpace: "nowrap", fontSize: "0.78rem", fontWeight: 600, color: ev?.rank === 2 ? theme.colors.success : theme.colors.placeholder }}>
+                                            {ev?.text ?? ""}
                                         </td>
                                     </tr>
                                 );
