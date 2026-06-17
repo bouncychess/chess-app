@@ -25,7 +25,7 @@ const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 // In play mode the book opponent keeps replying while the current position has
 // at least this many games on record; below it, we're "out of book".
-const BOOK_THRESHOLD = 100;
+const BOOK_THRESHOLD = 10;
 
 interface HistoryMove {
     uci: string;
@@ -126,9 +126,16 @@ function Openings() {
     const [lastMoveFeedback, setLastMoveFeedback] = useState<MoveFeedback | null>(null);
     // The position the opponent has already responded to (guards double-replies).
     const lastReplyFen = useRef<string | null>(null);
+    // Retry plumbing so a transient explorer failure (e.g. rate limiting) doesn't
+    // strand the opponent on "choosing a move".
+    const [retryTick, setRetryTick] = useState(0);
+    const retryTimer = useRef<number | null>(null);
+    const fetchFailKey = useRef<string>("");
+    const fetchFailCount = useRef(0);
 
     const currentFen = cursor < 0 ? START_FEN : history[cursor].fen;
     const turnColor = useMemo(() => turnOf(currentFen), [currentFen]);
+    const atLatestPosition = cursor === history.length - 1;
     const isUserTurn = !playMode || turnColor === userColor;
     const hideStats = playMode && !outOfBook;
     const lastMove = useMemo<[string, string] | null>(() => {
@@ -282,12 +289,14 @@ function Openings() {
         }
         const controller = new AbortController();
         const fenForFetch = currentFen;
+        const key = `${minRating}:${fenForFetch}`;
         setLoading(true);
         setError(null);
         const ratings = bucketsAtLeast(minRating);
         const timer = setTimeout(() => {
             fetchOpeningExplorer({ fen: fenForFetch, ratings, speeds: DEFAULT_SPEEDS, signal: controller.signal })
                 .then((res) => {
+                    fetchFailCount.current = 0;
                     setData(res);
                     setDataFen(fenForFetch);
                     setLoading(false);
@@ -296,13 +305,30 @@ function Openings() {
                     if (err.name === "AbortError") return;
                     setError(err.message || "Failed to load opening data.");
                     setLoading(false);
+                    // Retry transient failures (bounded) so the opponent doesn't
+                    // get stuck waiting on stats that never arrived.
+                    if (fetchFailKey.current !== key) {
+                        fetchFailKey.current = key;
+                        fetchFailCount.current = 0;
+                    }
+                    if (fetchFailCount.current < 5) {
+                        fetchFailCount.current += 1;
+                        retryTimer.current = window.setTimeout(
+                            () => setRetryTick((t) => t + 1),
+                            1500 + 500 * fetchFailCount.current,
+                        );
+                    }
                 });
         }, 120);
         return () => {
             clearTimeout(timer);
+            if (retryTimer.current) {
+                clearTimeout(retryTimer.current);
+                retryTimer.current = null;
+            }
             controller.abort();
         };
-    }, [currentFen, minRating, auth.status, auth.isAuthorized, auth.token]);
+    }, [currentFen, minRating, auth.status, auth.isAuthorized, auth.token, retryTick]);
 
     // Play mode: when it's the opponent's turn, sample a reply from the book
     // (weighted by how often each move is played) and play it — as long as the
@@ -409,14 +435,15 @@ function Openings() {
 
                         {playMode ? (
                             <>
-                                <div style={{ fontSize: "0.82rem", color: theme.colors.placeholder }}>
-                                    You play <strong style={{ color: theme.colors.cardText }}>{userColor}</strong>.{" "}
+                                <div style={{ fontSize: "0.82rem", color: theme.colors.placeholder, minHeight: "1.2em" }}>
                                     {outOfBook ? (
                                         <span style={{ color: theme.colors.danger }}>
-                                            Out of book — fewer than {BOOK_THRESHOLD.toLocaleString()} games. Moves revealed.
+                                            Out of book — fewer than {BOOK_THRESHOLD.toLocaleString()} games.
                                         </span>
+                                    ) : !atLatestPosition ? (
+                                        "Reviewing earlier moves"
                                     ) : isUserTurn ? (
-                                        "Your move — opponent will reply from the book."
+                                        "Your turn to play"
                                     ) : (
                                         "Opponent is choosing a move…"
                                     )}
@@ -446,11 +473,9 @@ function Openings() {
                                         {/* Played move plus the more-popular moves above it */}
                                         {lastMoveFeedback.rows.length > 0 && (
                                             <>
-                                                {(lastMoveFeedback.status === "offbook" || lastMoveFeedback.rank > 1) && (
+                                                {lastMoveFeedback.status === "offbook" && (
                                                     <div style={{ fontSize: "0.72rem", color: theme.colors.placeholder }}>
-                                                        {lastMoveFeedback.status === "offbook"
-                                                            ? "Most popular moves here:"
-                                                            : "More popular moves — yours highlighted:"}
+                                                        Most popular moves here:
                                                     </div>
                                                 )}
                                                 <div style={{ display: "flex", flexDirection: "column", gap: 3, maxHeight: 168, overflowY: "auto" }}>
