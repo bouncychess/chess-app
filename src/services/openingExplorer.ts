@@ -69,7 +69,7 @@ export function setLichessToken(token: string | null): void {
     runtimeToken = token;
 }
 
-function getLichessToken(): string | undefined {
+export function getLichessToken(): string | undefined {
     return runtimeToken || (import.meta.env.VITE_LICHESS_TOKEN as string | undefined) || undefined;
 }
 

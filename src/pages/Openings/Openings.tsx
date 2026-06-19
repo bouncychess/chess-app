@@ -6,6 +6,7 @@ import { Button } from "../../components/buttons/Button";
 import { useLichessAuth } from "../../hooks/useLichessAuth";
 import { EngineAnalysis } from "../../components/game/EngineAnalysis";
 import { AnalysisToggle } from "../../components/game/AnalysisToggle";
+import { ToggleSwitch } from "../../components/ToggleSwitch";
 import OpeningsBoard, { type OpeningsBoardMove } from "./components/OpeningsBoard";
 import ExplorerPanel from "./components/ExplorerPanel";
 import LichessConnect from "./components/LichessConnect";
@@ -29,6 +30,14 @@ import {
     type MoveGrade,
 } from "../../services/chessdbEval";
 import { formatChessdbScore } from "../../utils/score";
+import {
+    fetchLichessPlayerMoves,
+    buildChesscomRepertoire,
+    positionKey,
+    lookup,
+    type PlayerMovesResult,
+    type RepColor,
+} from "../../services/playerRepertoire";
 
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -80,6 +89,18 @@ interface EvalFeedback {
     bestSan?: string;
     loss?: number;
     matched?: boolean;
+}
+
+type RepSource = "lichess" | "chesscom";
+
+// Whether the user's last move follows the chosen player's repertoire.
+interface RepertoireFeedback {
+    parentFen: string;
+    san: string;
+    uci: string;
+    status: "loading" | "in" | "deviation" | "none" | "unavailable";
+    count?: number; // times the player played this move (status "in")
+    topMoves?: { san: string; count: number }[]; // their main moves (status "deviation")
 }
 
 function gamesPlayed(m: ExplorerMove): number {
@@ -167,6 +188,22 @@ function Openings() {
         },
     });
 
+    // Repertoire to copy: a lichess or chess.com username. The source is a direct
+    // toggle; the username is committed via Set/Enter.
+    const [repSource, setRepSource] = useLocalStorage<RepSource>({
+        key: "openings-rep-source",
+        defaultValue: "lichess",
+        serialize: (v) => v,
+        deserialize: (s) => (s === "lichess" || s === "chesscom" ? s : undefined),
+    });
+    const [repUsername, setRepUsername] = useLocalStorage<string>({
+        key: "openings-rep-username",
+        defaultValue: "",
+        serialize: (v) => v,
+        deserialize: (s) => s,
+    });
+    const [repInput, setRepInput] = useState(repUsername); // uncommitted username buffer
+
     const [data, setData] = useState<ExplorerResponse | null>(null);
     // The position `data` corresponds to, so the book opponent only replies
     // once stats for the actual current position have loaded.
@@ -197,6 +234,20 @@ function Openings() {
     // Once the user errs (inaccuracy or worse), the opponent switches from
     // sampling the book to playing chessdb's best move — punishing the mistake.
     const [punishMode, setPunishMode] = useState(false);
+
+    // Repertoire tracking. Lichess: per-position results cached by key. Chess.com:
+    // a built position→moves map per (username, color).
+    const repCache = useRef<Map<string, PlayerMovesResult>>(new Map());
+    const [repVersion, setRepVersion] = useState(0);
+    const repMaps = useRef<Map<string, Map<string, Map<string, number>>>>(new Map());
+    const [repBuild, setRepBuild] = useState<{
+        key: string;
+        status: "idle" | "building" | "ready" | "notfound" | "error";
+        gamesUsed: number;
+    }>({ key: "", status: "idle", gamesUsed: 0 });
+    const repBuildAbort = useRef<AbortController | null>(null);
+    const [repFeedback, setRepFeedback] = useState<RepertoireFeedback | null>(null);
+    const repReqId = useRef(0);
 
     const currentFen = cursor < 0 ? START_FEN : history[cursor].fen;
     const turnColor = useMemo(() => turnOf(currentFen), [currentFen]);
@@ -259,6 +310,44 @@ function Openings() {
         return map;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [evalFeedback, chessdbVersion]);
+
+    // ---- Repertoire (copy a player) -------------------------------------
+    // Active as soon as a username is set (so data loads on "Set", not only in
+    // play mode). The relevant color for any position is simply whose turn it is
+    // there — so it works for both sides with no userColor coupling.
+    const repActive = !!repUsername;
+    const repKey = useCallback(
+        (fen: string) => `${repUsername.toLowerCase()}:${turnOf(fen)}:${positionKey(fen)}`,
+        [repUsername],
+    );
+
+    // Per-position player moves, source-agnostic.
+    const repResultFor = useCallback(
+        (fen: string): PlayerMovesResult | null => {
+            if (!repActive) return null;
+            if (repSource === "lichess") return repCache.current.get(repKey(fen)) ?? null;
+            const map = repMaps.current.get(`${repUsername.toLowerCase()}:${turnOf(fen)}`);
+            return map ? lookup(map, fen) : null;
+        },
+        [repActive, repSource, repKey, repUsername],
+    );
+
+    const currentRepBySan = useMemo(() => {
+        const map = new Map<string, number>();
+        const res = repResultFor(currentFen);
+        if (res?.status === "ok") for (const m of res.moves) map.set(m.san, m.count);
+        return map;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentFen, repResultFor, repVersion, repBuild.status]);
+
+    const feedbackRepBySan = useMemo(() => {
+        const map = new Map<string, number>();
+        if (!repFeedback) return map;
+        const res = repResultFor(repFeedback.parentFen);
+        if (res?.status === "ok") for (const m of res.moves) map.set(m.san, m.count);
+        return map;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [repFeedback, repResultFor, repVersion, repBuild.status]);
 
     useEffect(() => {
         const onResize = () => {
@@ -330,11 +419,16 @@ function Openings() {
                     sideToMove: turnColor === "white" ? "w" : "b",
                     status: "loading",
                 });
+
+                // Seed the repertoire verdict (resolved by a dedicated effect).
+                if (repActive) {
+                    setRepFeedback({ parentFen: currentFen, san: move.san, uci: move.uci, status: "loading" });
+                }
             }
 
             pushMove(move);
         },
-        [pushMove, playMode, data, dataFen, currentFen, turnColor],
+        [pushMove, playMode, data, dataFen, currentFen, turnColor, repActive],
     );
 
     // Apply a move chosen from the explorer table at the current position.
@@ -346,18 +440,20 @@ function Openings() {
         [currentFen, pushMove],
     );
 
+    // Step through the line with the arrow keys (the on-screen back/forward
+    // buttons were removed; the move list and arrow keys handle navigation).
     const goBack = useCallback(() => setCursor((c) => Math.max(-1, c - 1)), []);
     const goForward = useCallback(
         () => setCursor((c) => Math.min(history.length - 1, c + 1)),
         [history.length],
     );
-    const goStart = useCallback(() => setCursor(-1), []);
-    const goEnd = useCallback(() => setCursor(history.length - 1), [history.length]);
     const clearFeedback = () => {
         setLastMoveFeedback(null);
         setEvalFeedback(null);
+        setRepFeedback(null);
         setPunishMode(false);
         evalReqId.current++; // invalidate any in-flight eval grade
+        repReqId.current++; // invalidate any in-flight repertoire grade
     };
 
     const reset = useCallback(() => {
@@ -539,6 +635,125 @@ function Openings() {
         return () => controller.abort();
     }, [evalFeedback]);
 
+    // Repertoire (lichess): fetch the player's moves for the current position
+    // (for the side to move) as soon as a username is set — cached per position.
+    useEffect(() => {
+        if (repSource !== "lichess" || !repUsername) return;
+        const key = repKey(currentFen);
+        if (repCache.current.has(key)) return;
+        const controller = new AbortController();
+        const fen = currentFen;
+        const username = repUsername;
+        const color = turnOf(currentFen) as RepColor;
+        const timer = setTimeout(() => {
+            fetchLichessPlayerMoves({ username, color, fen, signal: controller.signal })
+                .then((res) => {
+                    repCache.current.set(key, res);
+                    setRepVersion((v) => v + 1);
+                })
+                .catch((err) => {
+                    if (err.name === "AbortError") return;
+                });
+        }, 200);
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [repSource, repUsername, currentFen, repVersion]);
+
+    // Repertoire (chess.com): build the player's repertoire from their game
+    // archives as soon as a username is set — both colors in one pass, so it
+    // starts immediately (no need to be in play mode / know the color yet).
+    useEffect(() => {
+        if (repSource !== "chesscom" || !repUsername) return;
+        const key = repUsername.toLowerCase();
+        if (repMaps.current.has(`${key}:white`)) {
+            if (repBuild.key !== key || repBuild.status !== "ready") {
+                setRepBuild({ key, status: "ready", gamesUsed: 0 });
+            }
+            return;
+        }
+        if (repBuild.key === key && repBuild.status === "building") return;
+
+        repBuildAbort.current?.abort();
+        const controller = new AbortController();
+        repBuildAbort.current = controller;
+        setRepBuild({ key, status: "building", gamesUsed: 0 });
+
+        buildChesscomRepertoire({
+            username: repUsername,
+            signal: controller.signal,
+            onProgress: ({ gamesUsed }) => setRepBuild((p) => (p.key === key ? { ...p, gamesUsed } : p)),
+        }).then((res) => {
+            if (controller.signal.aborted) return;
+            if (res.status === "ok") {
+                repMaps.current.set(`${key}:white`, res.white);
+                repMaps.current.set(`${key}:black`, res.black);
+                setRepBuild({ key, status: "ready", gamesUsed: res.gamesUsed });
+                setRepVersion((v) => v + 1);
+            } else if (res.status === "notfound") {
+                setRepBuild({ key, status: "notfound", gamesUsed: 0 });
+            } else if (res.status !== "aborted") {
+                setRepBuild({ key, status: "error", gamesUsed: res.gamesUsed });
+            }
+        });
+        return () => controller.abort();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [repSource, repUsername]);
+
+    // Resolve the repertoire verdict for the user's last move against the parent
+    // position's player moves. A request id guards against stale responses.
+    useEffect(() => {
+        if (!repFeedback || repFeedback.status !== "loading") return;
+        const { parentFen, san, uci } = repFeedback;
+        const reqId = ++repReqId.current;
+
+        const update = (patch: Partial<RepertoireFeedback>) => {
+            if (reqId !== repReqId.current) return;
+            setRepFeedback((prev) =>
+                prev && prev.parentFen === parentFen && prev.san === san ? { ...prev, ...patch } : prev,
+            );
+        };
+
+        const grade = (res: PlayerMovesResult) => {
+            if (reqId !== repReqId.current) return;
+            if (res.status === "error") return update({ status: "unavailable" });
+            if (res.status === "none") return update({ status: "none" });
+            const normalized = uciToSan(parentFen, uci) ?? san;
+            const hit = res.moves.find((m) => m.san === normalized || m.san === san);
+            if (hit) return update({ status: "in", count: hit.count });
+            update({ status: "deviation", topMoves: res.moves.slice(0, 4) });
+        };
+
+        if (repSource === "chesscom") {
+            const map = repMaps.current.get(`${repUsername.toLowerCase()}:${turnOf(parentFen)}`);
+            if (!map) return update({ status: "unavailable" });
+            grade(lookup(map, parentFen));
+            return;
+        }
+
+        const key = repKey(parentFen);
+        const cached = repCache.current.get(key);
+        if (cached) {
+            grade(cached);
+            return;
+        }
+        const controller = new AbortController();
+        fetchLichessPlayerMoves({ username: repUsername, color: turnOf(parentFen) as RepColor, fen: parentFen, signal: controller.signal })
+            .then((res) => {
+                repCache.current.set(key, res);
+                setRepVersion((v) => v + 1);
+                grade(res);
+            })
+            .catch((err) => {
+                if (err.name === "AbortError") return;
+                update({ status: "unavailable" });
+            });
+        return () => controller.abort();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [repFeedback]);
+
     // Play mode: when it's the opponent's turn, sample a reply from the book
     // (weighted by how often each move is played) and play it — as long as the
     // current position still has at least BOOK_THRESHOLD games.
@@ -596,11 +811,38 @@ function Openings() {
         return rows;
     }, [history]);
 
-    const navBtn = (label: string, onClick: () => void, disabled: boolean) => (
-        <Button size="sm" variant="secondary" onClick={onClick} disabled={disabled}>
-            {label}
-        </Button>
-    );
+    const applyRep = () => {
+        const name = repInput.trim();
+        if (!name) return;
+        setRepUsername(name);
+        setRepFeedback(null);
+        repReqId.current++;
+    };
+    const clearRep = () => {
+        repBuildAbort.current?.abort();
+        setRepUsername("");
+        setRepInput("");
+        setRepFeedback(null);
+        setRepBuild({ key: "", status: "idle", gamesUsed: 0 });
+        repReqId.current++;
+    };
+    const repStatusText = (() => {
+        if (!repUsername) return "";
+        if (repSource === "lichess") return `Following ${repUsername} (lichess)`;
+        if (repBuild.key !== repUsername.toLowerCase()) return `Preparing ${repUsername}…`;
+        switch (repBuild.status) {
+            case "building":
+                return `Loading ${repBuild.gamesUsed.toLocaleString()} games…`;
+            case "ready":
+                return `Following ${repUsername} · ${repBuild.gamesUsed.toLocaleString()} games`;
+            case "notfound":
+                return "Player not found on chess.com";
+            case "error":
+                return "Couldn't load games";
+            default:
+                return `Preparing ${repUsername}…`;
+        }
+    })();
 
     return (
         <div style={{ padding: isMobile ? 12 : 20 }}>
@@ -624,17 +866,33 @@ function Openings() {
                         onMove={handleBoardMove}
                         movableColor={playMode ? userColor : "both"}
                     />
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                        {navBtn("⏮", goStart, cursor < 0)}
-                        {navBtn("◀", goBack, cursor < 0)}
-                        {navBtn("▶", goForward, cursor >= history.length - 1)}
-                        {navBtn("⏭", goEnd, cursor >= history.length - 1)}
-                        <Button size="sm" variant="secondary" onClick={() => setOrientation((o) => (o === "white" ? "black" : "white"))}>
-                            Flip
-                        </Button>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <Button size="sm" variant="danger" onClick={reset} disabled={history.length === 0}>
                             Reset
                         </Button>
+                        <button
+                            type="button"
+                            onClick={() => setOrientation((o) => (o === "white" ? "black" : "white"))}
+                            title="Flip board"
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                padding: "0 6px",
+                                opacity: 0.6,
+                                transition: "opacity 0.15s ease",
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.6")}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M4 14V2M1 5l3-3 3 3" stroke={theme.colors.text} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M12 2v12M9 11l3 3 3-3" stroke={theme.colors.text} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -650,6 +908,47 @@ function Openings() {
                                 Play mode
                             </span>
                             <AnalysisToggle enabled={analysisEnabled} onToggle={() => setAnalysisEnabled((v) => !v)} />
+                        </div>
+
+                        {/* Copy a player's repertoire */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, borderTop: `1px solid ${theme.colors.border}`, paddingTop: 10 }}>
+                            <span style={{ fontSize: "0.78rem", fontWeight: 600, color: theme.colors.cardText }}>Copy a repertoire</span>
+                            <div style={{ alignSelf: "flex-start" }}>
+                                <ToggleSwitch
+                                    options={[
+                                        { label: "Lichess", value: "lichess" },
+                                        { label: "Chess.com", value: "chesscom" },
+                                    ]}
+                                    selected={repSource}
+                                    onToggle={() => setRepSource(repSource === "lichess" ? "chesscom" : "lichess")}
+                                />
+                            </div>
+                            <div style={{ display: "flex", gap: 6 }}>
+                                <input
+                                    value={repInput}
+                                    onChange={(e) => setRepInput(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === "Enter") applyRep(); }}
+                                    placeholder="username"
+                                    style={{ ...theme.input, backgroundColor: theme.colors.cardBackground, color: theme.colors.cardText, flex: 1, minWidth: 0 }}
+                                />
+                                <Button size="sm" variant="primary" onClick={applyRep}>Set</Button>
+                            </div>
+                            {repStatusText && (
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                                    <span style={{ fontSize: "0.74rem", color: theme.colors.placeholder }}>{repStatusText}</span>
+                                    <button
+                                        onClick={clearRep}
+                                        style={{ background: "none", border: "none", color: theme.colors.link, cursor: "pointer", fontSize: "0.74rem", padding: 0 }}
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+                            )}
+                            {!playMode && repUsername && (
+                                <span style={{ fontSize: "0.72rem", color: theme.colors.placeholder, fontStyle: "italic" }}>
+                                    Start playing to check your moves against this repertoire.
+                                </span>
+                            )}
                         </div>
 
                         {playMode ? (
@@ -699,6 +998,11 @@ function Openings() {
                                             <EvalVerdictLine fb={evalFeedback} theme={theme} />
                                         )}
 
+                                        {/* repertoire verdict for the played move */}
+                                        {repActive && repFeedback && repFeedback.san === lastMoveFeedback.san && (
+                                            <RepertoireVerdictLine fb={repFeedback} who={repUsername} theme={theme} />
+                                        )}
+
                                         {/* Played move plus the more-popular moves above it */}
                                         {lastMoveFeedback.rows.length > 0 && (
                                             <>
@@ -714,20 +1018,25 @@ function Openings() {
                                                             style={{
                                                                 display: "flex",
                                                                 alignItems: "center",
-                                                                gap: 8,
+                                                                gap: 6,
                                                                 padding: "3px 6px",
                                                                 borderRadius: 4,
                                                                 background: r.isUser ? theme.colors.moveHighlight : "transparent",
                                                             }}
                                                         >
-                                                            <span style={{ minWidth: 42, fontWeight: 700, fontSize: "0.82rem", color: theme.colors.cardText }}>{r.san}</span>
-                                                            <span style={{ minWidth: 34, textAlign: "right", fontSize: "0.72rem", color: theme.colors.placeholder }}>{Math.round(r.sharePct)}%</span>
+                                                            <span style={{ minWidth: 38, fontWeight: 700, fontSize: "0.78rem", color: theme.colors.cardText }}>{r.san}</span>
+                                                            <span style={{ minWidth: 28, textAlign: "right", fontSize: "0.7rem", color: theme.colors.placeholder }}>{Math.round(r.sharePct)}%</span>
                                                             <div style={{ flex: 1 }}>
                                                                 <WdlBar white={r.white} draws={r.draws} black={r.black} height={16} />
                                                             </div>
-                                                            <span style={{ minWidth: 42, textAlign: "right", fontSize: "0.72rem", fontWeight: 600, color: theme.colors.placeholder }}>
+                                                            <span style={{ minWidth: 34, textAlign: "right", fontSize: "0.7rem", fontWeight: 600, color: theme.colors.placeholder }}>
                                                                 {feedbackEvalBySan.get(r.san) ?? ""}
                                                             </span>
+                                                            {repActive && (
+                                                                <span style={{ minWidth: 28, textAlign: "right", fontSize: "0.7rem", fontWeight: 700, color: feedbackRepBySan.get(r.san) ? theme.colors.cardText : theme.colors.placeholder }} title={feedbackRepBySan.get(r.san) ? `${repUsername} played this ${feedbackRepBySan.get(r.san)}×` : ""}>
+                                                                    {feedbackRepBySan.get(r.san) ? `×${feedbackRepBySan.get(r.san)}` : ""}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -806,6 +1115,8 @@ function Openings() {
                         evalBySan={currentEvalBySan}
                         positionEval={positionEval}
                         evalStatus={evalStatus}
+                        repBySan={repActive ? currentRepBySan : undefined}
+                        repName={repUsername}
                     />
 
                     {/* Move list */}
@@ -884,6 +1195,34 @@ function EvalVerdictLine({ fb, theme }: { fb: EvalFeedback; theme: ThemeT }) {
                 <span style={{ marginLeft: 6, fontWeight: 500, color: theme.colors.placeholder }}>
                     · best was {fb.bestSan}
                     {fb.loss != null && fb.loss > 0 ? ` (−${(fb.loss / 100).toFixed(2)})` : ""}
+                </span>
+            )}
+        </div>
+    );
+}
+
+// Whether the user's move follows the chosen player's repertoire.
+function RepertoireVerdictLine({ fb, who, theme }: { fb: RepertoireFeedback; who: string; theme: ThemeT }) {
+    const muted = (text: string) => (
+        <div style={{ fontSize: "0.8rem", color: theme.colors.placeholder, fontStyle: "italic" }}>{text}</div>
+    );
+    if (fb.status === "loading") return muted("Checking repertoire…");
+    if (fb.status === "unavailable") return muted("Repertoire not ready");
+    if (fb.status === "none") return muted(`${who} never reached this position`);
+    if (fb.status === "in") {
+        return (
+            <div style={{ fontSize: "0.82rem", fontWeight: 700, color: theme.colors.success }}>
+                ✓ In {who}'s repertoire{fb.count != null ? ` · played ${fb.count}×` : ""}
+            </div>
+        );
+    }
+    // deviation
+    return (
+        <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#c2410c" }}>
+            ⚠ Off {who}'s repertoire
+            {fb.topMoves && fb.topMoves.length > 0 && (
+                <span style={{ fontWeight: 500, color: theme.colors.placeholder, marginLeft: 6, fontSize: "0.78rem" }}>
+                    — they play {fb.topMoves.map((m) => `${m.san} (${m.count})`).join(", ")}
                 </span>
             )}
         </div>
